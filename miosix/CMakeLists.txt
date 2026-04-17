@@ -47,7 +47,7 @@ set(MIOSIX_USER_CONFIG_PATH
     "${CMAKE_SOURCE_DIR}/config"
     CACHE PATH "Path of the Miosix configuration directory")
 set(MIOSIX_USER_BOARD_SETTINGS_PATH
-    "${MIOSIX_USER_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD}"
+    "${MIOSIX_USER_CONFIG_PATH}/board/${MIOSIX_BOARD}"
     CACHE PATH "Include directory for board_settings.h")
 
 # Default warning flags used for Miosix and projects that link with it.
@@ -86,7 +86,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/arch/CMakeLists.txt)
 
 # Verify that all the required variables have been defined, otherwise abort
 set(REQUIRED_VARIABLES
-    MIOSIX_OPT_BOARD
+    MIOSIX_BOARD
     MIOSIX_CHIP_INC
     MIOSIX_BOARD_INC
     MIOSIX_LINKER_SCRIPT
@@ -112,7 +112,7 @@ message(STATUS
     "   - CMAKE_TOOLCHAIN_FILE:             ${CMAKE_TOOLCHAIN_FILE}\n"
     "   - CMAKE_CXX_STANDARD:               ${CMAKE_CXX_STANDARD}\n"
     "   - CMAKE_BUILD_TYPE:                 ${CMAKE_BUILD_TYPE}\n"
-    "   - MIOSIX_OPT_BOARD:                 ${MIOSIX_OPT_BOARD}\n"
+    "   - MIOSIX_BOARD:                     ${MIOSIX_BOARD}\n"
     "   - MIOSIX_LINKER_SCRIPT:             ${MIOSIX_LINKER_SCRIPT}\n"
     "   - MIOSIX_BOARD_VARIANT:             ${MIOSIX_BOARD_VARIANT}\n"
     "   - MIOSIX_DISABLE_EXCEPTIONS:        ${MIOSIX_DISABLE_EXCEPTIONS}\n"
@@ -130,7 +130,7 @@ endif()
 option(MIOSIX_PRINT_LINKER_SCRIPT_LIST "Prints a list of the available linker scripts" ON)
 if(MIOSIX_PRINT_LINKER_SCRIPT_LIST)
     miosix_print_list(STATUS
-        "Available linker scripts for ${MIOSIX_OPT_BOARD}:"
+        "Available linker scripts for ${MIOSIX_BOARD}:"
         "${LINKER_SCRIPTS_ONLY_LIST}"
         SELECTION "${MIOSIX_LINKER_SCRIPT}"
         DEFAULT "${MIOSIX_DEFAULT_LINKER_SCRIPT}"
@@ -141,13 +141,13 @@ option(MIOSIX_PRINT_BOARD_VARIANT_LIST "Prints a list of the available board var
 if(MIOSIX_PRINT_BOARD_VARIANT_LIST)
     if(DEFINED MIOSIX_BOARD_VARIANT_LIST)
         miosix_print_list(STATUS
-            "Available board variants for ${MIOSIX_OPT_BOARD}:"
+            "Available board variants for ${MIOSIX_BOARD}:"
             "${MIOSIX_BOARD_VARIANT_LIST}"
             SELECTION ${MIOSIX_BOARD_VARIANT}
             DEFAULT ${MIOSIX_DEFAULT_BOARD_VARIANT}
         )
     else()
-        message(STATUS "Board ${MIOSIX_OPT_BOARD} has no variants")
+        message(STATUS "Board ${MIOSIX_BOARD} has no variants")
     endif()
 endif()
 
@@ -206,7 +206,7 @@ target_include_directories(miosix PUBLIC
     ${MIOSIX_USER_CONFIG_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/config
     ${MIOSIX_BOARD_SETTINGS_INC}
-    ${CMAKE_CURRENT_SOURCE_DIR}/config/board/${MIOSIX_OPT_BOARD}
+    ${CMAKE_CURRENT_SOURCE_DIR}/config/board/${MIOSIX_BOARD}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/arch
     ${MIOSIX_CPU_INC}
@@ -216,7 +216,7 @@ target_include_directories(miosix PUBLIC
 
 target_compile_options(miosix BEFORE PUBLIC
     -qkernelspace
-    -D_MIOSIX_BOARDNAME="${MIOSIX_OPT_BOARD}"
+    -D_MIOSIX_BOARDNAME="${MIOSIX_BOARD}"
     -D_DEFAULT_SOURCE=1
     $<$<COMPILE_LANGUAGE:ASM>:${MIOSIX_BOARD_ASM_FLAGS}>
     $<$<COMPILE_LANGUAGE:C>:${MIOSIX_BOARD_C_FLAGS}>

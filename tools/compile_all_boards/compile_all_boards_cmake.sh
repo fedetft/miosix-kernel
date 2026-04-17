@@ -70,7 +70,7 @@ for board in $boards; do
     mkdir -p "$dir/$board.build"
     cmake -B "$dir/$board.build" -S . \
         -GUnix\ Makefiles \
-        -DMIOSIX_OPT_BOARD=$board -DCMAKE_VERBOSE_MAKEFILE=TRUE \
+        -DMIOSIX_BOARD=$board -DCMAKE_VERBOSE_MAKEFILE=TRUE \
             &> "$dir/$board.build/main.log"
     cmake --build "$dir/$board.build" $PARALLEL &>> "$dir/$board.build/main.log"
     if [[ $? == 0 ]]; then

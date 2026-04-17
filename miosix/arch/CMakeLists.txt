@@ -88,19 +88,19 @@ set(MIOSIX_BOARDS
 )
 
 # Target board option, this also implicitly select the target architecture
-set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
-set_property(CACHE MIOSIX_OPT_BOARD PROPERTY STRINGS ${MIOSIX_BOARDS})
-if(MIOSIX_OPT_BOARD STREQUAL NOT_SET)
-    miosix_expected_item_in_list("You must specify a target board with MIOSIX_OPT_BOARD" "${MIOSIX_BOARDS}")
-elseif(NOT MIOSIX_OPT_BOARD IN_LIST MIOSIX_BOARDS)
-    miosix_expected_item_in_list("Selected board '${MIOSIX_OPT_BOARD}' is not in the MIOSIX_BOARDS list" "${MIOSIX_BOARDS}")
+set(MIOSIX_BOARD NOT_SET CACHE STRING "Target board")
+set_property(CACHE MIOSIX_BOARD PROPERTY STRINGS ${MIOSIX_BOARDS})
+if(MIOSIX_BOARD STREQUAL NOT_SET)
+    miosix_expected_item_in_list("You must specify a target board with MIOSIX_BOARD" "${MIOSIX_BOARDS}")
+elseif(NOT MIOSIX_BOARD IN_LIST MIOSIX_BOARDS)
+    miosix_expected_item_in_list("Selected board '${MIOSIX_BOARD}' is not in the MIOSIX_BOARDS list" "${MIOSIX_BOARDS}")
 endif()
 
 # Optimization flags are set with CMAKE_<LANG>_FLAGS_<CONFIG>
 # The default values are in the toolchain file
 
 # Directory with header files for this board
-set(MIOSIX_BOARD_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/board/${MIOSIX_OPT_BOARD})
+set(MIOSIX_BOARD_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/board/${MIOSIX_BOARD})
 
 # Include the board specific CMakeLists
 include(${MIOSIX_BOARD_INC}/CMakeLists.txt)
@@ -150,7 +150,7 @@ if(DEFINED MIOSIX_BOARD_VARIANT_LIST)
     endif()
 else()
     if(NOT MIOSIX_BOARD_VARIANT STREQUAL "")
-        message(WARNING "Board '${MIOSIX_OPT_BOARD}' does not have variants but MIOSIX_BOARD_VARIANT is set to '${MIOSIX_BOARD_VARIANT}'")
+        message(WARNING "Board '${MIOSIX_BOARD}' does not have variants but MIOSIX_BOARD_VARIANT is set to '${MIOSIX_BOARD_VARIANT}'")
     endif()
 endif()
 

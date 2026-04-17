@@ -35,7 +35,7 @@ set(CMAKE_BUILD_TYPE "Release")
 project(ProcessesExamples C CXX ASM)
 
 # Set Miosix definitions and options
-set(MIOSIX_OPT_BOARD stm32f407vg_stm32f4discovery)
+set(MIOSIX_BOARD stm32f407vg_stm32f4discovery)
 set(MIOSIX_LINKER_SCRIPT processes.ld)
 
 # Include the Miosix kernel's project

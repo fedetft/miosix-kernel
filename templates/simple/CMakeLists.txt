@@ -37,7 +37,7 @@ project(Main C CXX ASM)
 
 # Set Miosix definitions and options
 # set(MIOSIX_USER_CONFIG_PATH ${CMAKE_SOURCE_DIR}/config)
-# set(MIOSIX_OPT_BOARD stm32f...)
+# set(MIOSIX_BOARD stm32f...)
 # set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
 
 # Include the Miosix kernel's project
