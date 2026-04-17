@@ -66,4 +66,4 @@ set(MIOSIX_BOARD_CXX_FLAGS -D_BOARD_STM32F765II_MARCO_RAM_BOARD)
 # built. Use <binary> or <hex> as placeolders, they will be replaced by the
 # build systems with the binary or hex file path repectively.
 # If a command is not specified, the build system will fallback to st-flash
-set(PROGRAM_CMDLINE openocd -f '${MIOSIX_BOARD_INC}/openocd.cfg' -c 'program <binary> 0x8000000 verify reset' -c shutdown)
+set(PROGRAM_CMDLINE openocd -f "${MIOSIX_BOARD_INC}/openocd.cfg" -c "program \"<binary>\" 0x8000000 verify reset" -c shutdown)
