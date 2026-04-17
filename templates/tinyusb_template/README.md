@@ -1,13 +1,13 @@
-# TinyUSB example
+# TinyUSB template
 
-This example shows how to use TinyUSB (https://www.tinyusb.org/) with
+This template shows how to use TinyUSB (https://www.tinyusb.org/) with
 Miosix, implementing a simple application which exposes via USB a virtual
 serial port which echoes incoming characters.
 
-As is, the example is made for a stm32f4discovery board, but it can be adapted
+As is, the template is made for a stm32f4discovery board, but it can be adapted
 for other boards.
 
-## Structure of the example
+## Directory structure
 
 The `tinyusb` directory contains a separate Makefile just for building
 TinyUSB separately, creating a static library called `libtinyusb.a`. This is
@@ -63,9 +63,10 @@ files we allow TinyUSB to include `interfaces/arch_registers.h` without
 needing to modify TinyUSB's source code. Only a few example stub files have been
 included; add new stubs as needed for your project.
 
-## Compiling this example
+## Compiling this template
 
-To try out this example, get a stm32f4-discovery board, then follow these steps:
+To try out this template as-is, get a stm32f4-discovery board, then follow these
+steps:
 
 1. Change the current directory to the example's directory
 2. Perform the following commands in the root of the repository:
@@ -77,9 +78,9 @@ To try out this example, get a stm32f4-discovery board, then follow these steps:
    ```
 3. Compile normally by running `make clean; make` in the root of the repository.
 
-## Using this example as a template
+## Adding TinyUSB to an existing project
 
-To use TinyUSB in a new Miosix project, follow these steps:
+To use TinyUSB in an existing Miosix project, follow these steps:
 
 1. Copy and paste the `tinyusb` directory of this example in your project
 2. In your Makefile, add the following subdirectories, libraries and includes:
