@@ -35,10 +35,11 @@ set(CMAKE_BUILD_TYPE "Release")
 
 project(Main C CXX ASM)
 
-# Set Miosix definitions and options
+# Select the board (mandatory). See the options in miosix/arch/CMakeLists.txt
+set(MIOSIX_BOARD stm32...)
+# User config path and linker script selection are optional
 # set(MIOSIX_USER_CONFIG_PATH ${CMAKE_SOURCE_DIR}/config)
-# set(MIOSIX_BOARD stm32f...)
-# set(MIOSIX_LINKER_SCRIPT stm32_1m+192k_rom_processes.ld)
+# set(MIOSIX_LINKER_SCRIPT unikernel.ld)
 
 # Include the Miosix kernel's project
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)

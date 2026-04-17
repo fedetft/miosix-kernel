@@ -31,7 +31,7 @@ set(CMAKE_BUILD_TYPE "Release")
 
 project(testsuite C CXX ASM)
 
-set(MIOSIX_BOARD stm32f407vg_stm32f4discovery)
+#set(MIOSIX_BOARD stm32f407vg_stm32f4discovery)
 set(MIOSIX_LINKER_SCRIPT processes.ld)
 
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
@@ -39,7 +39,6 @@ add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 # Kernel level program
 add_executable(testsuite testsuite.cpp)
 target_compile_definitions(miosix PUBLIC WITH_FILESYSTEM)
-target_compile_definitions(miosix PUBLIC WITH_PROCESSES)
 miosix_link_target(testsuite)
 
 # Processes

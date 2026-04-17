@@ -32,7 +32,7 @@ set(CMAKE_BUILD_TYPE "Release")
 project(BlinkingLED C CXX ASM)
 
 # Set Miosix definitions and options
-set(MIOSIX_BOARD rp2040_raspberry_pi_pico)
+#set(MIOSIX_BOARD rp2040_raspberry_pi_pico)
 
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
