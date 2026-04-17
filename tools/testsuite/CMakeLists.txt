@@ -32,7 +32,9 @@ set(CMAKE_BUILD_TYPE "Release")
 project(testsuite C CXX ASM)
 
 #set(MIOSIX_BOARD stm32f407vg_stm32f4discovery)
-set(MIOSIX_LINKER_SCRIPT processes.ld)
+if(NOT DEFINED MIOSIX_LINKER_SCRIPT)
+    set(MIOSIX_LINKER_SCRIPT processes.ld)
+endif()
 
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
@@ -43,13 +45,14 @@ miosix_link_target(testsuite)
 
 # Processes
 miosix_add_process(test_process test_process/main.cpp)
-miosix_add_process(test_execve test_execve/main.cpp)
-miosix_add_process(test_global_dtor_ctor test_global_dtor_ctor/main.cpp)
+miosix_add_process(test_execve test_execve/main.cpp RAM_SIZE 8192)
+miosix_add_process(test_global_dtor_ctor test_global_dtor_ctor/main.cpp RAM_SIZE 8192)
+miosix_add_process(test_crash test_crash/main.cpp RAM_SIZE 8192)
 
 # RomFS image
 miosix_add_romfs_image(image
     PROGRAM_DEFAULT
     DIR_NAME bin
     KERNEL testsuite
-    PROCESSES test_process test_execve test_global_dtor_ctor
+    PROCESSES test_process test_execve test_global_dtor_ctor test_crash
 )

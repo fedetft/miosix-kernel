@@ -94,6 +94,7 @@ set(REQUIRED_VARIABLES
     MIOSIX_BOARD_CXX_FLAGS
     MIOSIX_CHIP_C_FLAGS
     MIOSIX_CHIP_CXX_FLAGS
+    MIOSIX_CPU_FLAGS
     MIOSIX_BOARD_SRC
     MIOSIX_CHIP_SRC
 )
@@ -102,6 +103,8 @@ foreach(VARIABLE ${REQUIRED_VARIABLES})
         message(FATAL_ERROR "arch/CMakeLists.txt must define ${VARIABLE}")
     endif()
 endforeach()
+# Export MIOSIX_CPU_FLAGS so we can access it in AddProcess.cmake
+set(MIOSIX_CPU_FLAGS "${MIOSIX_CPU_FLAGS}" PARENT_SCOPE)
 
 # Print build configuration
 message(STATUS

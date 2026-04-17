@@ -43,7 +43,7 @@ function(miosix_add_process TARGET SOURCES)
     add_executable(${TARGET} ${SOURCES})
 
     target_compile_options(${TARGET} PUBLIC ${MIOSIX_CPU_FLAGS} -ffunction-sections)
-    target_link_options(${TARGET} PUBLIC -Wl,--gc-sections)
+    target_link_options(${TARGET} PUBLIC ${MIOSIX_CPU_FLAGS} -Wl,--gc-sections)
 
     # Strip unnecessary sections from the ELF
     add_custom_command(
