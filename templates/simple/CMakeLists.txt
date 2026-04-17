@@ -30,7 +30,6 @@ set(MIOSIX_KPATH ${CMAKE_SOURCE_DIR}/../../miosix)
 # Configure CMake toolchain and build type.
 # This must to be done before the project() command
 set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/gcc.cmake)
-# set(CMAKE_TOOLCHAIN_FILE ${MIOSIX_KPATH}/cmake/Toolchains/clang.cmake)
 set(CMAKE_BUILD_TYPE "Release")
 
 project(Main C CXX ASM)
