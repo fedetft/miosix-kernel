@@ -123,7 +123,7 @@ endif()
 # Set compilation options based on linker scripts
 list(SUBLIST MIOSIX_LINKER_SCRIPT_LIST ${LINKER_SCRIPT_IDX} -1 LINKER_SCRIPT_OPTIONS)
 foreach(OPTION IN LISTS LINKER_SCRIPT_OPTIONS)
-    if(OPTION EQUAL "${MIOSIX_LINKER_SCRIPT}")
+    if(OPTION STREQUAL MIOSIX_LINKER_SCRIPT)
         # first iteration, ignore
         continue()
     endif()
