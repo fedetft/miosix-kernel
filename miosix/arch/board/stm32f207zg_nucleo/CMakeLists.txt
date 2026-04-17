@@ -11,6 +11,7 @@ set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/stm32f2)
 # that linker script is selected
 set(MIOSIX_LINKER_SCRIPT_LIST
     unikernel.ld
+    processes.ld    -DWITH_PROCESSES
 )
 set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
 
