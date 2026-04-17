@@ -44,7 +44,7 @@ set(CMAKE_CXX_STANDARD 23 CACHE STRING "Project C++ standard")
 
 # The user can set custom paths for miosix_settings.h and board_settings.h
 set(MIOSIX_USER_CONFIG_PATH
-    "${CMAKE_SOURCE_DIR}"
+    "${CMAKE_SOURCE_DIR}/config"
     CACHE PATH "Path of the Miosix configuration directory")
 set(MIOSIX_USER_BOARD_SETTINGS_PATH
     "${MIOSIX_USER_CONFIG_PATH}/board/${MIOSIX_OPT_BOARD}"
