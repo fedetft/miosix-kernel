@@ -87,8 +87,6 @@ set(MIOSIX_BOARDS
     stm32u585ci_generic
 )
 
-option(MIOSIX_PRINT_BOARD_LIST "Prints a list of the available boards" OFF)
-
 # Target board option, this also implicitly select the target architecture
 set(MIOSIX_OPT_BOARD NOT_SET CACHE STRING "Target board")
 set_property(CACHE MIOSIX_OPT_BOARD PROPERTY STRINGS ${MIOSIX_BOARDS})
@@ -96,9 +94,6 @@ if(MIOSIX_OPT_BOARD STREQUAL NOT_SET)
     miosix_expected_item_in_list("You must specify a target board with MIOSIX_OPT_BOARD" "${MIOSIX_BOARDS}")
 elseif(NOT MIOSIX_OPT_BOARD IN_LIST MIOSIX_BOARDS)
     miosix_expected_item_in_list("Selected board '${MIOSIX_OPT_BOARD}' is not in the MIOSIX_BOARDS list" "${MIOSIX_BOARDS}")
-elseif(MIOSIX_PRINT_BOARD_LIST)
-    # Optionally print the board list
-    miosix_print_list(STATUS "Available boards:" "${MIOSIX_BOARDS}")
 endif()
 
 # Optimization flags are set with CMAKE_<LANG>_FLAGS_<CONFIG>
@@ -113,11 +108,6 @@ include(${MIOSIX_BOARD_INC}/CMakeLists.txt)
 # Separate linker script names from associated compiler options
 set(LINKER_SCRIPTS_ONLY_LIST "${MIOSIX_LINKER_SCRIPT_LIST}")
 list(FILTER LINKER_SCRIPTS_ONLY_LIST INCLUDE REGEX ".*\.ld$")
-
-option(MIOSIX_PRINT_LINKER_SCRIPT_LIST "Prints a list of the available linker scripts" OFF)
-if(MIOSIX_PRINT_LINKER_SCRIPT_LIST)
-    miosix_print_list(STATUS "Available linker scripts:" "${LINKER_SCRIPTS_ONLY_LIST}")
-endif()
 
 # Normalize linker script option
 set(MIOSIX_LINKER_SCRIPT "${MIOSIX_DEFAULT_LINKER_SCRIPT}" CACHE STRING "Linker script")

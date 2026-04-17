@@ -25,9 +25,16 @@
 
 # Utility function for printing a list
 function(miosix_print_list MESSAGE_TYPE HEADER THE_LIST)
+    cmake_parse_arguments(PARSE_ARGV 0 "PRINTLIST" "" "SELECTION;DEFAULT" "")
     set(STR_ITEMS "")
     foreach(LIST_ITEM ${THE_LIST})
         string(APPEND STR_ITEMS "\n   - ${LIST_ITEM}")
+        if(LIST_ITEM STREQUAL PRINTLIST_SELECTION)
+            string(APPEND STR_ITEMS " (selected)")
+        endif()
+        if(LIST_ITEM STREQUAL PRINTLIST_DEFAULT)
+            string(APPEND STR_ITEMS " (default)")
+        endif()
     endforeach()
     message(${MESSAGE_TYPE} "${HEADER}${STR_ITEMS}")
 endfunction()

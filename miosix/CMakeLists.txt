@@ -105,18 +105,51 @@ endforeach()
 
 # Print build configuration
 message(STATUS
-        "Build Configuration\n"
-        "   - CMAKE_TOOLCHAIN_FILE:             ${CMAKE_TOOLCHAIN_FILE}\n"
-        "   - CMAKE_CXX_STANDARD:               ${CMAKE_CXX_STANDARD}\n"
-        "   - CMAKE_BUILD_TYPE:                 ${CMAKE_BUILD_TYPE}\n"
-        "   - MIOSIX_GCC_PATH:                  ${MIOSIX_GCC_PATH}\n"
-        "   - MIOSIX_OPT_BOARD:                 ${MIOSIX_OPT_BOARD}\n"
-        "   - MIOSIX_LINKER_SCRIPT:             ${MIOSIX_LINKER_SCRIPT}\n"
-        "   - MIOSIX_USER_CONFIG_PATH:          ${MIOSIX_USER_CONFIG_PATH}\n"
-        "   - MIOSIX_USER_BOARD_SETTINGS_PATH:  ${MIOSIX_USER_BOARD_SETTINGS_PATH}\n"
-        "   - MIOSIX_PRINT_BOARD_LIST:          ${MIOSIX_PRINT_BOARD_LIST}\n"
-        "   - MIOSIX_PRINT_LINKER_SCRIPT_LIST:  ${MIOSIX_PRINT_LINKER_SCRIPT_LIST}\n"
-        "   Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)")
+    "Build Configuration\n"
+    "   - MIOSIX_GCC_PATH:                  ${MIOSIX_GCC_PATH}\n"
+    "   - MIOSIX_USER_CONFIG_PATH:          ${MIOSIX_USER_CONFIG_PATH}\n"
+    "   - MIOSIX_USER_BOARD_SETTINGS_PATH:  ${MIOSIX_USER_BOARD_SETTINGS_PATH}\n"
+    "   - CMAKE_TOOLCHAIN_FILE:             ${CMAKE_TOOLCHAIN_FILE}\n"
+    "   - CMAKE_CXX_STANDARD:               ${CMAKE_CXX_STANDARD}\n"
+    "   - CMAKE_BUILD_TYPE:                 ${CMAKE_BUILD_TYPE}\n"
+    "   - MIOSIX_OPT_BOARD:                 ${MIOSIX_OPT_BOARD}\n"
+    "   - MIOSIX_LINKER_SCRIPT:             ${MIOSIX_LINKER_SCRIPT}\n"
+    "   - MIOSIX_BOARD_VARIANT:             ${MIOSIX_BOARD_VARIANT}\n"
+    "   - MIOSIX_DISABLE_EXCEPTIONS:        ${MIOSIX_DISABLE_EXCEPTIONS}\n"
+    "   - MIOSIX_ENABLE_LINKER_GC:          ${MIOSIX_ENABLE_LINKER_GC}\n"
+    "   Remember to delete cmake cache for changes in CMakeLists.txt to have effect (or use --fresh to ignore it)"
+)
+
+option(MIOSIX_PRINT_BOARD_LIST "Prints a list of the available boards" OFF)
+if(MIOSIX_PRINT_BOARD_LIST)
+    miosix_print_list(STATUS "Available boards:" "${MIOSIX_BOARDS}")
+else()
+    message(STATUS "Print the list of boards by setting MIOSIX_PRINT_BOARD_LIST to ON")
+endif()
+
+option(MIOSIX_PRINT_LINKER_SCRIPT_LIST "Prints a list of the available linker scripts" ON)
+if(MIOSIX_PRINT_LINKER_SCRIPT_LIST)
+    miosix_print_list(STATUS
+        "Available linker scripts for ${MIOSIX_OPT_BOARD}:"
+        "${LINKER_SCRIPTS_ONLY_LIST}"
+        SELECTION "${MIOSIX_LINKER_SCRIPT}"
+        DEFAULT "${MIOSIX_DEFAULT_LINKER_SCRIPT}"
+    )
+endif()
+
+option(MIOSIX_PRINT_BOARD_VARIANT_LIST "Prints a list of the available board variants" ON)
+if(MIOSIX_PRINT_BOARD_VARIANT_LIST)
+    if(DEFINED MIOSIX_BOARD_VARIANT_LIST)
+        miosix_print_list(STATUS
+            "Available board variants for ${MIOSIX_OPT_BOARD}:"
+            "${MIOSIX_BOARD_VARIANT_LIST}"
+            SELECTION ${MIOSIX_BOARD_VARIANT}
+            DEFAULT ${MIOSIX_DEFAULT_BOARD_VARIANT}
+        )
+    else()
+        message(STATUS "Board ${MIOSIX_OPT_BOARD} has no variants")
+    endif()
+endif()
 
 set(MIOSIX_KERNEL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/kernel/thread.cpp
