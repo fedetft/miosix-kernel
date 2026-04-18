@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "interfaces/bsp.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -44,8 +43,6 @@ void IRQmemoryAndClockInit()
     #ifdef __ENABLE_XRAM
     miosix::configureSdram();
     #endif  //__ENABLE_XRAM
-
-    miosix::IRQconfigureMPU((const unsigned int*)0xc0000000, 16*1024*1024);
 }
 
 } // namespace miosix

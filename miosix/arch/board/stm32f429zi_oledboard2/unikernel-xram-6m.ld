@@ -12,18 +12,22 @@
  * RAM unused
  */
 
-/*
- * NOTE: the SDRAM is 8MB, but this linker script only uses the lower 6.
- * The upper 2MB are reserved as framebuffers for the LCD. The choice to
- * allocate this space is due to the SDRAM architecture, composed of 4 banks of
- * 2MB each. Reserving a bank for the LCD allows the software running on the
- * board and the LCD to operate (almost) independently.
- */
 MEMORY
 {
     flash(rx)   : ORIGIN = 0x08000000, LENGTH = 2M
     ram1(wx)    : ORIGIN = 0x10000000, LENGTH = 64K /* TCM for IRQ stack */
     ram2(wx)    : ORIGIN = 0xd0000000, LENGTH = 6M  /* XRAM */
 }
+
+/*
+ * NOTE: the SDRAM is 8MB, but this linker script only uses the lower 6.
+ * The upper 2MB are reserved as framebuffers for the OLED. The choice to
+ * allocate this space is due to the SDRAM architecture, composed of 4 banks of
+ * 2MB each. Reserving a bank for the OLED allows the software running on the
+ * board and the OLED to operate (almost) independently.
+ * Regardless, we want to configure the MPU to span the entire XRAM
+ */
+_xram_start = ORIGIN(ram2);
+_xram_size  = 8M;
 
 INCLUDE ldscripts/miosix-flash-2ram-separate-irqstack.ld

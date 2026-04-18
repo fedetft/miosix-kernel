@@ -32,23 +32,22 @@
 #error This MPU implementation works only on ARM CORTEX M
 #endif
 
+#if !defined(__MPU_PRESENT) || (__MPU_PRESENT!=0 && __MPU_PRESENT!=1)
+#error __MPU_PRESENT must be defined to be 0 or 1
+#endif
+
 namespace miosix {
 
+#if __MPU_PRESENT==1
+
 /**
- * To be called in boot.cpp to configure the MPU for kernel-level W^X and
- * cacheability (if caches are present).
+ * \internal
+ * The kernel calls this function in boot.cpp to configure the MPU for
+ * kernel-level W^X and cacheability (if caches are present).
  * This function must be called if the board has and MPU or caches, but in
  * ARM CPUs all architectures with caches also have the MPU.
- * 
- * If the board has an external RAM attached, the XRAM base address and
- * size must be passed as parameters to this function to extend the W^X
- * protection and cacheability configuration to the XRAM as well, otherwise
- * pass the default nullptr and 0.
- * 
- * \param xramBase base address of external memory, if present, otherwise nullptr
- * \param xramSize size of external memory, if present, otherwise 0
  */
-void IRQconfigureMPU(const unsigned int *xramBase=nullptr, unsigned int xramSize=0);
+void IRQenableMPU();
 
 #if __CORTEX_M != 33U
 /**
@@ -81,7 +80,7 @@ unsigned int sizeToMpu(unsigned int size);
  * then pass it to other cores to apply the same configuration.
  *
  * Note that IRQconfigureMPU() is meant to be called before .data and .bss
- * are initialized, so ther's no easy way to store the first core configuration
+ * are initialized, so there's no easy way to store the first core configuration
  * in some global variable directly from IRQconfigureMPU() for the other cores
  * to read, that's why when we reach the point in the boot process when we bring
  * up the other cores, we prefer to read the MPU configuration of the first core
@@ -106,5 +105,17 @@ public:
 private:
     unsigned int regValues[6];
 };
+
+#else //__MPU_PRESENT==1
+
+#warning Architecture does not provide an MPU, kernel-level W^X will not be enforced
+
+/**
+ * \internal
+ * No MPU in this architecture, do nothing
+ */
+inline void IRQenableMPU() {}
+
+#endif //__MPU_PRESENT==1
 
 } //namespace miosix

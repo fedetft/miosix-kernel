@@ -208,7 +208,8 @@ private:
 
 /**
  * \internal
- * This class is used to manage the MemoryProtectionUnit
+ * This class is used to manage the MemoryProtectionUnit dynamic reconfiguration
+ * whenever performing a context switch towards a userspace process
  */
 class MPUConfiguration
 {

@@ -70,6 +70,8 @@
 /* NOTE: no _irq_stack_size tunable, implicitly defined as the size of ram1 */
 _irq_stack_size = LENGTH(ram1);
 PROVIDE(_process_pool_size = 0);
+PROVIDE(_xram_start = 0); /* Used for memory protection and cacheability */
+PROVIDE(_xram_size = 0);  /* Used for memory protection and cacheability */
 
 /* Sanity checks */
 ASSERT(_process_pool_size % 1024 == 0, "Process pool size error");

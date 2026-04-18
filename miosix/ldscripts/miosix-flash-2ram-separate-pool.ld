@@ -65,6 +65,8 @@
 PROVIDE(_irq_stack_size = 512);
 /* NOTE: no _process_pool_size tunable, implicitly defined as the size of ram2 */
 _process_pool_size = LENGTH(ram2);
+PROVIDE(_xram_start = 0); /* Used for memory protection and cacheability */
+PROVIDE(_xram_size = 0);  /* Used for memory protection and cacheability */
 
 /* Sanity checks */
 ASSERT(_irq_stack_size % 8 == 0, "IRQ stack size error");

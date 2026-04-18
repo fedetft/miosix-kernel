@@ -236,7 +236,7 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
                 | sizeToMpu(imageSize)<<1;
     #endif
     #else //__MPU_PRESENT==1
-    #warning architecture lacks MPU, memory protection for processes unsupported
+    #warning Architecture does not provide an MPU, userspace memory protection will not be enforced
     //Although we have no MPU, store enough information to still enable checking
     //syscall parameters in withinForReading()/withinForWriting()
     regValues[0]=reinterpret_cast<unsigned int>(elfBase);

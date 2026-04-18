@@ -16,4 +16,8 @@ MEMORY
     ram2(wx)    : ORIGIN = 0x20000000, LENGTH = 320K
 }
 
+/* Mark XRAM even if it's not used in memory map, may be used for framebuffer */
+_xram_start = 0xc0000000;
+_xram_size  = 16M;
+
 INCLUDE ldscripts/miosix-flash-2ram-separate-data-bss.ld

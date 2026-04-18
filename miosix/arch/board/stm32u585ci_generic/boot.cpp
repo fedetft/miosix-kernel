@@ -25,7 +25,6 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "drivers/mpu/cortexMx_mpu.h"
 #include "drivers/clock/stm32u5_pll.h"
 
 extern "C" void SystemInit();
@@ -39,9 +38,6 @@ void IRQmemoryAndClockInit()
     SystemInit();
 
     startPll();
-    
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU();
 }
 
 } // namespace miosix

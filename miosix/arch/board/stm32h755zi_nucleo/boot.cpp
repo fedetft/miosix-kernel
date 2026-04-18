@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "drivers/clock/stm32h7_pll.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -36,7 +35,6 @@ void IRQmemoryAndClockInit()
 {
     SystemInit();
     startPll();
-    miosix::IRQconfigureMPU();
 }
 
 } // namespace miosix

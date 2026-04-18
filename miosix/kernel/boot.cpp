@@ -33,6 +33,7 @@
 #include "interfaces_private/bsp_private.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/sleep.h"
+#include "interfaces_private/mpu.h"
 // Miosix kernel
 #include "thread.h"
 #include "filesystem/file_access.h"
@@ -78,6 +79,10 @@ void IRQkernelBootEntryPoint()
     #ifndef __NO_EXCEPTIONS
     try {
     #endif //__NO_EXCEPTIONS
+
+        // Enable MPU on architectures that support it
+        IRQenableMPU();
+
         //These are defined in the linker script
         extern unsigned char _etext asm("_etext");
         extern unsigned char _data asm("_data");

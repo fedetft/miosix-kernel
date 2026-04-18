@@ -27,7 +27,6 @@
 
 #include "board_settings.h"
 #include "interfaces/arch_registers.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -84,9 +83,6 @@ void IRQmemoryAndClockInit()
     // but we call it anyway for good measure.
     SystemInit();
     IRQsetupClockTree();
-    
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU();
 }
 
 } // namespace miosix

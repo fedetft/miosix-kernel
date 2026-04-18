@@ -31,24 +31,11 @@
 #include "kernel/error.h"
 #include "miosix_settings.h"
 
+#if __MPU_PRESENT==1
+
 using namespace std;
 
 namespace miosix {
-
-/**
- * \internal
- * To be called at boot to enable the MPU.
- * Without calling this function, the MPU will not work even if regions are
- * configured in MPUConfiguration.
- * On some architectures the MPU is also used to set cacheability regions in the
- * address space, thus this function is useful also when processes are disabled
- */
-inline void IRQenableMPUatBoot()
-{
-    MPU->CTRL = MPU_CTRL_HFNMIENA_Msk
-              | MPU_CTRL_PRIVDEFENA_Msk
-              | MPU_CTRL_ENABLE_Msk;
-}
 
 /**
  * Using the MPU, configure a region of the memory space as
@@ -95,7 +82,7 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     #endif
 }
 
-void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
+void IRQenableMPU()
 {
     #if __CORTEX_M == 33U
     // ARMv8-M MPU attributes are stored in separate registers, indexed in RLAR
@@ -111,14 +98,23 @@ void IRQconfigureMPU(const unsigned int *xramBase, unsigned int xramSize)
     IRQconfigureMPURegion(0,0x00000000,0x20000000,true);
     IRQconfigureMPURegion(1,0x20000000,0x20000000,false);
 
+    //These are defined in the linker script
+    extern unsigned char _xram_start asm("_xram_start");
+    extern unsigned char _xram_size asm("_xram_size");
+    unsigned int xramBase=reinterpret_cast<unsigned int>(&_xram_start);
+    unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+
     #ifdef __CODE_IN_XRAM
     bool allowCodeInXram=true;
     #else //__CODE_IN_XRAM
     bool allowCodeInXram=false;
     #endif //__CODE_IN_XRAM
-    if(xramSize)
-        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,allowCodeInXram);
-    IRQenableMPUatBoot();
+    if(xramSize) IRQconfigureMPURegion(2,xramBase,xramSize,allowCodeInXram);
+
+    //After configuring the MPU, enable it
+    MPU->CTRL = MPU_CTRL_HFNMIENA_Msk
+              | MPU_CTRL_PRIVDEFENA_Msk
+              | MPU_CTRL_ENABLE_Msk;
     
     #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
     SCB_EnableICache();
@@ -171,3 +167,5 @@ void KernelspaceMpuConfiguration::apply()
 }
 
 } //namespace miosix
+
+#endif //__MPU_PRESENT==1

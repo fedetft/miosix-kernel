@@ -19,4 +19,11 @@ MEMORY
     ram(wx)     : ORIGIN = 0x20020000, LENGTH = 384K
 }
 
+/*
+ * The bsp of this board always enables XRAM, so mark its existence in all
+ * linker scripts to enforce kernel-level W^X
+ */
+_xram_start = 0xd0000000;
+_xram_size  = 256M;
+
 INCLUDE ldscripts/miosix-flash-ram.ld

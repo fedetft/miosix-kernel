@@ -43,7 +43,6 @@
 #include "miosix_settings.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/gpio.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 #include <string.h>
 
 //Include the RP2040 flash stage 2 pre-built bootloader binary.
@@ -346,9 +345,6 @@ void IRQmemoryAndClockInit()
         | CLOCKS_WAKE_EN1_CLK_SYS_SYSCFG_BITS // only accessible by CPUs
         | CLOCKS_WAKE_EN1_CLK_SYS_WATCHDOG_BITS // only used for resetting
         | CLOCKS_WAKE_EN1_CLK_SYS_XIP_BITS); // won't DMA from the XIP ROM (if we do, reenable!)
-
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU();
 }
 
 } //namespace miosix

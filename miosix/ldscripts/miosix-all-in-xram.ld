@@ -42,6 +42,8 @@
 /* Default values for tunable variables */
 PROVIDE(_irq_stack_size = 512);
 PROVIDE(_process_pool_size = 0);
+PROVIDE(_xram_start = 0); /* Used for memory protection and cacheability */
+PROVIDE(_xram_size = 0);  /* Used for memory protection and cacheability */
 
 /* Sanity checks */
 ASSERT(_irq_stack_size % 8 == 0, "IRQ stack size error");

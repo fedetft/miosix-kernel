@@ -25,8 +25,6 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "drivers/mpu/cortexMx_mpu.h"
-
 extern "C" void SystemInit();
 
 namespace miosix {
@@ -36,7 +34,6 @@ void IRQmemoryAndClockInit()
     // Currently we use the code provided by ST (with our modifications) to
     // handle the memory and clock initialization process.
     SystemInit();
-    miosix::IRQconfigureMPU();
 }
 
 } // namespace miosix

@@ -30,7 +30,6 @@
 #include "interfaces/delays.h"
 #include "interfaces/gpio.h"
 #include "drivers/cache/cortexMx_cache.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 #include "board_settings.h"
 
 namespace miosix {
@@ -201,7 +200,6 @@ void IRQmemoryAndClockInit()
 {
     SystemInit();
     IRQconfigureSDRAM();
-    IRQconfigureMPU((const unsigned int *)(0xC0000000), 0x20000000U);
 }
 
 } // namespace miosix

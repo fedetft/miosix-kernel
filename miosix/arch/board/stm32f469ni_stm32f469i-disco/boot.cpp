@@ -26,7 +26,6 @@
  ***************************************************************************/
 
 #include "interfaces/bsp.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -41,11 +40,6 @@ void IRQmemoryAndClockInit()
     //the full clock speed.
     #ifdef __ENABLE_XRAM
     miosix::configureSdram();
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU(reinterpret_cast<unsigned int*>(0xc0000000),16*1024*1024);
-    #else
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU();
     #endif //__ENABLE_XRAM
 }
 

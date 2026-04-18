@@ -9,4 +9,8 @@ MEMORY
     ram(wx)     : ORIGIN = 0x64000000, LENGTH = 2M
 }
 
+/* Mark ram as being an external RAM */
+_xram_start = ORIGIN(ram);
+_xram_size  = LENGTH(ram);
+
 INCLUDE ldscripts/miosix-all-in-xram.ld

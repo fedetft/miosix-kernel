@@ -28,7 +28,6 @@
 
 #include "interfaces/gpio.h"
 #include "interfaces/arch_registers.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -132,9 +131,6 @@ void IRQmemoryAndClockInit()
         | FSMC_BWTR1_DATAST_0 //DATAST=5
         | FSMC_BWTR1_ADDSET_0;//ADDSET=1
     //Write takes 6 + 1 (WE high to CS high) + 1 (min time CS high) = 8 cycles 
-    
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU(reinterpret_cast<unsigned int*>(0x60000000),1024*1024);
 }
 
 } // namespace miosix

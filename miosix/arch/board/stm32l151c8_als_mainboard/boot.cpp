@@ -30,7 +30,6 @@
 #include "interfaces/delays.h"
 #include "interfaces/gpio.h"
 #include "board_settings.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 
 //We want to run the ALS_MAINBOARD at a lower clock to save power
 uint32_t SystemCoreClock=miosix::cpuFrequency;
@@ -66,9 +65,6 @@ void IRQmemoryAndClockInit()
     RCC->CR &= ~RCC_CR_MSION;
     /*!< Disable all interrupts */
     RCC->CIR = 0x00000000;
-    
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU();
 }
 
 } // namespace miosix

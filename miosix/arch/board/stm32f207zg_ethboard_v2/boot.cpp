@@ -28,7 +28,6 @@
 
 #include "interfaces/gpio.h"
 #include "interfaces/arch_registers.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 
 extern "C" void SystemInit();
 
@@ -121,9 +120,6 @@ void IRQmemoryAndClockInit()
     volatile uint32_t& BTR1=FSMC_Bank1->BTCR[1];
     BCR1=0x00001011; //16bit width, write enabled, SRAM mode
     BTR1=0x00000200; //DATAST=2
-    
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU(reinterpret_cast<unsigned int*>(0x60000000),0x80000);
 }
 
 } // namespace miosix

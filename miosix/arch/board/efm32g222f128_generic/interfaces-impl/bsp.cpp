@@ -45,7 +45,6 @@
 #include "filesystem/console/console_device.h"
 #include "interfaces/serial.h"
 #include "board_settings.h"
-#include "drivers/mpu/cortexMx_mpu.h"
 
 namespace miosix {
 
@@ -141,9 +140,6 @@ void IRQmemoryAndClockInit()
         else if(oscillatorFrequency==28000000)
             CMU->HFRCOCTRL=CMU_HFRCOCTRL_BAND_28MHZ | diHfrcoCalib[5];
     }
-    
-    // Architecture has MPU, enable kernel-level W^X protection
-    IRQconfigureMPU();
 }
 
 void IRQbspInit()
