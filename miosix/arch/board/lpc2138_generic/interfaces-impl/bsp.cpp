@@ -34,7 +34,7 @@
 #include "interfaces/bsp.h"
 #include "interfaces_private/bsp_private.h"
 #include "interfaces/serial.h"
-#include "drivers/sdmmc/sd_lpc2000.h"
+#include "drivers/sdmmc/lpc2000_sd.h"
 #include "interfaces/poweroff.h"
 #include "miosix_settings.h"
 #include "interfaces/arch_registers.h"

@@ -27,4 +27,4 @@
 
 #pragma once
 
-#include "drivers/serial/serial_atsam4l.h"
+#include "drivers/serial/atsam4l_serial.h"

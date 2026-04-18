@@ -11,10 +11,10 @@ CHIP_INC := arch/chip/stm32l4
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                                  \
+BOARD_SRC :=                                 \
 $(BOARD_INC)/boot.cpp                        \
 $(BOARD_INC)/interfaces-impl/bsp.cpp         \
-arch/drivers/sdmmc/sd_stm32l4.cpp
+arch/drivers/sdmmc/stm32l4_sd.cpp
 
 ## Add a #define to allow querying board name
 BOARD_CFLAGS   := -D_BOARD_STM32L4R9ZI_SENSORTILE

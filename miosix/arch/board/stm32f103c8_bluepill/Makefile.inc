@@ -14,7 +14,7 @@ LINKER_SCRIPT := unikernel.ld
 BOARD_SRC :=                         \
 $(BOARD_INC)/boot.cpp                \
 $(BOARD_INC)/interfaces-impl/bsp.cpp \
-arch/drivers/servo_stm32.cpp
+arch/drivers/stm32_servo.cpp
 
 ## Add a #define to allow querying board name
 BOARD_CFLAGS   := -D_BOARD_STM32F103C8_BLUEPILL

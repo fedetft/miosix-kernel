@@ -9,9 +9,9 @@ CHIP_INC := arch/chip/stm32f2
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 BOARD_SRC :=                            \
-arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp \
+arch/drivers/sdmmc/stm32f2_f4_f7_sd.cpp \
 arch/drivers/stm32f2_f4_i2c.cpp         \
-arch/drivers/servo_stm32.cpp            \
+arch/drivers/stm32_servo.cpp            \
 $(BOARD_INC)/boot.cpp                   \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 

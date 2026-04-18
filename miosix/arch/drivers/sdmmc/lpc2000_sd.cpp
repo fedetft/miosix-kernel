@@ -3,7 +3,7 @@
  * Based on code by Martin Thomas to initialize SD cards from LPC2000
  */
 
-#include "sd_lpc2000.h"
+#include "lpc2000_sd.h"
 #include "interfaces/bsp.h"
 #include "LPC213x.h"
 #include "board_settings.h" //For sdVoltage

@@ -26,7 +26,7 @@ set(MIOSIX_CHIP_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/serial/stm32f7_serial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/serial/stm32_serial_common.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/dcc.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sdmmc/sd_stm32h7.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sdmmc/stm32h7_sd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/clock/stm32h7_pll.cpp
     ${MIOSIX_CHIP_INC}/interfaces-impl/delays.cpp
     ${MIOSIX_CHIP_INC}/interfaces-impl/poweroff.cpp

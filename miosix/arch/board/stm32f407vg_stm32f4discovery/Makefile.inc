@@ -11,7 +11,7 @@ CHIP_INC := arch/chip/stm32f4
 BOARD_SRC :=                           \
 arch/drivers/stm32f2_f4_i2c.cpp        \
 arch/drivers/stm32_hardware_rng.cpp    \
-arch/drivers/servo_stm32.cpp           \
+arch/drivers/stm32_servo.cpp           \
 $(BOARD_INC)/boot.cpp                  \
 arch/drivers/stm32f407_rtc.cpp         \
 $(BOARD_INC)/interfaces-impl/sleep.cpp \

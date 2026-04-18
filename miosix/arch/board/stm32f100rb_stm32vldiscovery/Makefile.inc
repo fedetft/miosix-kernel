@@ -15,7 +15,7 @@ BOARD_SRC :=                         \
 $(BOARD_INC)/interfaces-impl/bsp.cpp \
 $(BOARD_INC)/boot.cpp                \
 arch/drivers/stm32_rtc.cpp           \
-arch/drivers/servo_stm32.cpp
+arch/drivers/stm32_servo.cpp
 
 ## Add a #define to allow querying board name
 BOARD_CFLAGS   := -D_BOARD_STM32VLDISCOVERY

@@ -47,7 +47,6 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "interfaces/serial.h"
-#include "drivers/sdmmc/sd_stm32f2_f4_f7.h"
 #include "board_settings.h"
 
 using namespace std;

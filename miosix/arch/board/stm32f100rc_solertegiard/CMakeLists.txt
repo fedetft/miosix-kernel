@@ -18,7 +18,7 @@ set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
 set(MIOSIX_BOARD_SRC
     ${MIOSIX_BOARD_INC}/boot.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/bsp.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/servo_stm32.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/stm32_servo.cpp
 )
 
 # Add a #define to allow querying board name

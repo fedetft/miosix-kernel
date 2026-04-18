@@ -27,7 +27,7 @@ arch/drivers/gpio/stm32_gpio.cpp                         \
 arch/drivers/serial/stm32f7_serial.cpp                   \
 arch/drivers/serial/stm32_serial_common.cpp              \
 arch/drivers/dcc.cpp                                     \
-arch/drivers/sdmmc/sd_stm32f2_f4_f7.cpp                  \
+arch/drivers/sdmmc/stm32f2_f4_f7_sd.cpp                  \
 $(CHIP_INC)/interfaces-impl/delays.cpp                   \
 $(CHIP_INC)/interfaces-impl/poweroff.cpp                 \
 arch/CMSIS/Device/ST/STM32F7xx/Source/Templates/system_stm32f7xx.cpp

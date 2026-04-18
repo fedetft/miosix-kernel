@@ -19,8 +19,8 @@ set(MIOSIX_CHIP_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/armv4/interfaces-impl/interrupts.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/os_timer/lpc2000_os_timer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sleep/lpc2000_sleep.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/serial/serial_lpc2000.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sdmmc/sd_lpc2000.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/serial/lpc2000_serial.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sdmmc/lpc2000_sd.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/clock/lpc2000_clock.cpp
     ${MIOSIX_CHIP_INC}/interfaces-impl/delays.cpp
     ${MIOSIX_CHIP_INC}/interfaces-impl/poweroff.cpp

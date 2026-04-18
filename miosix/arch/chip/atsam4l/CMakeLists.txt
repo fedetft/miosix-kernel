@@ -21,7 +21,7 @@ set(MIOSIX_CHIP_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/common/cortexMx_userspace.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/os_timer/atsam4l_os_timer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sleep/cortexMx_sleep.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/serial/serial_atsam4l.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/serial/atsam4l_serial.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/clock/atsam4l_clock.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/atsam4l_lcd.cpp
     ${MIOSIX_CHIP_INC}/interfaces-impl/sleep.cpp

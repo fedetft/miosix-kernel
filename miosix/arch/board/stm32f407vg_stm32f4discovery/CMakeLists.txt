@@ -19,7 +19,7 @@ set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
 set(MIOSIX_BOARD_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/stm32f2_f4_i2c.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/stm32_hardware_rng.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/servo_stm32.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/stm32_servo.cpp
     ${MIOSIX_BOARD_INC}/boot.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/stm32f407_rtc.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/sleep.cpp

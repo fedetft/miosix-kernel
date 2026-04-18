@@ -29,7 +29,7 @@
 #include <cstring>
 #include <errno.h>
 #include <termios.h>
-#include "serial_atsam4l.h"
+#include "atsam4l_serial.h"
 #include "kernel/sync.h"
 #include "filesystem/ioctl.h"
 #include "interfaces/interrupts.h"

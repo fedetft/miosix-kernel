@@ -25,7 +25,7 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
  
-#include "servo_stm32.h"
+#include "stm32_servo.h"
 #include "interfaces/interrupts.h"
 #include <algorithm>
 #include <cstdio>

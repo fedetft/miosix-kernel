@@ -23,7 +23,7 @@ arch/drivers/mpu/cortexMx_mpu.cpp                        \
 arch/cpu/common/cortexMx_userspace.cpp                   \
 arch/drivers/os_timer/atsam4l_os_timer.cpp               \
 arch/drivers/sleep/cortexMx_sleep.cpp                    \
-arch/drivers/serial/serial_atsam4l.cpp                   \
+arch/drivers/serial/atsam4l_serial.cpp                   \
 arch/drivers/clock/atsam4l_clock.cpp                     \
 arch/drivers/atsam4l_lcd.cpp                             \
 $(CHIP_INC)/interfaces-impl/sleep.cpp                    \

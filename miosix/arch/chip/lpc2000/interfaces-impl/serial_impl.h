@@ -27,4 +27,4 @@
 
 #pragma once
 
-#include "drivers/serial/serial_lpc2000.h"
+#include "drivers/serial/lpc2000_serial.h"

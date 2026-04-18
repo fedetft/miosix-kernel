@@ -39,7 +39,7 @@
 #include "board_settings.h"
 #include "miosix_settings.h"
 #include "interfaces/serial.h"
-#include "drivers/sdmmc/sd_stm32f2_f4_f7.h"
+#include "drivers/sdmmc/stm32f2_f4_f7_sd.h"
 #include "filesystem/console/console_device.h"
 #include "filesystem/file_access.h"
 #include "interfaces/arch_registers.h"

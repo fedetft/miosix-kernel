@@ -29,7 +29,7 @@
 #include <cstring>
 #include <errno.h>
 #include <termios.h>
-#include "serial_lpc2000.h"
+#include "lpc2000_serial.h"
 #include "kernel/sync.h"
 #include "filesystem/ioctl.h"
 #include "interfaces_private/cpu.h"

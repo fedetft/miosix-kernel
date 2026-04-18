@@ -1,6 +1,6 @@
 
 #include <stdio.h>
-#include "drivers/servo_stm32.h"
+#include "drivers/stm32_servo.h"
 
 using namespace miosix;
 

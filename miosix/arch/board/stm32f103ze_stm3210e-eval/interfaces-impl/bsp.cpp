@@ -45,7 +45,7 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "interfaces/serial.h"
-#include "drivers/sdmmc/sd_stm32f1.h"
+#include "drivers/sdmmc/stm32f1_sd.h"
 #include "board_settings.h"
 
 namespace miosix {
