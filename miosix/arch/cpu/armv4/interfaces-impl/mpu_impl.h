@@ -35,6 +35,6 @@ namespace miosix {
  * \internal
  * No MPU in this architecture, do nothing
  */
-inline void IRQenableMPU() {}
+inline void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize) {}
 
 } //namespace miosix

@@ -293,11 +293,11 @@ void __attribute__((naked)) Reset_Handler()
      * miosix::IRQkernelBootEntryPoint()
      */
     asm volatile("msr     CPSR_c, #0x1b|0xc0  \n\t" // UND: IRQ Off, FIQ Off
-                 "ldr     sp, =_irq_stack_top \n\t"
+                 "ldr     sp, =_irq_stack_top \n\t" //defined in the linker script
                  "msr     CPSR_c, #0x17|0xc0  \n\t" // ABT: IRQ Off, FIQ Off
                  "ldr     sp, =_irq_stack_top \n\t"
                  "msr     CPSR_c, #0x11|0xc0  \n\t" // FIQ: IRQ Off, FIQ Off
-                 "ldr     sp, =_fiq_stack_top \n\t"
+                 "ldr     sp, =_fiq_stack_top \n\t" //defined in the linker script
                  "msr     CPSR_c, #0x12|0x80  \n\t" // IRQ: IRQ Off, FIQ On
                  "ldr     sp, =_irq_stack_top \n\t"
                  "msr     CPSR_c, #0x13|0x80  \n\t" // SVC: IRQ Off, FIQ On

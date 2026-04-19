@@ -43,15 +43,15 @@ namespace miosix {
  * - non-shareable
  * - readable/writable only by privileged code (for compatibility with the way
  *   processes use the MPU)
- * \param region MPU region. Note that region 6 and 7 are used by processes, and
- * should be avoided here
- * \param base base address, aligned to a 32Byte cache line
+ * \param region MPU region. Note that in ARMv7M and lower region 6 and 7 are
+ * used by processes, and should be avoided here
+ * \param base base address, aligned to a multiple of size in ARMv7M and lower,
+ * while on ARMv8M aligned to a multiple of 32 Byte
  * \param size size, must be at least 32. For ARMv7M and lower must also be a
  * power of 2
  * \param executePermitted if true configure MPU to allow code execution,
  * if false configure MPU to trap code execution for W^X protection
  */
-
 static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     unsigned int size, bool executePermitted)
 {
@@ -64,10 +64,10 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     MPU->RLAR=((base+size-1) & (~0x1f))
              | (executePermitted ? 0 : MPU_RLAR_PXN_Msk)
              | (0<<MPU_RLAR_AttrIndx_Pos) //NOTE: only region 0 enabled in MAIR0
-             | 1;                 //Enable bit
+             | 1; //Enable bit
     asm volatile("dsb":::"memory");
     #else
-    // ARMv7-M
+    // ARMv7-M and lower
     // NOTE: The ARM documentation is unclear about the effect of the shareable
     // bit on a single core architecture. Experimental evidence on an STM32F476
     // shows that setting it in IRQconfigureMPU for the internal RAM region
@@ -82,7 +82,7 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     #endif
 }
 
-void IRQenableMPU()
+void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize)
 {
     #if __CORTEX_M == 33U
     // ARMv8-M MPU attributes are stored in separate registers, indexed in RLAR
@@ -98,18 +98,13 @@ void IRQenableMPU()
     IRQconfigureMPURegion(0,0x00000000,0x20000000,true);
     IRQconfigureMPURegion(1,0x20000000,0x20000000,false);
 
-    //These are defined in the linker script
-    extern unsigned char _xram_start asm("_xram_start");
-    extern unsigned char _xram_size asm("_xram_size");
-    unsigned int xramBase=reinterpret_cast<unsigned int>(&_xram_start);
-    unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
-
     #ifdef __CODE_IN_XRAM
     bool allowCodeInXram=true;
     #else //__CODE_IN_XRAM
     bool allowCodeInXram=false;
     #endif //__CODE_IN_XRAM
-    if(xramSize) IRQconfigureMPURegion(2,xramBase,xramSize,allowCodeInXram);
+    if(xramSize)
+        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,allowCodeInXram);
 
     //After configuring the MPU, enable it
     MPU->CTRL = MPU_CTRL_HFNMIENA_Msk
@@ -138,7 +133,7 @@ unsigned int sizeToMpu(unsigned int size)
 
 KernelspaceMpuConfiguration::KernelspaceMpuConfiguration()
 {
-    for(int i=0;i<3;i++)
+    for(int i=0;i<numUsedRegions;i++)
     {
         MPU->RNR=i;
         regValues[2*i]=MPU->RBAR;
@@ -152,7 +147,7 @@ KernelspaceMpuConfiguration::KernelspaceMpuConfiguration()
 
 void KernelspaceMpuConfiguration::apply()
 {
-    for(int i=0;i<3;i++)
+    for(int i=0;i<numUsedRegions;i++)
     {
         //NOTE: when reading RBAR in ARMv7-M/v6-M, VALID reads as 0 so either we
         //set this bit back or we need to also update RNR, which we do

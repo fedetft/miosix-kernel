@@ -80,15 +80,20 @@ void IRQkernelBootEntryPoint()
     try {
     #endif //__NO_EXCEPTIONS
 
-        // Enable MPU on architectures that support it
-        IRQenableMPU();
-
         //These are defined in the linker script
         extern unsigned char _etext asm("_etext");
         extern unsigned char _data asm("_data");
         extern unsigned char _edata asm("_edata");
         extern unsigned char _bss_start asm("_bss_start");
         extern unsigned char _bss_end asm("_bss_end");
+        extern unsigned char _xram_start asm("_xram_start");
+        extern unsigned char _xram_size asm("_xram_size");
+
+        unsigned char *xramBase=&_xram_start;
+        auto xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+
+        // Enable MPU on architectures that support it
+        IRQenableMPU(xramBase,xramSize);
 
         //Initialize .data section, clear .bss section
         unsigned char *etext=&_etext;
@@ -143,11 +148,18 @@ void *mainLoader(void *argv)
     extern unsigned long __init_array_end asm("__init_array_end");
     extern unsigned long _ctor_start asm("_ctor_start");
     extern unsigned long _ctor_end asm("_ctor_end");
+    extern unsigned char _xram_start asm("_xram_start");
+    extern unsigned char _xram_size asm("_xram_size");
+
+    unsigned char *xramBase=&_xram_start;
+    auto xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+
     callConstructors(&__preinit_array_start, &__preinit_array_end);
     callConstructors(&__init_array_start, &__init_array_end);
     callConstructors(&_ctor_start, &_ctor_end);
     
     bootlog("OS Timer freq = %d Hz\n", osTimerGetFrequency());
+    if(xramSize) bootlog("XRAM @ %p, size %u\n",xramBase,xramSize);
     bootlog("Available heap %d out of %d Bytes\n",
             MemoryProfiling::getCurrentFreeHeap(),
             MemoryProfiling::getHeapSize());

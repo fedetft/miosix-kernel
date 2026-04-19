@@ -46,8 +46,11 @@ namespace miosix {
  * kernel-level W^X and cacheability (if caches are present).
  * This function must be called if the board has and MPU or caches, but in
  * ARM CPUs all architectures with caches also have the MPU.
+ *
+ * \param xramBase for architectures with XRAM, pointer to XRAM base address
+ * \param xramSize for architectures with XRAM, XRAM size, else 0
  */
-void IRQenableMPU();
+void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize);
 
 #if __CORTEX_M != 33U
 /**
@@ -58,7 +61,7 @@ void IRQenableMPU();
  * function is no longer required.
  *
  * This function convert a memory region size to a bit pattern that can be
- * written in ARMv7 or lowwer MPU registers.
+ * written in ARMv7 or lower MPU registers.
  * \param size in bytes. Must be at least 32
  * \return a value that can be written to MPU->RASR to represent that size
  */
@@ -66,6 +69,7 @@ unsigned int sizeToMpu(unsigned int size);
 #endif
 
 /**
+ * \internal
  * In Miosix all boards that have an MPU must configure it right from the early
  * boot to:
  * - enforce kernel memory W^X security
@@ -103,7 +107,11 @@ public:
     void apply();
 
 private:
-    unsigned int regValues[6];
+    /**
+     * Number of used regions that need copying from core to core
+     */
+    static constexpr int numUsedRegions=3;
+    unsigned int regValues[2*numUsedRegions];
 };
 
 #else //__MPU_PRESENT==1
@@ -114,7 +122,7 @@ private:
  * \internal
  * No MPU in this architecture, do nothing
  */
-inline void IRQenableMPU() {}
+inline void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize) {}
 
 #endif //__MPU_PRESENT==1
 
