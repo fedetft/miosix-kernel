@@ -1,7 +1,7 @@
 
 #include <cstdio>
 #include "miosix.h"
-#include "drivers/lcd.h"
+#include "drivers/atsam4l_lcd.h"
 
 using namespace std;
 using namespace miosix;
