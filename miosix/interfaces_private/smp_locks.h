@@ -27,6 +27,8 @@
 
 #pragma once
 
+//TODO: despite being a private interface, it is included by kernel/lock.h
+
 #include "miosix_settings.h"
 
 /**
