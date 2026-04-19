@@ -66,7 +66,7 @@
 
 #if defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
 #include <interfaces/interrupts.h>
-#include <drivers/cache/cortexMx_cache.h>
+#include <interfaces/cache.h>
 #endif //_CHIP_STM32F7/H7
 
 #include <ctime>
