@@ -91,7 +91,9 @@ void IRQkernelBootEntryPoint()
         extern unsigned char _xram_size asm("_xram_size");
 
         unsigned char *xramBase=&_xram_start;
-        auto xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+        //NOTE: volatile is important, otherwise compiler for some reason
+        //assumes _xram_size can't be nullptr, so xramSize cannot be 0
+        volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
 
         // Enable MPU on architectures that support it
         IRQenableMPU(xramBase,xramSize);
@@ -156,7 +158,10 @@ void *mainLoader(void *argv)
     extern unsigned char _xram_size asm("_xram_size");
 
     unsigned char *xramBase=&_xram_start;
-    auto xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+    //NOTE: volatile is important, otherwise compiler for some reason assumes
+    //_xram_size can't be nullptr, so xramSize cannot be 0 and always evaluates
+    //if(xramSize) to true, go figure...
+    volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
 
     callConstructors(&__preinit_array_start, &__preinit_array_end);
     callConstructors(&__init_array_start, &__init_array_end);
