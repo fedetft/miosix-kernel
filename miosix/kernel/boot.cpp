@@ -90,7 +90,7 @@ void IRQkernelBootEntryPoint()
         extern unsigned char _xram_start asm("_xram_start");
         extern unsigned char _xram_size asm("_xram_size");
 
-        unsigned char *xramBase=&_xram_start;
+        const unsigned char *xramBase=&_xram_start;
         //NOTE: volatile is important, otherwise compiler for some reason
         //assumes _xram_size can't be nullptr, so xramSize cannot be 0
         volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
@@ -154,21 +154,29 @@ void *mainLoader(void *argv)
     extern unsigned long __init_array_end asm("__init_array_end");
     extern unsigned long _ctor_start asm("_ctor_start");
     extern unsigned long _ctor_end asm("_ctor_end");
-    extern unsigned char _xram_start asm("_xram_start");
-    extern unsigned char _xram_size asm("_xram_size");
-
-    unsigned char *xramBase=&_xram_start;
-    //NOTE: volatile is important, otherwise compiler for some reason assumes
-    //_xram_size can't be nullptr, so xramSize cannot be 0 and always evaluates
-    //if(xramSize) to true, go figure...
-    volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
 
     callConstructors(&__preinit_array_start, &__preinit_array_end);
     callConstructors(&__init_array_start, &__init_array_end);
     callConstructors(&_ctor_start, &_ctor_end);
     
     bootlog("OS Timer freq = %d Hz\n", osTimerGetFrequency());
-    if(xramSize) bootlog("XRAM @ %p, size %u\n",xramBase,xramSize);
+    #ifdef __ENABLE_XRAM
+    extern unsigned char _xram_start asm("_xram_start");
+    extern unsigned char _xram_size asm("_xram_size");
+    const unsigned char *xramBase=&_xram_start;
+    //NOTE: volatile is important, otherwise compiler for some reason assumes
+    //_xram_size can't be nullptr, so xramSize cannot be 0
+    volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+    bootlog("XRAM @ %p, size %u\n",xramBase,xramSize);
+    #endif //__ENABLE_XRAM
+    #ifdef WITH_PROCESSES
+    extern unsigned char _process_pool_start asm("_process_pool_start");
+    extern unsigned char _process_pool_end asm("_process_pool_end");
+    const unsigned char *poolBase=&_process_pool_start;
+    unsigned int poolSize=(&_process_pool_end)-(&_process_pool_start);
+    if(poolSize) bootlog("Process pool @ %p, size %u\n",poolBase,poolSize);
+    else bootlog("Error: kernel compiled with processes but missing process pool\n");
+    #endif //WITH_PROCESSES
     bootlog("Available heap %d out of %d Bytes\n",
             MemoryProfiling::getCurrentFreeHeap(),
             MemoryProfiling::getHeapSize());
