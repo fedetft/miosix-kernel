@@ -16,7 +16,7 @@ set(MIOSIX_DEFAULT_LINKER_SCRIPT unikernel.ld)
 
 # Select architecture specific files
 set(MIOSIX_BOARD_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/mpu/cortexMx_mpu.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/common/cortexMx_mpu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/common/cortexMx_userspace.cpp
     ${MIOSIX_BOARD_INC}/boot.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/delays.cpp

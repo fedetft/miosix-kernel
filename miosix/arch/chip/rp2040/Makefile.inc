@@ -19,7 +19,7 @@ CHIP_CXXFLAGS := -D_CHIP_RP2040
 CHIP_SRC :=                                              \
 arch/cpu/armv6m/interfaces-impl/cpu.cpp                  \
 arch/cpu/common/cortexMx_interrupts.cpp                  \
-arch/drivers/mpu/cortexMx_mpu.cpp                        \
+arch/cpu/common/cortexMx_mpu.cpp                         \
 arch/cpu/common/cortexMx_userspace.cpp                   \
 arch/drivers/os_timer/rp2040_os_timer.cpp                \
 arch/drivers/sleep/cortexMx_sleep.cpp                    \

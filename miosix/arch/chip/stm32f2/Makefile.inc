@@ -19,7 +19,7 @@ CHIP_CXXFLAGS := -D_CHIP_STM32F2 $(XRAM)
 CHIP_SRC :=                                              \
 arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
 arch/cpu/common/cortexMx_interrupts.cpp                  \
-arch/drivers/mpu/cortexMx_mpu.cpp                        \
+arch/cpu/common/cortexMx_mpu.cpp                         \
 arch/cpu/common/cortexMx_userspace.cpp                   \
 arch/drivers/os_timer/stm32_32bit_os_timer.cpp           \
 arch/drivers/sleep/cortexMx_sleep.cpp                    \

@@ -33,7 +33,7 @@
 #include <bit>
 //Only include if needed to prevent printing multiple times the no MPU warning
 #if __MPU_PRESENT==1
-#include "drivers/mpu/cortexMx_mpu.h"
+#include "cortexMx_mpu.h"
 #endif //__MPU_PRESENT==1
 
 using namespace std;

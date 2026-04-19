@@ -11,8 +11,8 @@ LINKER_SCRIPT := unikernel.ld
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                             \
-arch/drivers/mpu/cortexMx_mpu.cpp        \
+BOARD_SRC :=                            \
+arch/cpu/common/cortexMx_mpu.cpp        \
 arch/cpu/common/cortexMx_userspace.cpp  \
 $(BOARD_INC)/boot.cpp                   \
 $(BOARD_INC)/interfaces-impl/delays.cpp \
