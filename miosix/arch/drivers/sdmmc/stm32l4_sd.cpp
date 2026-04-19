@@ -3,7 +3,6 @@
 #include "interfaces/bsp.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/interrupts.h"
-#include "drivers/cache/cortexMx_cache.h"
 #include "interfaces/delays.h"
 #include "kernel/thread.h"
 #include "board_settings.h" //For sdVoltage and SD_ONE_BIT_DATABUS definitions
@@ -720,9 +719,6 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
         ClockController::reduceClockSpeed();
         return false;
     }
-    
-    //Read ok, deal with cache coherence
-    markBufferAfterDmaRead(buffer,nblk*512);
     return true;
 }
 
@@ -745,9 +741,6 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
         nblk-=32767;
         lba+=32767;
     }
-    
-    //Deal with cache coherence
-    markBufferBeforeDmaWrite(buffer,nblk*512);
     
     if(waitForCardReady()==false) return false;
     

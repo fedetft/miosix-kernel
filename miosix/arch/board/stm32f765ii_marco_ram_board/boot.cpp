@@ -29,7 +29,6 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
 #include "interfaces/gpio.h"
-#include "drivers/cache/cortexMx_cache.h"
 #include "board_settings.h"
 
 namespace miosix {

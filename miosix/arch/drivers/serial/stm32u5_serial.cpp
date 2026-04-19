@@ -33,7 +33,7 @@
 #include "stm32_serial_common.h"
 #include "kernel/sync.h"
 #include "filesystem/ioctl.h"
-#include "drivers/cache/cortexMx_cache.h"
+#include "interfaces/cache.h"
 #include "interfaces/gpio.h"
 #include "interfaces/interrupts.h"
 

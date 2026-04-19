@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2018-2024 by Terraneo Federico                          *
+ *   Copyright (C) 2018-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,29 +27,18 @@
 
 #pragma once
 
-/*
- * README: Essentials about how cache support is implemented.
- * 
- * Caches in the Cortex M7 are transparent to software, except when using
- * the DMA. As the DMA reads and writes directly to memory, explicit management
- * is required. The default cache policy is write-back, but this has been deemed
- * unsuitable for Miosix, so for the time being only write-through is supported.
- * 
- * Cache configuration at boot is done as part of IRQconfigureMPU() since
- * the MPU is also used to enforce kernel-level W^X, see cortexMx_mpu.h.
- * That function configures the cache as write-through and enables it.
- * It should be called early at boot, in stage_1_boot.cpp
- * 
- * When writing DMA drivers, before passing a buffer to the DMA for it to be
- * written to a peripheral, call markBufferBeforeDmaWrite().
- * After a DMA read from a peripheral to a memory buffer has completed,
- * call markBufferAfterDmaRead(). These take care of keeping the DMA operations
- * in sync with the cache. These become no-ops for other architectures, so you
- * can freely put them in any driver.
+/**
+ * \addtogroup Interfaces
+ * \{
  */
 
-/*
- * Some more info about caches. Why not supporting write-back?
+/**
+ * \file cache.h
+ * This file contains code to flush cached in drivers that use DMA.
+ *
+ * Miosix, whenever permitted by the underlying architecture, configures the
+ * data cache as write through. Why not supporting write-back?
+ *
  * When writing data from memory to a peripheral using DMA, things are easy
  * also with write-back. You just flush (clean) the relevant cache lines, and
  * the DMA has access to the correct values. So it looks like it's ok.
@@ -87,60 +76,64 @@
  * That is a joke, as it the burden of doing so is unmaintainable. Buffers
  * passed to DMA memory are everywhere, in the C/C++ standard library
  * (think the buffer used for IO formatting inside printf/fprintf), and
- * everywherein application code. Something like
+ * everywhere in application code. Something like
  * char s[128]="Hello world";
  * puts(s);
  * may cause s to be passed to a DMA driver. We would spend our lives chasing
  * unaligned buffers, and the risk of this causing difficult to reproduce memory
- * corruptions is too high. For this reason, for the time being, Miosix only
- * supports write-through caching on the Cortex-M7.
- * 
- * A note about performance. Using the testsuite benchmark, when caches are
- * disabled the STM32F746 @ 216MHz is less than half the speed of the
- * STM32F407 @ 168MHz. By enabling the ICACHE things get better, but it is
- * still slower, and achieves a speedup of 1.53 only when both ICACHE and
- * DCACHE are enabled. The speedup also includes the gains due to the faster
- * clock frequency. So if you want speed you have to use caches.
+ * corruptions is too high. For this reason, Miosix prefers write-through
+ * caches.
+ *
+ * Should an architecture be added where caches have to be write back, then all
+ * DMA-enabled drivers for that architecture will hae to be written to not be
+ * zero copy, and instead to always copy the passed data in fixed size buffers
+ * that are cache-aligned, to the detriment of driver performance and causing
+ * increased memory use.
+ *
+ * At the time of writing, all architectures Miosix supports that have caches
+ * provide a way to configure the caches as write through.
  */
-
-#include "interfaces/arch_registers.h"
 
 namespace miosix {
 
-static const unsigned int cacheLine=32; //Cortex-M7 cache line size
-
 /**
- * Call this function to mark a buffer before starting a DMA transfer where
- * the DMA will read the buffer.
+ * When writing DMA-enabled drivers, before passing a buffer to the DMA for it
+ * to be written to a peripheral, call this function to keep the DMA operations
+ * in sync with the cache.
+ *
+ * This function becomes a no-op for architectures without DCACHE, so you can
+ * freely put it in any DMA-enabled driver.
  * \param buffer buffer
  * \param size buffer size
  */
-inline void markBufferBeforeDmaWrite(const void *buffer, int size)
-{
-#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
-    // You may think that since the cache is configured as write-through,
-    // there's nothing to do before the DMA can read a memory buffer just
-    // written by the CPU, right? Wrong! Other than the cache, there's the
-    // write buffer to worry about. My hypothesis is that once a memory region
-    // is marked as cacheable, the write buffer becomes more lax in
-    // automatically flushing as soon as possible. In the stm32 serial port
-    // driver writing just a few characters causes garbage to be printed if
-    // this __DSB() is removed. Apparently, the characters remian in the write
-    // buffer.
-    __DSB();
-#endif
-}
+void markBufferBeforeDmaWrite(const void *buffer, int size);
 
 /**
- * Call this function after having completed a DMA transfer where the DMA has
- * written to the buffer.
+ * After a DMA read from a peripheral to a memory buffer has completed,
+ * call this function to keep the DMA operations in sync with the cache.
+ *
+ * This function becomes a no-op for architectures without DCACHE, so you can
+ * freely put it in any DMA-enabled driver.
  * \param buffer buffer
  * \param size buffer size
  */
-#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
 void markBufferAfterDmaRead(void *buffer, int size);
-#else
-inline void markBufferAfterDmaRead(void *buffer, int size) {}
-#endif
+
+/**
+ * \internal
+ * Enable caches. This function is called by the kernel in the architecture
+ * independent boot.cpp to enable caches early at boot.
+ * It must not be called by application code.
+ * It must not be called by device drivers.
+ * It must not be called by board support packages.
+ * TODO: make an interfaces-private header only for this function?
+ */
+void IRQenableCache();
 
 } //namespace miosix
+
+/**
+ * \}
+ */
+
+#include "interfaces-impl/cache_impl.h"

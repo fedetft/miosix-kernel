@@ -23,7 +23,6 @@ arch/cpu/common/cortexMx_mpu.cpp                         \
 arch/cpu/common/cortexMx_userspace.cpp                   \
 arch/drivers/os_timer/stm32_32bit_os_timer.cpp           \
 arch/drivers/sleep/cortexMx_sleep.cpp                    \
-arch/drivers/cache/cortexMx_cache.cpp                    \
 arch/drivers/gpio/stm32_gpio.cpp                         \
 arch/drivers/serial/stm32f4_serial.cpp                   \
 arch/drivers/serial/stm32_serial_common.cpp              \

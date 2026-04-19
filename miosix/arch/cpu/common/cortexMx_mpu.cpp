@@ -27,7 +27,6 @@
  ***************************************************************************/
 
 #include "cortexMx_mpu.h"
-#include "drivers/cache/cortexMx_cache.h"
 #include "kernel/error.h"
 #include "miosix_settings.h"
 
@@ -110,11 +109,6 @@ void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize)
     MPU->CTRL = MPU_CTRL_HFNMIENA_Msk
               | MPU_CTRL_PRIVDEFENA_Msk
               | MPU_CTRL_ENABLE_Msk;
-    
-    #if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT==1)
-    SCB_EnableICache();
-    SCB_EnableDCache();
-    #endif
 }
 
 #if __CORTEX_M != 33U

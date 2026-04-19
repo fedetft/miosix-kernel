@@ -20,9 +20,9 @@ arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
 arch/cpu/common/cortexMx_interrupts.cpp                  \
 arch/cpu/common/cortexMx_mpu.cpp                         \
 arch/cpu/common/cortexMx_userspace.cpp                   \
+arch/cpu/common/cortexMx_cache.cpp                       \
 arch/drivers/os_timer/stm32_32bit_os_timer.cpp           \
 arch/drivers/sleep/cortexMx_sleep.cpp                    \
-arch/drivers/cache/cortexMx_cache.cpp                    \
 arch/drivers/gpio/stm32_gpio.cpp                         \
 arch/drivers/serial/stm32f7_serial.cpp                   \
 arch/drivers/serial/stm32_serial_common.cpp              \

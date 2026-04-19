@@ -30,6 +30,7 @@
 // Low level hardware functionalities
 #include "interfaces/bsp.h"
 #include "interfaces/poweroff.h"
+#include "interfaces/cache.h"
 #include "interfaces_private/bsp_private.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/sleep.h"
@@ -94,6 +95,9 @@ void IRQkernelBootEntryPoint()
 
         // Enable MPU on architectures that support it
         IRQenableMPU(xramBase,xramSize);
+        // Enable cache after the MPU since in Cortex-M CPUs the MPU driver
+        // also configures cacheability
+        IRQenableCache();
 
         //Initialize .data section, clear .bss section
         unsigned char *etext=&_etext;
