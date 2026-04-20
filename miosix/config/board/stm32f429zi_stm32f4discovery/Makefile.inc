@@ -16,7 +16,9 @@ LINKER_SCRIPT := unikernel-xram-6m.ld
 ## 4) Same as 1) but with the process pool
 #LINKER_SCRIPT := processes.ld
 
-## TODO Add processes + XRAM options
+## 5) Code in FLASH, kernel in internal RAM, process pool in XRAM, except for
+## upper 2M that are reserved for the LCD framebuffers
+#LINKER_SCRIPT := processes-xram-6m.ld
 
 ## Do not uncomment this even if you don't use a linker script that requires
 ## it, as it is used for the LCD framebuffer.
