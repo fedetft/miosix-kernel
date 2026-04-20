@@ -5,7 +5,7 @@
 ## KPATH and CONFPATH can be specified here or forwarded by the parent makefile
 KPATH := ../../../miosix
 CONFPATH := $(KPATH)
-MAKEFILE_VERSION := 1.16
+MAKEFILE_VERSION := 3.01
 include $(KPATH)/Makefile.pcommon
 
 BIN := ../romfs/hello

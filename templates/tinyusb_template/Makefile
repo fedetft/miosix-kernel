@@ -22,7 +22,7 @@ CONFPATH := $(KPATH)
 OPT_BOARD := stm32f407vg_stm32f4discovery
 
 ## Include the Miosix common makefile for kernel-side applications
-MAKEFILE_VERSION := 1.16
+MAKEFILE_VERSION := 3.01
 include $(KPATH)/Makefile.kcommon
 
 ##

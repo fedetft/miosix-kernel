@@ -8,9 +8,9 @@
 
 ##
 ## Check that the top-level makefile (which includes this file) has the correct
-## version
+## version. This is here to share the check between processes and kernel
 ##
-ifneq ($(MAKEFILE_VERSION),1.16)
+ifneq ($(MAKEFILE_VERSION),3.01)
     $(info You are using an incompatible makefile. Make sure it matches \
       the one distributed with the current version of the kernel)
     $(error Error)

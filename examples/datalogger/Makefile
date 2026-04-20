@@ -21,7 +21,7 @@ OPT_BOARD := stm32f407vg_stm32f4discovery # example board, any will do
 # OPT_BOARD := [other options in miosix-kernel/miosix/config/Makefile.inc]
 
 ## Include the Miosix common makefile for kernel-side applications
-MAKEFILE_VERSION := 1.16
+MAKEFILE_VERSION := 3.01
 include $(KPATH)/Makefile.kcommon
 
 ##
@@ -32,12 +32,12 @@ SRC := main.cpp Logger.cpp tscpp/buffer.cpp
 ##
 ## List here additional include directories (in the form -Iinclude_dir)
 ##
-INCLUDE_DIRS :=
+INCLUDE_DIRS := -I.
 
 ##
 ## List here additional static libraries with relative path
 ##
-LIBS :=
+LIBS := 
 
 ##
 ## List here subdirectories which contains makefiles

@@ -21,7 +21,7 @@ OPT_BOARD := stm32f407vg_stm32f4discovery
 # OPT_BOARD := stm32f100rb_stm32vldiscovery
 
 ## Include the Miosix common makefile for kernel-side applications
-MAKEFILE_VERSION := 1.16
+MAKEFILE_VERSION := 3.01
 include $(KPATH)/Makefile.kcommon
 
 ##

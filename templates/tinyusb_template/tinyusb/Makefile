@@ -4,7 +4,7 @@
 ##
 
 ## KPATH and CONFPATH are forwarded by the parent Makefile
-MAKEFILE_VERSION := 1.16
+MAKEFILE_VERSION := 3.01
 include $(KPATH)/Makefile.kcommon
 
 ## List of all tinyusb source files (both .c and .cpp)
@@ -77,7 +77,7 @@ SRC := \
     tinyusb/src/device/usbd.c \
     tinyusb/src/tusb.c
 
-INCLUDE_DIRS := -I. -I./cmsis_stubs -I./tinyusb/src -I$(CONFPATH)/config
+INCLUDE_DIRS := -I. -Icmsis_stubs -Itinyusb/src
 
 all: $(OBJ)
 	$(ECHO) "[AR  ] libtinyusb.a"

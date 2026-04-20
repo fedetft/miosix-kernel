@@ -20,7 +20,7 @@ CONFPATH := $(KPATH)
 # OPT_BOARD := [options in miosix-kernel/miosix/config/Makefile.inc]
 
 ## Include the Miosix common makefile for kernel-side applications
-MAKEFILE_VERSION := 1.16
+MAKEFILE_VERSION := 3.01
 include $(KPATH)/Makefile.kcommon
 
 ##
