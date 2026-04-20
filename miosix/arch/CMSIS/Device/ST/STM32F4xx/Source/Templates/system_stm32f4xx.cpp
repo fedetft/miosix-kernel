@@ -390,10 +390,14 @@ static void SetSysClock(void)
     }
    
     /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
+    /* NOTE: this mapping is valid for VDD from 2.7 to 3.6V, see RM0090 */
     unsigned int flashLatency;
-    if constexpr(sysclkMhz<=168) flashLatency = FLASH_ACR_LATENCY_5WS;
-    else if constexpr(sysclkMhz<=100) flashLatency = FLASH_ACR_LATENCY_3WS;
-    else flashLatency = FLASH_ACR_LATENCY_2WS;
+    if constexpr(sysclkMhz>150) flashLatency = FLASH_ACR_LATENCY_5WS;
+    else if constexpr(sysclkMhz>120) flashLatency = FLASH_ACR_LATENCY_4WS;
+    else if constexpr(sysclkMhz>90) flashLatency = FLASH_ACR_LATENCY_3WS;
+    else if constexpr(sysclkMhz>60) flashLatency = FLASH_ACR_LATENCY_2WS;
+    else if constexpr(sysclkMhz>30) flashLatency = FLASH_ACR_LATENCY_1WS;
+    else flashLatency = FLASH_ACR_LATENCY_0WS;
     FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | flashLatency;
 
     /* Select the main PLL as system clock source */
