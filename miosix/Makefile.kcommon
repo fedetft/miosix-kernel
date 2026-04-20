@@ -16,9 +16,9 @@ include $(KPATH)/arch/Makefile.inc
 
 ## Includes the miosix base directory for C/C++
 ## Always include CONFPATH first, as it overrides the config file location
-AFLAGS   := -qkernelspace \
+AFLAGS    = -qkernelspace \
             $(BOARD_AFLAGS) $(CPU_FLAGS) $(CHIP_AFLAGS) $(AFLAGS_BASE) -c
-CFLAGS   := -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"               \
+CFLAGS    = -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"               \
             -D_DEFAULT_SOURCE=1 $(BOARD_CFLAGS) $(CHIP_CFLAGS) $(CPU_FLAGS)  \
             $(OPT_OPTIMIZATION) $(CFLAGS_BASE)                               \
             -I$(CONFPATH)/config -I$(KPATH)/config                           \
@@ -27,7 +27,7 @@ CFLAGS   := -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"               \
             -I$(KPATH)/$(CPU_INC) -I$(KPATH)/$(CHIP_INC)                     \
             -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)                          \
             -MMD -MP -c
-CXXFLAGS := -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"                 \
+CXXFLAGS  = -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"                 \
             -D_DEFAULT_SOURCE=1 $(BOARD_CXXFLAGS) $(CHIP_CXXFLAGS) $(CPU_FLAGS)\
             $(OPT_OPTIMIZATION) $(OPT_EXCEPT) $(CXXFLAGS_BASE)                 \
             -I$(CONFPATH)/config -I$(KPATH)/config                             \
@@ -36,11 +36,11 @@ CXXFLAGS := -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"                 \
             -I$(KPATH)/$(CPU_INC) -I$(KPATH)/$(CHIP_INC)                       \
             -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)                            \
             -MMD -MP -c
-LFLAGS   := -qkernelspace $(BOARD_LFLAGS) $(CPU_FLAGS) $(CHIP_LFLAGS)      \
+LFLAGS    = -qkernelspace $(BOARD_LFLAGS) $(CPU_FLAGS) $(CHIP_LFLAGS)      \
             -Wl,-Map,main.map -Wl,-T$(KPATH)/$(BOARD_INC)/$(LINKER_SCRIPT) \
             $(OPT_EXCEPT) $(OPT_OPTIMIZATION) -nostdlib $(LFLAGS_BASE)
 STDLIBS  := -lmiosix -lstdc++ -lc -lm -lgcc -latomic
-LINK_LIBS := $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
+LINK_LIBS = $(LIBS) -L$(KPATH) -Wl,--start-group $(STDLIBS) -Wl,--end-group
 TOOLS_DIR := $(KPATH)/tools
 
 #TODO: this should be in arch/Makefile.inc but $(TOOLS_DIR) isn't defined there
