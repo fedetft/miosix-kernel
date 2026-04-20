@@ -355,14 +355,17 @@ static void SetSysClock(void)
     //but in both cases the PWR_CR_VOS mask sets both bits to get the highest scaling
     PWR->CR |= PWR_CR_VOS;
 
-    /* HCLK = SYSCLK / 1*/
-    RCC->CFGR |= RCC_CFGR_HPRE_DIV1;
-      
-    /* PCLK2 = HCLK / 2*/
-    RCC->CFGR |= RCC_CFGR_PPRE2_DIV2;
-    
-    /* PCLK1 = HCLK / 4*/
-    RCC->CFGR |= RCC_CFGR_PPRE1_DIV4;
+    #if defined(STM32F401xC) || defined(STM32F401xE) || defined(STM32F411xE)
+    //STM32F401/411 run up to 84/100Mhz but busses require less prescaling
+    RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  /* HCLK = SYSCLK / 1*/
+    RCC->CFGR |= RCC_CFGR_PPRE2_DIV1; /* PCLK2 = HCLK  / 1*/
+    RCC->CFGR |= RCC_CFGR_PPRE1_DIV2; /* PCLK1 = HCLK  / 2*/
+    #else
+    //STM32F07/415/429/469 run up to 168/180MHz and busses require more prescaling
+    RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  /* HCLK = SYSCLK / 1*/
+    RCC->CFGR |= RCC_CFGR_PPRE2_DIV2; /* PCLK2 = HCLK  / 2*/
+    RCC->CFGR |= RCC_CFGR_PPRE1_DIV4; /* PCLK1 = HCLK  / 4*/
+    #endif
 
     /* Configure the main PLL */
     RCC->PLLCFGR = PLL_M | (PLL_N << 6) | (((PLL_P >> 1) -1) << 16) |
