@@ -195,8 +195,7 @@ void absoluteDeepSleep(long long int value)
         }
         RCC->CR |= RCC_CR_PLLON;
         while((RCC->CR & RCC_CR_PLLRDY)==0) ;
-        RCC->CFGR &= ~RCC_CFGR_SW;
-        RCC->CFGR |= RCC_CFGR_SW_PLL;    
+        RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
         while((RCC->CFGR & RCC_CFGR_SWS)!=0x08) ;
         
         //Wait RSF

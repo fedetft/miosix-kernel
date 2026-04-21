@@ -167,6 +167,6 @@ void startPll()
         FLASH->ACR = 0b10<<FLASH_ACR_WRHIGHFREQ_Pos | FLASH_ACR_LATENCY_2WS;
     }
     //Finally, increase frequency
-    RCC->CFGR |= RCC_CFGR_SW_PLL1;
+    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL1;
     while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL1) ; //Wait
 }
