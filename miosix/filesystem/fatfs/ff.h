@@ -143,6 +143,19 @@ extern const char* VolumeStr[FF_VOLUMES];	/* User defined volume ID table */
 #endif
 #endif
 
+/* File lock controls */
+#if FF_FS_LOCK
+#if FF_FS_READONLY
+#error FF_FS_LOCK must be 0 at read-only configuration
+#endif
+typedef struct {	/* Open object identifier with status */
+	FATFS* fs;		/*  Object ID 1, volume (NULL:blank entry) */
+	DWORD clu;		/*  Object ID 2, containing directory (0:root) */
+	DWORD ofs;		/*  Object ID 3, offset in the directory */
+	UINT ctr;		/*  Object open status, 0:none, 0x01..0xFF:read mode open count, 0x100:write mode */
+} FILESEM;
+#endif
+
 /* Filesystem object structure (FATFS) */
 
 typedef struct {
@@ -188,7 +201,10 @@ typedef struct {
 #endif
 	LBA_t	winsect;		/* Current sector appearing in the win[] */
 	BYTE	win[FF_MAX_SS] __attribute__((aligned(4)));	/* Disk access window for Directory, FAT (and file data at tiny cfg) */
-  miosix::intrusive_ref_ptr<miosix::FileBase> pdrv; /* Pointer to the physical drive of the volume */
+    #ifdef FF_FS_LOCK
+	FILESEM Files[miosix::FATFS_MAX_OPEN_FILES]; /* Open object lock semaphores */
+	#endif
+	miosix::intrusive_ref_ptr<miosix::FileBase> pdrv; /* Pointer to the physical drive of the volume */
 } FATFS;
 
 
