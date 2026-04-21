@@ -157,6 +157,10 @@ typedef struct {	/* Open object identifier with status */
 #endif
 
 /* Filesystem object structure (FATFS) */
+#define SZDIRE	32		/* Size of a directory entry */
+#if FF_FS_EXFAT
+#define MAXDIRB(nc)	((nc + 44U) / 15 * SZDIRE)	/* exFAT: Size of directory entry block scratchpad buffer needed for the name length */
+#endif
 
 typedef struct {
 	BYTE	fs_type;		/* Filesystem type (0:blank filesystem object) */
@@ -173,10 +177,11 @@ typedef struct {
 #endif
 #if FF_USE_LFN
 	//WCHAR*	lfnbuf;			/* LFN working buffer */
-  WCHAR*	lfnbuf[FF_MAX_LFN + 1];			/* LFN working buffer */
+    WCHAR	lfnbuf[FF_MAX_LFN + 1];			/* LFN working buffer */
 #endif
 #if FF_FS_EXFAT
-	BYTE*	dirbuf;			/* Directory entry block scratch pad buffer for exFAT */
+	//BYTE*	dirbuf;			/* Directory entry block scratch pad buffer for exFAT */
+	BYTE dirbuf[MAXDIRB(FF_MAX_LFN)];	/* Directory entry block scratch pad buffer for exFAT */
 #endif
 #if !FF_FS_READONLY
 	DWORD	last_clst;		/* Last allocated cluster (Unknown if >= n_fatent) */
