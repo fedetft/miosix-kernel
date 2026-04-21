@@ -215,7 +215,6 @@
 #define XDIR_FstClus		52		/* exFAT: First cluster of the file data (DWORD) */
 #define XDIR_FileSize		56		/* exFAT: File/Directory size (QWORD) */
 
-#define SZDIRE				32		/* Size of a directory entry */
 #define DDEM				0xE5	/* Deleted directory entry mark set to DIR_Name[0] */
 #define RDDEM				0x05	/* Replacement of the character collides with DDEM */
 #define LLEF				0x40	/* Last long entry flag in LDIR_Ord */
@@ -480,15 +479,15 @@
 #if FF_VOLUMES < 1 || FF_VOLUMES > 10
 #error Wrong FF_VOLUMES setting
 #endif
-static FATFS *FatFs[FF_VOLUMES];	/* Pointer to the filesystem objects (logical drives) */
-static WORD Fsid;					/* Filesystem mount ID */
+//static FATFS *FatFs[FF_VOLUMES];	/* Pointer to the filesystem objects (logical drives) */
+static /*WORD*/ int Fsid;					/* Filesystem mount ID */
 
 #if FF_FS_RPATH != 0
 static BYTE CurrVol;				/* Current drive number set by f_chdrive() */
 #endif
 
 #if FF_FS_LOCK
-static FILESEM Files[FF_FS_LOCK];	/* Open object lock semaphores */
+//static FILESEM Files[FF_FS_LOCK];	/* Open object lock semaphores */
 #if FF_FS_REENTRANT
 static volatile BYTE SysLock;		/* System lock flag to protect Files[] (0:no mutex, 1:unlocked, 2:locked) */
 static volatile BYTE SysLockVolume;	/* Volume id who is locking Files[] */
@@ -534,13 +533,12 @@ static const BYTE GUID_MS_Basic[16] = {0xA2,0xA0,0xD0,0xEB,0xE5,0xB9,0x33,0x44,0
 #error Wrong setting of FF_LFN_UNICODE
 #endif
 static const BYTE LfnOfs[] = {1,3,5,7,9,14,16,18,20,22,24,28,30};	/* FAT: Offset of LFN characters in the directory entry */
-#define MAXDIRB(nc)	((nc + 44U) / 15 * SZDIRE)	/* exFAT: Size of directory entry block scratchpad buffer needed for the name length */
 
 #if FF_USE_LFN == 1		/* LFN enabled with static working buffer */
 #if FF_FS_EXFAT
-static BYTE	DirBuf[MAXDIRB(FF_MAX_LFN)];	/* Directory entry block scratchpad buffer */
+//static BYTE	DirBuf[MAXDIRB(FF_MAX_LFN)];	/* Directory entry block scratchpad buffer */
 #endif
-static WCHAR LfnBuf[FF_MAX_LFN + 1];		/* LFN working buffer */
+//static WCHAR LfnBuf[FF_MAX_LFN + 1];		/* LFN working buffer */
 #define DEF_NAMBUF
 #define INIT_NAMBUF(fs)
 #define FREE_NAMBUF()
@@ -964,7 +962,7 @@ static void unlock_volume (
 /*-----------------------------------------------------------------------*/
 
 static FRESULT chk_share (	/* Check if the file can be accessed */
-	DIR* dp,		/* Directory object pointing the file to be checked */
+	DIR_* dp,		/* Directory object pointing the file to be checked */
 	int acc			/* Desired access type (0:Read mode open, 1:Write mode open, 2:Delete or rename) */
 )
 {
@@ -972,11 +970,11 @@ static FRESULT chk_share (	/* Check if the file can be accessed */
 
 	/* Search open object table for the object */
 	be = 0;
-	for (i = 0; i < FF_FS_LOCK; i++) {
-		if (Files[i].fs) {	/* Existing entry */
-			if (Files[i].fs == dp->obj.fs &&	 	/* Check if the object matches with an open object */
-				Files[i].clu == dp->obj.sclust &&
-				Files[i].ofs == dp->dptr) break;
+	for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES; i++) {
+		if (dp->obj.fs->Files[i].fs) {	/* Existing entry */
+			if (dp->obj.fs->Files[i].fs == dp->obj.fs &&	 	/* Check if the object matches with an open object */
+				dp->obj.fs->Files[i].clu == dp->obj.sclust &&
+				dp->obj.fs->Files[i].ofs == dp->dptr) break;
 		} else {			/* Blank entry */
 			be = 1;
 		}
@@ -986,51 +984,52 @@ static FRESULT chk_share (	/* Check if the file can be accessed */
 	}
 
 	/* The object was opened. Reject any open against writing file and all write mode open */
-	return (acc != 0 || Files[i].ctr == 0x100) ? FR_LOCKED : FR_OK;
+	return (acc != 0 || dp->obj.fs->Files[i].ctr == 0x100) ? FR_LOCKED : FR_OK;
 }
 
 
-static int enq_share (void)	/* Check if an entry is available for a new object */
+static int enq_share (FATFS *fs)	/* Check if an entry is available for a new object */
 {
 	UINT i;
 
-	for (i = 0; i < FF_FS_LOCK && Files[i].fs; i++) ;	/* Find a free entry */
-	return (i == FF_FS_LOCK) ? 0 : 1;
+	for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES && fs->Files[i].fs; i++) ;	/* Find a free entry */
+	return (i == miosix::FATFS_MAX_OPEN_FILES) ? 0 : 1;
 }
 
 
 static UINT inc_share (	/* Increment object open counter and returns its index (0:Internal error) */
-	DIR* dp,	/* Directory object pointing the file to register or increment */
+	DIR_* dp,	/* Directory object pointing the file to register or increment */
 	int acc		/* Desired access (0:Read, 1:Write, 2:Delete/Rename) */
 )
 {
 	UINT i;
 
 
-	for (i = 0; i < FF_FS_LOCK; i++) {	/* Find the object */
-		if (Files[i].fs == dp->obj.fs
-		 && Files[i].clu == dp->obj.sclust
-		 && Files[i].ofs == dp->dptr) break;
+	for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES; i++) {	/* Find the object */
+		if (dp->obj.fs->Files[i].fs == dp->obj.fs
+		 && dp->obj.fs->Files[i].clu == dp->obj.sclust
+		 && dp->obj.fs->Files[i].ofs == dp->dptr) break;
 	}
 
-	if (i == FF_FS_LOCK) {			/* Not opened. Register it as new. */
-		for (i = 0; i < FF_FS_LOCK && Files[i].fs; i++) ;	/* Find a free entry */
-		if (i == FF_FS_LOCK) return 0;	/* No free entry to register (int err) */
-		Files[i].fs = dp->obj.fs;
-		Files[i].clu = dp->obj.sclust;
-		Files[i].ofs = dp->dptr;
-		Files[i].ctr = 0;
+	if (i == miosix::FATFS_MAX_OPEN_FILES) {			/* Not opened. Register it as new. */
+		for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES && dp->obj.fs->Files[i].fs; i++) ;	/* Find a free entry */
+		if (i == miosix::FATFS_MAX_OPEN_FILES) return 0;	/* No free entry to register (int err) */
+		dp->obj.fs->Files[i].fs = dp->obj.fs;
+		dp->obj.fs->Files[i].clu = dp->obj.sclust;
+		dp->obj.fs->Files[i].ofs = dp->dptr;
+		dp->obj.fs->Files[i].ctr = 0;
 	}
 
-	if (acc >= 1 && Files[i].ctr) return 0;	/* Access violation (int err) */
+	if (acc >= 1 && dp->obj.fs->Files[i].ctr) return 0;	/* Access violation (int err) */
 
-	Files[i].ctr = acc ? 0x100 : Files[i].ctr + 1;	/* Set semaphore value */
+	dp->obj.fs->Files[i].ctr = acc ? 0x100 : dp->obj.fs->Files[i].ctr + 1;	/* Set semaphore value */
 
 	return i + 1;	/* Index number origin from 1 */
 }
 
 
 static FRESULT dec_share (	/* Decrement object open counter */
+	FATFS* fs,		/* Pointer to the filesystem object */
 	UINT i			/* Semaphore index (1..) */
 )
 {
@@ -1038,13 +1037,13 @@ static FRESULT dec_share (	/* Decrement object open counter */
 	FRESULT res;
 
 
-	if (--i < FF_FS_LOCK) {	/* Index number origin from 0 */
-		n = Files[i].ctr;
+	if (--i < miosix::FATFS_MAX_OPEN_FILES) {	/* Index number origin from 0 */
+		n = fs->Files[i].ctr;
 		if (n == 0x100) n = 0;	/* If write mode open, delete the object semaphore */
 		if (n > 0) n--;			/* Decrement read mode open count */
-		Files[i].ctr = n;
+		fs->Files[i].ctr = n;
 		if (n == 0) {			/* Delete the object semaphore if open count becomes zero */
-			Files[i].fs = 0;	/* Free the entry <<<If this memory write operation is not in atomic, FF_FS_REENTRANT == 1 and FF_VOLUMES > 1, there is a potential error in this process >>> */
+			fs->Files[i].fs = 0;	/* Free the entry <<<If this memory write operation is not in atomic, FF_FS_REENTRANT == 1 and FF_VOLUMES > 1, there is a potential error in this process >>> */
 		}
 		res = FR_OK;
 	} else {
@@ -1060,8 +1059,8 @@ static void clear_share (	/* Clear all lock entries of the volume */
 {
 	UINT i;
 
-	for (i = 0; i < FF_FS_LOCK; i++) {
-		if (Files[i].fs == fs) Files[i].fs = 0;
+	for (i = 0; i < miosix::FATFS_MAX_OPEN_FILES; i++) {
+		if (fs->Files[i].fs == fs) fs->Files[i].fs = 0;
 	}
 }
 
