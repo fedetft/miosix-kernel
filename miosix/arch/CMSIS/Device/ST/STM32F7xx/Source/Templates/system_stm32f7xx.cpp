@@ -366,14 +366,13 @@ void SetSysClk(void)
     FLASH->ACR = FLASH_ACR_LATENCY_7WS;
     
     /* Select the main PLL as system clock source */
-    RCC->CFGR &= (uint32_t)((uint32_t)~(RCC_CFGR_SW));
-    RCC->CFGR |= RCC_CFGR_SW_PLL;
-    
+    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
+
     timeout = 0xFFFF;
     do
     {
       tmpreg = (RCC->CFGR & RCC_CFGR_SWS);
-    } while((tmpreg != RCC_CFGR_SWS) && (timeout-- > 0));
+    } while((tmpreg != RCC_CFGR_SWS_PLL) && (timeout-- > 0));
   }   
 }
 
