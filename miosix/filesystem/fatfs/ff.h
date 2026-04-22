@@ -286,10 +286,14 @@ typedef struct {
 	WORD	fdate;			/* Modified date */
 	WORD	ftime;			/* Modified time */
 	BYTE	fattrib;		/* File attribute */
+	// By Raul Radu: in miosix we always want the lfname to be populated, 
+	// even with the fname if no lfname is available.
+	// The lfname buffer is provided by Miosix
+	char* lfname; /* Long file name */
+	UINT lfsize; /* Size of lfname buffer */
 #if FF_USE_LFN
 	TCHAR	altname[FF_SFN_BUF + 1];/* Alternative file name */
 	// TCHAR	fname[FF_LFN_BUF + 1];	/* Primary file name */
-  char* lfname; /* Pointer to the LFN buffer */
 #else
 	TCHAR	fname[12 + 1];	/* File name */
 #endif
