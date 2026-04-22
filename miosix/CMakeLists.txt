@@ -180,7 +180,7 @@ set(MIOSIX_KERNEL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/devfs/devfs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/exfat/exfat.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fat32/fat32.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fatfs/ccsbcs.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fatfs/ffunicode.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fatfs/diskio.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fatfs/ff.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/fatfs/wtoupper.cpp
