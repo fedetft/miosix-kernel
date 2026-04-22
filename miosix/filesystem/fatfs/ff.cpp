@@ -3707,8 +3707,9 @@ static FRESULT validate (	/* Returns FR_OK or FR_INVALID_OBJECT */
 
 FRESULT f_mount (
 	FATFS* fs,			/* Pointer to the filesystem object to be registered (NULL:unmount)*/
-	const TCHAR* path,	/* Logical drive number to be mounted/unmounted */
-	BYTE opt			/* Mount option: 0=Do not mount (delayed mount), 1=Mount immediately */
+	// const char* path,	/* Logical drive number to be mounted/unmounted */
+	BYTE opt,			/* Mount option: 0=Do not mount (delayed mount), 1=Mount immediately */
+	bool unmount		/* set to true to unmount the volume */
 )
 {
 	FATFS *cfs;
@@ -3766,8 +3767,9 @@ FRESULT f_mount (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_open (
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */	
 	FIL* fp,			/* Pointer to the blank file object */
-	const TCHAR* path,	/* Pointer to the file name */
+	const /*TCHAR*/char* path,	/* Pointer to the file name */
 	BYTE mode			/* Access mode and open mode flags */
 )
 {
@@ -4318,7 +4320,8 @@ FRESULT f_chdrive (
 
 
 FRESULT f_chdir (
-	const TCHAR* path	/* Pointer to the directory path */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	const /*TCHAR*/char* path	/* Pointer to the directory path */
 )
 {
 #if FF_STR_VOLUME_ID == 2
@@ -4380,7 +4383,8 @@ FRESULT f_chdir (
 
 #if FF_FS_RPATH >= 2
 FRESULT f_getcwd (
-	TCHAR* buff,	/* Pointer to the directory path */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	/*TCHAR*/char* buff,	/* Pointer to the directory path */
 	UINT len		/* Size of buff in unit of TCHAR */
 )
 {
@@ -4646,8 +4650,9 @@ FRESULT f_lseek (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_opendir (
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
 	DIR_* dp,			/* Pointer to directory object to create */
-	const TCHAR* path	/* Pointer to the directory path */
+	const /*TCHAR*/char* path	/* Pointer to the directory path */
 )
 {
 	FRESULT res;
@@ -4830,7 +4835,8 @@ FRESULT f_findfirst (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_stat (
-	const TCHAR* path,	/* Pointer to the file path */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	const /*TCHAR*/char* path,	/* Pointer to the file path */
 	FILINFO* fno		/* Pointer to file information to return */
 )
 {
@@ -4865,9 +4871,10 @@ FRESULT f_stat (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_getfree (
-	const TCHAR* path,	/* Logical drive number */
-	DWORD* nclst,		/* Pointer to a variable to return number of free clusters */
-	FATFS** fatfs		/* Pointer to a pointer to return corresponding filesystem object */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	// const TCHAR* path,	/* Logical drive number */
+	DWORD* nclst //,	/* Pointer to a variable to return number of free clusters */
+	//FATFS** fatfs		/* Pointer to a pointer to return corresponding filesystem object */
 )
 {
 	FRESULT res;
@@ -5011,7 +5018,8 @@ FRESULT f_truncate (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_unlink (
-	const TCHAR* path		/* Pointer to the file or directory path */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	const /*TCHAR*/char* path		/* Pointer to the file or directory path */
 )
 {
 	FRESULT res;
@@ -5105,7 +5113,8 @@ FRESULT f_unlink (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_mkdir (
-	const TCHAR* path		/* Pointer to the directory path */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	const /*TCHAR*/char* path		/* Pointer to the directory path */
 )
 {
 	FRESULT res;
@@ -5189,8 +5198,9 @@ FRESULT f_mkdir (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_rename (
-	const TCHAR* path_old,	/* Pointer to the object name to be renamed */
-	const TCHAR* path_new	/* Pointer to the new name */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	const /*TCHAR*/char* path_old,	/* Pointer to the object name to be renamed */
+	const /*TCHAR*/char* path_new	/* Pointer to the new name */
 )
 {
 	FRESULT res;
@@ -5299,7 +5309,8 @@ FRESULT f_rename (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_chmod (
-	const TCHAR* path,	/* Pointer to the file path */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */,
+	const /*TCHAR*/char* path,	/* Pointer to the file path */
 	BYTE attr,			/* Attribute bits */
 	BYTE mask			/* Attribute mask to change */
 )
@@ -5346,7 +5357,8 @@ FRESULT f_chmod (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_utime (
-	const TCHAR* path,	/* Pointer to the file/directory name */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	const /*TCHAR*/char* path,	/* Pointer to the file/directory name */
 	const FILINFO* fno	/* Pointer to the timestamp to be set */
 )
 {
@@ -5393,8 +5405,9 @@ FRESULT f_utime (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_getlabel (
-	const TCHAR* path,	/* Logical drive number */
-	TCHAR* label,		/* Buffer to store the volume label */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	// const TCHAR* path,	/* Logical drive number */
+	/*TCHAR*/char* label,		/* Buffer to store the volume label */
 	DWORD* vsn			/* Variable to store the volume serial number */
 )
 {
@@ -5494,7 +5507,8 @@ FRESULT f_getlabel (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_setlabel (
-	const TCHAR* label	/* Volume label to set with heading logical drive number */
+	FATFS* fs,			/* By TFT: Added to get rid of static variables */
+	const /*TCHAR*/char* label	/* Volume label to set with heading logical drive number */
 )
 {
 	FRESULT res;
