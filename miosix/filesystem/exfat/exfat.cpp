@@ -24,10 +24,9 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-#include "filesystem/fatfs/ffconf.h"
-
-#if _FS_EXFAT == 1
 #include "exfat.h"
+
+#ifdef WITH_EXFAT
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
@@ -132,7 +131,7 @@ namespace miosix
         int parentInode;              ///< Inode of '..'
         bool first;                   ///< To display '.' and '..' entries
         bool unfinished;              ///< True if fi contains unread data
-        char lfn[(_MAX_LFN + 1) * 2]; ///< Long file name
+        char lfn[(FF_MAX_LFN + 1) * 2]; ///< Long file name
     };
 
     //
@@ -439,7 +438,7 @@ namespace miosix
     ExFatFs::ExFatFs(intrusive_ref_ptr<FileBase> disk)
         : mutex(MutexOptions::RECURSIVE), failed(true)
     {
-        filesystem.drv = disk;
+        filesystem.pdrv = disk;
         failed = f_mount(&filesystem, 1, false) != FR_OK;
         
         // In case of wrong file system type, make fail the mount
@@ -618,8 +617,8 @@ namespace miosix
         if (failed)
             return;
         f_mount(&filesystem, 0, true); // TODO: what to do with error code?
-        filesystem.drv->ioctl(IOCTL_SYNC, 0);
-        filesystem.drv.reset();
+        filesystem.pdrv->ioctl(IOCTL_SYNC, 0);
+        filesystem.pdrv.reset();
     }
 
     int ExFatFs::unlinkRmdirHelper(StringPart &name, bool delDir)
