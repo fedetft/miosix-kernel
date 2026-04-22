@@ -131,7 +131,7 @@ private:
     int parentInode;   ///< Inode of '..'
     bool first;        ///< To display '.' and '..' entries
     bool unfinished;   ///< True if fi contains unread data
-    char lfn[(_MAX_LFN+1)*2]; ///< Long file name
+    char lfn[(FF_MAX_LFN+1)*2]; ///< Long file name
 };
 
 //
@@ -160,12 +160,11 @@ int Fat32Directory::getdents(void *dp, int len)
     for(;;)
     {
         if(int res=translateError(f_readdir(&dir,&fi))) return res;
-        if(fi.fname[0]=='\0')
+        if(fi.lfname[0]=='\0')
         {
             addTerminatingEntry(&buffer,end);
             return buffer-begin;
         }
-        if(fi.fattrib & AM_VOL) continue; // Ignore volume labels
         char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
         if(addEntry(&buffer,end,fi.inode,type,fi.lfname)<0)
         {
@@ -415,7 +414,7 @@ Fat32File::~Fat32File()
 Fat32Fs::Fat32Fs(intrusive_ref_ptr<FileBase> disk)
         : mutex(MutexOptions::RECURSIVE), failed(true)
 {
-    filesystem.drv=disk;
+    filesystem.pdrv=disk;
     failed=f_mount(&filesystem,1,false)!=FR_OK;
     
     // In case of wrong file system type, make fail the mount
@@ -572,8 +571,8 @@ Fat32Fs::~Fat32Fs()
 {
     if(failed) return;
     f_mount(&filesystem,0,true); //TODO: what to do with error code?
-    filesystem.drv->ioctl(IOCTL_SYNC,0);
-    filesystem.drv.reset();
+    filesystem.pdrv->ioctl(IOCTL_SYNC,0);
+    filesystem.pdrv.reset();
 }
 
 int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)

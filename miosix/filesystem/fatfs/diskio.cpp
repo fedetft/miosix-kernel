@@ -49,7 +49,7 @@ using namespace miosix;
 DRESULT disk_read (
     intrusive_ref_ptr<FileBase> pdrv,		/* Physical drive nmuber (0..) */
 	BYTE *buff,		/* Data buffer to store read data */
-	DWORD sector,           /* Sector address (LBA) */
+	LBA_t sector,   /* Sector address (LBA) */
 	UINT count		/* Number of sectors to read (1..255) */
 )
 {
@@ -65,8 +65,8 @@ DRESULT disk_read (
 DRESULT disk_write (
     intrusive_ref_ptr<FileBase> pdrv,		/* Physical drive nmuber (0..) */
 	const BYTE *buff,	/* Data to be written */
-	DWORD sector,		/* Sector address (LBA) */
-	UINT count		/* Number of sectors to write (1..255) */
+	LBA_t sector,       /* Sector address (LBA) */
+	UINT count		    /* Number of sectors to write (1..255) */
 )
 {
     if(pdrv->lseek(static_cast<off_t>(sector)*512,SEEK_SET)<0) return RES_ERROR;
