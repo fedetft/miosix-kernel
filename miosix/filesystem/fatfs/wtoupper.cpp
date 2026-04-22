@@ -52,13 +52,13 @@
 
 #ifdef WITH_FILESYSTEM
 
-static const unsigned short lowerCase[]=
+static const unsigned int lowerCase[]=
 {
     0x00b5, 0x00ff, 0x0131, 0x0133, 0x0135, 0x0137, 0x017a, 0x017c,
     0x017e, 0x0192, 0x045e, 0x045f,
 };
 
-static const unsigned short upperCase[]=
+static const unsigned int upperCase[]=
 {
     0x039c, 0x0178, 0x0049, 0x0132, 0x0134, 0x0136, 0x0179, 0x017b,
     0x017d, 0x0191, 0x040e, 0x040f,
@@ -66,7 +66,7 @@ static const unsigned short upperCase[]=
 
 static const int tabSize=sizeof(lowerCase)/sizeof(lowerCase[0]);
 
-unsigned short ff_wtoupper(unsigned short c)
+unsigned int ff_wtoupper(unsigned int c)
 {
     if(c>='a' && c<='z') return c-('a'-'A');               //26 code points
 
