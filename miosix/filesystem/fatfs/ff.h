@@ -147,6 +147,8 @@ extern const char* VolumeStr[FF_VOLUMES];	/* User defined volume ID table */
 #if FF_FS_READONLY
 #error FF_FS_LOCK must be 0 at read-only configuration
 #endif
+struct FATFS; //Forward decl
+
 typedef struct {	/* Open object identifier with status */
 	FATFS* fs;		/*  Object ID 1, volume (NULL:blank entry) */
 	DWORD clu;		/*  Object ID 2, containing directory (0:root) */
@@ -161,7 +163,7 @@ typedef struct {	/* Open object identifier with status */
 #define MAXDIRB(nc)	((nc + 44U) / 15 * SZDIRE)	/* exFAT: Size of directory entry block scratchpad buffer needed for the name length */
 #endif
 
-typedef struct {
+struct FATFS {
 	BYTE	fs_type;		/* Filesystem type (0:blank filesystem object) */
 	//BYTE	pdrv;			/* Volume hosting physical drive */
 	BYTE	ldrv;			/* Logical drive number (used only when FF_FS_REENTRANT) */
@@ -209,7 +211,7 @@ typedef struct {
 	FILESEM Files[miosix::FATFS_MAX_OPEN_FILES]; /* Open object lock semaphores */
 	#endif
 	miosix::intrusive_ref_ptr<miosix::FileBase> pdrv; /* Pointer to the physical drive of the volume */
-} FATFS;
+};
 
 
 
