@@ -36,7 +36,7 @@ filesystem/mountpointfs/mountpointfs.cpp                                   \
 filesystem/devfs/devfs.cpp                                                 \
 filesystem/exfat/exfat.cpp												   \
 filesystem/fat32/fat32.cpp                                                 \
-filesystem/fatfs/ccsbcs.cpp                                                \
+filesystem/fatfs/ffunicode.cpp                                             \
 filesystem/fatfs/diskio.cpp                                                \
 filesystem/fatfs/ff.cpp                                                    \
 filesystem/fatfs/wtoupper.cpp                                              \
