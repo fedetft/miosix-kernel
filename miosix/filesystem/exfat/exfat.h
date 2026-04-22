@@ -24,11 +24,10 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
+#pragma once
 #include "filesystem/fatfs/ffconf.h"
 
-#if _FS_EXFAT == 1
-#ifndef EXFAT_H
-#define EXFAT_H
+#if defined(WITH_EXFAT)
 
 #include "filesystem/file.h"
 #include "kernel/sync.h"
@@ -135,5 +134,4 @@ namespace miosix
 
 } // namespace miosix
 
-#endif // EXFAT_H
-#endif
+#endif // WITH_EXFAT

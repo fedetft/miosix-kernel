@@ -40,7 +40,6 @@
 // #endif
 
 #include <filesystem/file.h>
-#include "miosix_settings.h"
 
 #if !defined(FFCONF_DEF)
 #include "ffconf.h"		/* FatFs configuration options */
