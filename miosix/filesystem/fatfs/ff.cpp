@@ -2884,7 +2884,7 @@ static int pattern_match (	/* 0:mismatched, 1:matched */
 /*-----------------------------------------------------------------------*/
 
 static FRESULT create_name (	/* FR_OK: successful, FR_INVALID_NAME: could not create */
-	DIR* dp,					/* Pointer to the directory object */
+	DIR_* dp,					/* Pointer to the directory object */
 	const TCHAR** path			/* Pointer to pointer to the segment in the path string */
 )
 {
@@ -3088,7 +3088,7 @@ static FRESULT create_name (	/* FR_OK: successful, FR_INVALID_NAME: could not cr
 /*-----------------------------------------------------------------------*/
 
 static FRESULT follow_path (	/* FR_OK(0): successful, !=0: error code */
-	DIR* dp,					/* Directory object to return last directory and found object */
+	DIR_* dp,					/* Directory object to return last directory and found object */
 	const TCHAR* path			/* Full-path string to find a file or directory */
 )
 {
@@ -3110,7 +3110,7 @@ static FRESULT follow_path (	/* FR_OK(0): successful, !=0: error code */
 	dp->obj.n_frag = 0;	/* Invalidate last fragment counter of the object */
 #if FF_FS_RPATH != 0
 	if (fs->fs_type == FS_EXFAT && dp->obj.sclust) {	/* exFAT: Retrieve the sub-directory's status */
-		DIR dj;
+		DIR_ dj;
 
 		dp->obj.c_scl = fs->cdc_scl;
 		dp->obj.c_size = fs->cdc_size;
@@ -3753,7 +3753,7 @@ FRESULT f_open (
 )
 {
 	FRESULT res;
-	DIR dj;
+	DIR_ dj;
 	FATFS *fs;
 #if !FF_FS_READONLY
 	DWORD cl, bcs, clst, tm;
@@ -4306,7 +4306,7 @@ FRESULT f_chdir (
 	UINT i;
 #endif
 	FRESULT res;
-	DIR dj;
+	DIR_ dj;
 	FATFS *fs;
 	DEF_NAMBUF
 
@@ -4366,7 +4366,7 @@ FRESULT f_getcwd (
 )
 {
 	FRESULT res;
-	DIR dj;
+	DIR_ dj;
 	FATFS *fs;
 	UINT i, n;
 	DWORD ccl;
@@ -4627,7 +4627,7 @@ FRESULT f_lseek (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_opendir (
-	DIR* dp,			/* Pointer to directory object to create */
+	DIR_* dp,			/* Pointer to directory object to create */
 	const TCHAR* path	/* Pointer to the directory path */
 )
 {
@@ -4693,7 +4693,7 @@ FRESULT f_opendir (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_closedir (
-	DIR *dp		/* Pointer to the directory object to be closed */
+	DIR_ *dp		/* Pointer to the directory object to be closed */
 )
 {
 	FRESULT res;
@@ -4723,7 +4723,7 @@ FRESULT f_closedir (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_readdir (
-	DIR* dp,			/* Pointer to the open directory object */
+	DIR_* dp,			/* Pointer to the open directory object */
 	FILINFO* fno		/* Pointer to file information to return */
 )
 {
@@ -4759,7 +4759,7 @@ FRESULT f_readdir (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_findnext (
-	DIR* dp,		/* Pointer to the open directory object */
+	DIR_* dp,		/* Pointer to the open directory object */
 	FILINFO* fno	/* Pointer to the file information structure */
 )
 {
@@ -4784,7 +4784,7 @@ FRESULT f_findnext (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_findfirst (
-	DIR* dp,				/* Pointer to the blank directory object */
+	DIR_* dp,				/* Pointer to the blank directory object */
 	FILINFO* fno,			/* Pointer to the file information structure */
 	const TCHAR* path,		/* Pointer to the directory to open */
 	const TCHAR* pattern	/* Pointer to the matching pattern */
@@ -4816,7 +4816,7 @@ FRESULT f_stat (
 )
 {
 	FRESULT res;
-	DIR dj;
+	DIR_ dj;
 	DEF_NAMBUF
 
 
@@ -4997,7 +4997,7 @@ FRESULT f_unlink (
 {
 	FRESULT res;
 	FATFS *fs;
-	DIR dj, sdj;
+	DIR_ dj, sdj;
 	DWORD dclst = 0;
 #if FF_FS_EXFAT
 	FFOBJID obj;
@@ -5091,7 +5091,7 @@ FRESULT f_mkdir (
 {
 	FRESULT res;
 	FATFS *fs;
-	DIR dj;
+	DIR_ dj;
 	FFOBJID sobj;
 	DWORD dcl, pcl, tm;
 	DEF_NAMBUF
@@ -5176,7 +5176,7 @@ FRESULT f_rename (
 {
 	FRESULT res;
 	FATFS *fs;
-	DIR djo, djn;
+	DIR_ djo, djn;
 	BYTE buf[FF_FS_EXFAT ? SZDIRE * 2 : SZDIRE], *dir;
 	LBA_t sect;
 	DEF_NAMBUF
@@ -5223,7 +5223,7 @@ FRESULT f_rename (
 #endif
 			{	/* At FAT/FAT32 volume */
 				memcpy(buf, djo.dir, SZDIRE);			/* Save directory entry of the object */
-				memcpy(&djn, &djo, sizeof (DIR));		/* Duplicate the directory object */
+				memcpy(&djn, &djo, sizeof (DIR_));		/* Duplicate the directory object */
 				res = follow_path(&djn, path_new);		/* Make sure if new object name is not in use */
 				if (res == FR_OK) {						/* Is new name already in use by any other object? */
 					res = (djn.obj.sclust == djo.obj.sclust && djn.dptr == djo.dptr) ? FR_NO_FILE : FR_EXIST;
@@ -5287,7 +5287,7 @@ FRESULT f_chmod (
 {
 	FRESULT res;
 	FATFS *fs;
-	DIR dj;
+	DIR_ dj;
 	DEF_NAMBUF
 
 
@@ -5333,7 +5333,7 @@ FRESULT f_utime (
 {
 	FRESULT res;
 	FATFS *fs;
-	DIR dj;
+	DIR_ dj;
 	DEF_NAMBUF
 
 
@@ -5381,7 +5381,7 @@ FRESULT f_getlabel (
 {
 	FRESULT res;
 	FATFS *fs;
-	DIR dj;
+	DIR_ dj;
 	UINT si, di;
 	WCHAR wc;
 
@@ -5480,7 +5480,7 @@ FRESULT f_setlabel (
 {
 	FRESULT res;
 	FATFS *fs;
-	DIR dj;
+	DIR_ dj;
 	BYTE dirvn[22];
 	UINT di;
 	WCHAR wc;
