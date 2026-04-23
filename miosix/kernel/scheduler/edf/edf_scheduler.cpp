@@ -203,20 +203,29 @@ void EDFScheduler::IRQwokenThread(Thread* thread)
  * sure the task pool is schedulable.
  */
 
-#ifdef WITH_SMP
-void EDFScheduler::IRQrunScheduler(unsigned char coreId)
-{
-#else //WITH_SMP
 void EDFScheduler::IRQrunScheduler()
 {
+    FastGlobalLockFromIrq lock;
+    IRQstackOverflowCheck();
+    //If kernel is paused, preemption is disabled
+    #ifdef WITH_SMP
+    auto coreId=getCurrentCoreId();
+    if(FastPauseKernelLock::holdingCore==coreId)
+    #else
     constexpr unsigned char coreId=0;
-#endif //WITH_SMP
+    if(FastPauseKernelLock::holdingCore==0)
+    #endif
+    {
+        FastPauseKernelLock::pendingWakeup=true;
+        return;
+    }
+
     // If the previously running thread is not idle, we need to put it in a list
     Thread *prev=const_cast<Thread*>(runningThreads[coreId]);
     if(prev!=idle[coreId])
     {
         // NOTE: notReadyThreads must be pushed back if deleted, front if not
-        if(prev->flags.isZombie()) notReadyThreads.push_back(prev);
+        if(prev->flags.isZombie()) [[unlikely]] notReadyThreads.push_back(prev);
         else if(prev->flags.isReady()==false) notReadyThreads.push_front(prev);
         else if(prev->schedData.deadline.get()==numeric_limits<long long>::max()-2)
             readyRrThreads.enqueue(prev);

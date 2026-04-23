@@ -586,7 +586,9 @@ private:
 
     /// The scheduler needs to set pendingWakeup if it is called within a
     /// pauseKernel.
-    template<typename T> friend class basic_scheduler;
+    friend class PriorityScheduler;
+    friend class EDFScheduler;
+    friend class ControlScheduler;
     /// Thread wait primitives use irqDisabledFastLock() and
     /// irqDisabledFastUnlock().
     friend class Thread;

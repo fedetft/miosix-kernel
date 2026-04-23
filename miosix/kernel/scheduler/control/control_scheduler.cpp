@@ -148,6 +148,15 @@ Thread *ControlScheduler::IRQgetIdleThread()
 
 void ControlScheduler::IRQrunScheduler()
 {
+    FastGlobalLockFromIrq lock;
+    IRQstackOverflowCheck();
+    //If kernel is paused, preemption is disabled
+    if(FastPauseKernelLock::holdingCore==0)
+    {
+        FastPauseKernelLock::pendingWakeup=true;
+        return;
+    }
+
     #ifdef WITH_CPU_TIME_COUNTER
     Thread *prev=const_cast<Thread*>(runningThreads[0]);
     #endif // WITH_CPU_TIME_COUNTER
@@ -546,6 +555,15 @@ Thread *ControlScheduler::IRQgetIdleThread()
 
 void ControlScheduler::IRQrunScheduler()
 {
+    FastGlobalLockFromIrq lock;
+    IRQstackOverflowCheck();
+    //If kernel is paused, preemption is disabled
+    if(FastPauseKernelLock::holdingCore==0)
+    {
+        FastPauseKernelLock::pendingWakeup=true;
+        return;
+    }
+
     #ifdef WITH_CPU_TIME_COUNTER
     Thread *prev=const_cast<Thread*>(runningThreads[0]);
     #endif // WITH_CPU_TIME_COUNTER

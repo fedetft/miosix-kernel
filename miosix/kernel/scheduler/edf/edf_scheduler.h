@@ -135,11 +135,7 @@ public:
      * does nothing. It's behaviour is to modify the global variable
      * miosix::runningThread which always points to the currently running thread.
      */
-    #ifdef WITH_SMP
-    static void IRQrunScheduler(unsigned char coreId);
-    #else //WITH_SMP
     static void IRQrunScheduler();
-    #endif //WITH_SMP
     
 private:
     /**

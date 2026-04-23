@@ -192,17 +192,7 @@ public:
      */
     static void IRQrunScheduler() noexcept
     {
-        FastGlobalLockFromIrq lock;
-        IRQstackOverflowCheck();
-        //If kernel is paused, preemption is disabled
-        #ifdef WITH_SMP
-        auto coreId=getCurrentCoreId();
-        if(FastPauseKernelLock::holdingCore==coreId) FastPauseKernelLock::pendingWakeup=true;
-        else T::IRQrunScheduler(coreId);
-        #else
-        if(FastPauseKernelLock::holdingCore==0) FastPauseKernelLock::pendingWakeup=true;
-        else T::IRQrunScheduler();
-        #endif
+        T::IRQrunScheduler();
     }
 
     /**

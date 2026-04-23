@@ -64,19 +64,22 @@ inline void IRQstackOverflowCheck()
     {
         bool overflow=false;
         if(cur->userCtxsave[STACK_OFFSET_IN_CTXSAVE] <
-            reinterpret_cast<unsigned int>(cur->userWatermark+watermarkSize))
+            reinterpret_cast<unsigned int>(cur->userWatermark+watermarkSize)) [[unlikely]]
             overflow=true;
-        if(overflow==false)
+        if(overflow==false) [[likely]]
             for(unsigned int i=0;i<watermarkSize;i++)
-                if(cur->userWatermark[i]!=WATERMARK_FILL) overflow=true;
-        if(overflow) IRQreportFault(FaultData(fault::STACKOVERFLOW));
+                if(cur->userWatermark[i]!=WATERMARK_FILL) [[unlikely]]
+                    overflow=true;
+        if(overflow) [[unlikely]]
+            IRQreportFault(FaultData(fault::STACKOVERFLOW));
     }
     #endif //WITH_PROCESSES
     if(cur->ctxsave[STACK_OFFSET_IN_CTXSAVE] <
-        reinterpret_cast<unsigned int>(cur->watermark+watermarkSize))
+        reinterpret_cast<unsigned int>(cur->watermark+watermarkSize)) [[unlikely]]
         errorHandler(Error::STACK_OVERFLOW);
     for(unsigned int i=0;i<watermarkSize;i++)
-        if(cur->watermark[i]!=WATERMARK_FILL) errorHandler(Error::STACK_OVERFLOW);
+        if(cur->watermark[i]!=WATERMARK_FILL) [[unlikely]]
+            errorHandler(Error::STACK_OVERFLOW);
     #endif //!defined(__CORTEX_M) || __CORTEX_M != 33U
 }
 

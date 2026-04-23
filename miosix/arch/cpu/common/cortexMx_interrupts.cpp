@@ -759,18 +759,6 @@ void SVC_Handler()
 }
 #endif //WITH_PROCESSES
 
-/**
- * \internal
- * Called by the PendSV interrupt, call the scheduler to yield to next thread
- * Declared noinline to avoid the compiler trying to inline it into the caller,
- * which would violate the requirement on naked functions. Function is not
- * static because otherwise the compiler optimizes it out...
- */
-void __attribute__((noinline)) pendsvImpl()
-{
-    Scheduler::IRQrunScheduler();
-}
-
 void __attribute__((naked)) PendSV_Handler()
 {
     //In Miosix 3.0, a context switch is possible only from this interrupt,
@@ -792,7 +780,18 @@ void __attribute__((naked)) PendSV_Handler()
     //Since we are forced to perform the function call in assembly, we need to
     //call the C++ mangled name of pendsvImpl()
     saveContext();
-    asm volatile("bl _ZN6miosix10pendsvImplEv");
+    //We would like to call Scheduler::IRQrunScheduler() which will select
+    //at compile-time which scheduler to run, but this can't be done froma naked
+    //function and we're trying to avoid to call an intermediate C++ function
+    #if defined(SCHED_TYPE_PRIORITY)
+    asm volatile("bl _ZN6miosix17PriorityScheduler15IRQrunSchedulerEv");
+    #elif defined(SCHED_TYPE_CONTROL_BASED)
+    asm volatile("bl _ZN6miosix16ControlScheduler15IRQrunSchedulerEv");
+    #elif defined(SCHED_TYPE_EDF)
+    asm volatile("bl _ZN6miosix12EDFScheduler15IRQrunSchedulerEv");
+    #else
+    #error No scheduler selected in miosix_settings.h
+    #endif
     restoreContext();
 }
 
