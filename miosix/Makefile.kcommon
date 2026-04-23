@@ -82,13 +82,13 @@ all-recursive:
 	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                                 \
 	  KPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(KPATH))            \
 	  CONFPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(CONFPATH))      \
-	  || exit 1;)
+	  &&) exit 0
 
 clean-recursive:
 	$(foreach i,$(SUBDIRS),$(MAKE) -C $(i)                                 \
 	  KPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(KPATH))            \
 	  CONFPATH=$(shell perl $(TOOLS_DIR)/relpath.pl $(i) $(CONFPATH))      \
-	  clean || exit 1;)
+	  clean &&) exit 0
 	$(Q)rm -f image.bin romfs.bin
 
 program:
