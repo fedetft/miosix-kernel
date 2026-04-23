@@ -33,6 +33,7 @@
 #endif //COMPILING_MIOSIX
 
 #include "interfaces/arch_registers.h" //For __CORTEX_M
+#include "interfaces_private/userspace.h"
 #include "thread.h"
 
 namespace miosix {
@@ -71,7 +72,7 @@ inline void IRQstackOverflowCheck()
                 if(cur->userWatermark[i]!=WATERMARK_FILL) [[unlikely]]
                     overflow=true;
         if(overflow) [[unlikely]]
-            IRQreportFault(FaultData(fault::STACKOVERFLOW));
+            Thread::IRQreportFault(FaultData(fault::STACKOVERFLOW));
     }
     #endif //WITH_PROCESSES
     if(cur->ctxsave[STACK_OFFSET_IN_CTXSAVE] <
