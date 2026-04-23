@@ -725,12 +725,6 @@ void DebugMon_Handler()
 void __attribute__((naked)) SVC_Handler()
 {
     saveContext();
-    asm volatile("bl _ZN6miosix7svcImplEv");
-    restoreContext();
-}
-
-void __attribute__((noinline)) svcImpl()
-{
     #if __CORTEX_M != 0
     //If there are higher-priority faults pending, do not process the SVC, as
     //they must have been caused during register saving. If that wasn't the
@@ -741,11 +735,21 @@ void __attribute__((noinline)) svcImpl()
     //If we do not exit now IRQhandleSvc may switch from userspace into
     //kernelspace, causing these faults to be attributed to the kernel rather
     //than the process.
-    if(SCB->SHCSR & (SCB_SHCSR_BUSFAULTPENDED_Msk
-                   | SCB_SHCSR_MEMFAULTPENDED_Msk
-                   | SCB_SHCSR_USGFAULTPENDED_Msk)) return;
+    //Here we would like to write the following code
+    //if((SCB->SHCSR & (SCB_SHCSR_BUSFAULTPENDED_Msk
+    //               | SCB_SHCSR_MEMFAULTPENDED_Msk
+    //               | SCB_SHCSR_USGFAULTPENDED_Msk))==0) Thread::IRQhandleSvc();
+    //but we we're trying to avoid to call an intermediate C++ function
+    asm volatile("ldr  r0, =0xe000ed00 \n\t" // SCB
+                 "ldr  r0, [r0, #36]   \n\t" // SCB->SHCSR
+                 "tst  r0, #28672      \n\t" //BUSFAULTPENDED | MEMFAULTPENDED | USGFAULTPENDED
+                 "bne  .L0             \n\t"
+                 "bl _ZN6miosix6Thread12IRQhandleSvcEv \n\t"
+                 ".L0:                 \n\t");
+    #else
+    asm volatile("bl _ZN6miosix6Thread12IRQhandleSvcEv");
     #endif
-    Thread::IRQhandleSvc();
+    restoreContext();
 }
 #else //WITH_PROCESSES
 void SVC_Handler()
