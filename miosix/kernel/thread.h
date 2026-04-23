@@ -642,21 +642,6 @@ public:
      * \return the size of the stack of the current thread.
      */
     static int getStackSize();
-
-    /**
-     * \internal
-     * To be used in interrupts where a context switch can occur to check if the
-     * stack of the thread being preempted has overflowed.
-     * Note that since Miosix 3 all peripheral interrupts no longer perform a
-     * full context save/restore thus you cannot call this functions from such
-     * interrupts.
-     *
-     * If the overflow check failed for a kernel thread or a thread running in
-     * kernelspace this function causes a reboot. On a platform with processes
-     * this function calls IRQreportFault() if the stack overflow happened in
-     * userspace, causing the process to segfault.
-     */
-    static void IRQstackOverflowCheck();
     
     #ifdef WITH_PROCESSES
 
@@ -669,6 +654,9 @@ public:
      * \internal
      * Can only be called inside an IRQ, its use is to switch a thread between
      * userspace/kernelspace and back to perform context switches
+     *
+     * The implementation of this function takes the FastGlobalLockFromIrq
+     * so you must not take the lock before calling this function
      */
     static void IRQhandleSvc();
     
@@ -1085,6 +1073,8 @@ private:
     friend void IRQwakeThreads(long long);
     //Needs to create the idle thread
     friend void IRQstartKernel();
+    //Needs flags
+    friend void IRQstackOverflowCheck();
     //Needs access to savedPriority, mutexLocked and flags.
     friend class Mutex;
     //Needs access to savedPriority

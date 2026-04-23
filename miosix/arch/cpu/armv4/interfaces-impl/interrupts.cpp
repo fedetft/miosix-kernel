@@ -419,8 +419,6 @@ extern "C" __attribute__((interrupt("FIQ"))) void FIQ_Handler()
 void __attribute__((noinline)) emulatedPendsvImpl()
 {
     VICSoftIntClr=1<<emulatedPendsvNumber; //Clear software interrupt
-    FastGlobalLockFromIrq lock;
-    Thread::IRQstackOverflowCheck();
     Scheduler::IRQrunScheduler();
     //Every vectored interrupt should end by writing to VICVectAddr.
     //This is the only vectored interrupt that does not go through the proxy
