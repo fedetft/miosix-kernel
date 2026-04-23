@@ -80,13 +80,14 @@
  */
 #define saveContext()                                                         \
     asm volatile("   mrs    r1,  psp            \n"/*get PROCESS stack ptr  */ \
-                 "   ldr    r0,  =ctxsave       \n"/*get current context    */ \
-                 "   ldr    r0,  [r0]           \n"                            \
+                 "   ldr    r3,  =ctxsave       \n"/*get current context    */ \
+                 "   ldr    r0,  [r3]           \n"                            \
                  "   stmia  r0!, {r1,r4-r11,lr} \n"/*save r1(psp),r4-r11,lr */ \
                  "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
                  "   bmi    0f                  \n"                            \
                  "   vstmia.32 r0, {s16-s31}    \n"/*save s16-s31 if we need*/ \
-                 "0: dmb                        \n"                            \
+                 "0: mov    r4,  r3             \n"/*save for restoreContext*/ \
+                 "   dmb                        \n"                            \
                  );
 
 /**
@@ -96,8 +97,7 @@
  * prevent the compiler from generating context restore.
  */
 #define restoreContext()                                                      \
-    asm volatile("   ldr    r0,  =ctxsave       \n"/*get current context    */ \
-                 "   ldr    r0,  [r0]           \n"                            \
+    asm volatile("   ldr    r0,  [r4]           \n"/*get current context    */ \
                  "   ldmia  r0!, {r1,r4-r11,lr} \n"/*load r1(psp),r4-r11,lr */ \
                  "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
                  "   bmi    0f                  \n"                            \
@@ -119,6 +119,11 @@
  * *ctxsave+8  --> r5
  * *ctxsave+4  --> r4
  * *ctxsave+0  --> psp
+ *
+ * NOTE: we could save the lr (EXC_RETURN) in ctxsave instead of the IRQ stack
+ * to save one instruction (the stmdb sp!, {lr} in saveContext), but that would
+ * increase every ctxsave array by 4 bytes and would actually be slower on MCUs
+ * with external RAM, as in that case the IRQ stack is faster
  */
 
 /**
@@ -140,9 +145,10 @@
 #define saveContext()                                                        \
     asm volatile("stmdb sp!, {lr}        \n\t" /*save lr on MAIN stack*/      \
                  "mrs   r1,  psp         \n\t" /*get PROCESS stack pointer*/  \
-                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
-                 "ldr   r0,  [r0]        \n\t"                                \
+                 "ldr   r3,  =ctxsave    \n\t" /*get current context*/        \
+                 "ldr   r0,  [r3]        \n\t"                                \
                  "stmia r0,  {r1,r4-r11} \n\t" /*save PROCESS sp + r4-r11*/   \
+                 "mov   r4,  r3          \n\t" /*save for restoreContext*/    \
                  "dmb                    \n\t"                                \
                  );
 
@@ -153,8 +159,7 @@
  * prevent the compiler from generating context restore.
  */
 #define restoreContext()                                                     \
-    asm volatile("ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
-                 "ldr   r0,  [r0]        \n\t"                                \
+    asm volatile("ldr   r0,  [r4]        \n\t" /*get current context*/        \
                  "ldmia r0,  {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/    \
                  "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
                  "ldmia sp!, {pc}        \n\t" /*return*/                     \

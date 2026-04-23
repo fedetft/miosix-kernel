@@ -740,12 +740,12 @@ void __attribute__((naked)) SVC_Handler()
     //               | SCB_SHCSR_MEMFAULTPENDED_Msk
     //               | SCB_SHCSR_USGFAULTPENDED_Msk))==0) Thread::IRQhandleSvc();
     //but we we're trying to avoid to call an intermediate C++ function
-    asm volatile("ldr  r0, =0xe000ed00 \n\t" // SCB
-                 "ldr  r0, [r0, #36]   \n\t" // SCB->SHCSR
-                 "tst  r0, #28672      \n\t" //BUSFAULTPENDED | MEMFAULTPENDED | USGFAULTPENDED
-                 "bne  .L0             \n\t"
-                 "bl _ZN6miosix6Thread12IRQhandleSvcEv \n\t"
-                 ".L0:                 \n\t");
+    asm volatile("   ldr  r0, =0xe000ed00 \n" // SCB
+                 "   ldr  r0, [r0, #36]   \n" // SCB->SHCSR
+                 "   tst  r0, #28672      \n" //BUSFAULTPENDED | MEMFAULTPENDED | USGFAULTPENDED
+                 "   bne  0f              \n"
+                 "   bl _ZN6miosix6Thread12IRQhandleSvcEv \n"
+                 "0:                      \n");
     #else
     asm volatile("bl _ZN6miosix6Thread12IRQhandleSvcEv");
     #endif

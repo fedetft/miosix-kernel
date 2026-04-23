@@ -130,14 +130,16 @@
                  "ldr   r2,  =0xd0000000 \n\t" /* CPUID */                    \
                  "ldr   r2,  [r2]        \n\t"                                \
                  "lsls  r2,  #2          \n\r"                                \
-                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
-                 "ldr   r0,  [r0, r2]    \n\t"                                \
+                 "ldr   r3,  =ctxsave    \n\t" /*get current context*/        \
+                 "adds  r3,  r3,  r2     \n\t"                                \
+                 "ldr   r0,  [r3]        \n\t"                                \
                  "stmia r0!, {r1,r4-r7}  \n\t" /*save PROCESS sp + r4-r7*/    \
                  "mov   r4,  r8          \n\t"                                \
                  "mov   r5,  r9          \n\t"                                \
                  "mov   r6,  r10         \n\t"                                \
                  "mov   r7,  r11         \n\t"                                \
                  "stmia r0!, {r4-r7}     \n\t"                                \
+                 "mov   r4,  r3          \n\t" /*save for restoreContext*/    \
                  "dmb                    \n\t"                                \
                  );
 
@@ -149,11 +151,7 @@
  */
 #define restoreContext()                                                     \
     asm volatile(".syntax unified        \n\t"                                \
-                 "ldr   r2,  =0xd0000000 \n\t" /* CPUID */                    \
-                 "ldr   r2,  [r2]        \n\t"                                \
-                 "lsls  r2,  #2          \n\r"                                \
-                 "ldr   r0,  =ctxsave    \n\t" /*get current context*/        \
-                 "ldr   r0,  [r0, r2]    \n\t"                                \
+                 "ldr   r0,  [r4]        \n\t" /*get current context*/        \
                  "ldmia r0!, {r1,r4-r7}  \n\t" /*pop r8-r11 saving in r4-r7*/ \
                  "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
                  "ldmia r0,  {r0-r3}     \n\t"                                \
