@@ -40,12 +40,12 @@ namespace miosix {
  * Using the MPU, configure a region of the memory space as
  * - write-through cacheable
  * - non-shareable
- * - readable/writable only by privileged code (for compatibility with the way
- *   processes use the MPU)
+ * - accessible only by privileged code (processes can't access it)
+ * - either writable or executable (W^X)
  * \param region MPU region. Note that in ARMv7M and lower region 6 and 7 are
  * used by processes, and should be avoided here
  * \param base base address, aligned to a multiple of size in ARMv7M and lower,
- * while on ARMv8M aligned to a multiple of 32 Byte
+ * while on ARMv8M aligned to a multiple of 32 bytes
  * \param size size, must be at least 32. For ARMv7M and lower must also be a
  * power of 2
  * \param executePermitted if true configure MPU to allow code execution,
@@ -64,17 +64,16 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
              | (executePermitted ? 0 : MPU_RLAR_PXN_Msk)
              | (0<<MPU_RLAR_AttrIndx_Pos) //NOTE: only region 0 enabled in MAIR0
              | 1; //Enable bit
-    asm volatile("dsb":::"memory");
     #else
     // ARMv7-M and lower
     // NOTE: The ARM documentation is unclear about the effect of the shareable
     // bit on a single core architecture. Experimental evidence on an STM32F476
-    // shows that setting it in IRQconfigureMPU for the internal RAM region
-    // causes the boot to fail.
+    // shows that setting it for the internal RAM causes the boot to fail.
     // For this reason, all regions are marked as not shareable
+    // Region is marked as unaccessible from unprivileged, and W^X privileged
     MPU->RBAR=(base & (~0x1f)) | MPU_RBAR_VALID_Msk | region;
-    MPU->RASR=(executePermitted ? 0 : MPU_RASR_XN_Msk)
-             | 1<<MPU_RASR_AP_Pos //Privileged: RW, unprivileged: no access
+    MPU->RASR= (executePermitted ? 0 : MPU_RASR_XN_Msk)
+             | (executePermitted ? 0b101<<MPU_RASR_AP_Pos : 0b001<<MPU_RASR_AP_Pos)
              | MPU_RASR_C_Msk     //Normal, outer/inner write through, no write alloc
              | 1                  //Enable bit
              | sizeToMpu(size)<<1;
@@ -89,23 +88,34 @@ void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize)
     MPU->MAIR1 = 0;
     #endif
 
-    // NOTE: using regions starting from 0 for the kernel because in the ARM MPU
-    // in case of overlapping regions the one with the highest number takes
+    // NOTE: using regions starting from 0 for the kernel because in ARMv6M/7M
+    // MPU in case of overlapping regions the one with the highest number takes
     // priority. The lower regions used by the kernel by default forbid access
     // to unprivileged code, while the higher numbered ones are used by processes
     // to override the default deny policy for the process-specific memory.
-    IRQconfigureMPURegion(0,0x00000000,0x20000000,true);
-    IRQconfigureMPURegion(1,0x20000000,0x20000000,false);
-
+    int region=0;
+    #ifndef _CHIP_STM32F4
+    //ARM Default memory map: region 0x00000000-0x20000000 for code
+    IRQconfigureMPURegion(region++,0x00000000,0x20000000,true);
+    #else
+    //Quirk: despite the 0x00000000-0x20000000 memory region is reserved by ARM
+    //for *code* execution, stm32f4 have a *data* TCM at 0x10000000...
+    IRQconfigureMPURegion(region++,0x00000000,0x10000000,true);
+    IRQconfigureMPURegion(region++,0x10000000,0x10000000,false);
+    #endif
+    //ARM Default memory map: region 0x20000000-0x40000000 for data
+    IRQconfigureMPURegion(region++,0x20000000,0x20000000,false);
+    //External RAM goes to a chip-specific address, only some chips have it
     #ifdef __CODE_IN_XRAM
-    bool allowCodeInXram=true;
+    bool xramExec=true;
     #else //__CODE_IN_XRAM
-    bool allowCodeInXram=false;
+    bool xramExec=false;
     #endif //__CODE_IN_XRAM
-    if(xramSize)
-        IRQconfigureMPURegion(2,reinterpret_cast<unsigned int>(xramBase),xramSize,allowCodeInXram);
+    auto base=reinterpret_cast<unsigned int>(xramBase);
+    if(xramSize) IRQconfigureMPURegion(region++,base,xramSize,xramExec);
 
     //After configuring the MPU, enable it
+    asm volatile("dsb":::"memory");
     MPU->CTRL = MPU_CTRL_HFNMIENA_Msk
               | MPU_CTRL_PRIVDEFENA_Msk
               | MPU_CTRL_ENABLE_Msk;
