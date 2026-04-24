@@ -80,8 +80,15 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     #endif
 }
 
-void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize)
+void IRQenableMPU()
 {
+    extern unsigned char _xram_start asm("_xram_start");
+    extern unsigned char _xram_size asm("_xram_size");
+    const unsigned char *xramBase=&_xram_start;
+    //NOTE: volatile is important, otherwise compiler for some reason
+    //assumes _xram_size can't be nullptr, so xramSize cannot be 0
+    volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+
     #if __CORTEX_M == 33U
     // ARMv8-M MPU attributes are stored in separate registers, indexed in RLAR
     MPU->MAIR0 = (0xaa << 0); // Normal, outer/inner write through, no write alloc

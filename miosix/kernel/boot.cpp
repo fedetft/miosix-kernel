@@ -87,8 +87,6 @@ void IRQkernelBootEntryPoint()
         extern unsigned char _edata asm("_edata");
         extern unsigned char _bss_start asm("_bss_start");
         extern unsigned char _bss_end asm("_bss_end");
-        extern unsigned char _xram_start asm("_xram_start");
-        extern unsigned char _xram_size asm("_xram_size");
 
         //Initialize .data section, clear .bss section
         unsigned char *etext=&_etext;
@@ -107,11 +105,7 @@ void IRQkernelBootEntryPoint()
 
         //MPU is enabled as early as possible, compatibly with the fact that on
         //some architectures IRQenableMPU needs to access global variables
-        const unsigned char *xramBase=&_xram_start;
-        //NOTE: volatile is important, otherwise compiler for some reason
-        //assumes _xram_size can't be nullptr, so xramSize cannot be 0
-        volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
-        IRQenableMPU(xramBase,xramSize);
+        IRQenableMPU();
         // Enable cache after the MPU since in Cortex-M CPUs the MPU driver
         // also configures cacheability
         IRQenableCache();

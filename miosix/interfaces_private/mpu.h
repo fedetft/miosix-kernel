@@ -52,12 +52,9 @@ namespace miosix {
 
 /**
  * \internal
- * The kernel calls this function in boot.cpp to enable the MPU
- *
- * \param xramBase for architectures with XRAM, pointer to XRAM base address
- * \param xramSize for architectures with XRAM, XRAM size, else 0
+ * The kernel calls this function in boot.cpp to enable the MPU, if present
  */
-void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize);
+void IRQenableMPU();
 
 } //namespace miosix
 

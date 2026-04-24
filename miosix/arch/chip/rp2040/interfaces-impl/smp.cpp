@@ -148,13 +148,7 @@ __attribute__((noreturn)) void IRQcontinueInitCore1()
     void (*f)()=reinterpret_cast<void (*)()>(fifoReceive());
     // Kernel-level W^X, cache configuration, and userspace memory protection.
     // We use the same code from boot.cpp for core 0 initialization
-    extern unsigned char _xram_start asm("_xram_start");
-    extern unsigned char _xram_size asm("_xram_size");
-    const unsigned char *xramBase=&_xram_start;
-    //NOTE: volatile is important, otherwise compiler for some reason
-    //assumes _xram_size can't be nullptr, so xramSize cannot be 0
-    volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
-    IRQenableMPU(xramBase,xramSize);
+    IRQenableMPU();
     // Enable cache after the MPU since in Cortex-M CPUs the MPU driver
     // also configures cacheability
     IRQenableCache();

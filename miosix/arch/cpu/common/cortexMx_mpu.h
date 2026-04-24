@@ -44,13 +44,8 @@ namespace miosix {
  * \internal
  * The kernel calls this function in boot.cpp to configure the MPU for
  * kernel-level W^X and cacheability (if caches are present).
- * This function must be called if the board has and MPU or caches, but in
- * ARM CPUs all architectures with caches also have the MPU.
- *
- * \param xramBase for architectures with XRAM, pointer to XRAM base address
- * \param xramSize for architectures with XRAM, XRAM size, else 0
  */
-void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize);
+void IRQenableMPU();
 
 #if __CORTEX_M != 33U
 /**
@@ -76,7 +71,7 @@ unsigned int sizeToMpu(unsigned int size);
  * \internal
  * No MPU in this architecture, do nothing
  */
-inline void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize) {}
+inline void IRQenableMPU() {}
 
 #endif //__MPU_PRESENT==1
 
