@@ -68,52 +68,6 @@ void IRQenableMPU(const unsigned char *xramBase, unsigned int xramSize);
 unsigned int sizeToMpu(unsigned int size);
 #endif
 
-/**
- * \internal
- * In Miosix all boards that have an MPU must configure it right from the early
- * boot to:
- * - enforce kernel memory W^X security
- * - configure kernel memory cacheability
- * This is done by calling IRQconfigureMPU(), however in multi-core CPUs that
- * function only configures the MPU on the first core, the one that is
- * performing the boot process.
- *
- * In multi-core CPUs there is the need to configure the MPU of all cores so
- * that they handle kernel memory eaqually. The solution we use is to "copy"
- * the kernel memory MPU configuration of the first core into an object, and
- * then pass it to other cores to apply the same configuration.
- *
- * Note that IRQconfigureMPU() is meant to be called before .data and .bss
- * are initialized, so there's no easy way to store the first core configuration
- * in some global variable directly from IRQconfigureMPU() for the other cores
- * to read, that's why when we reach the point in the boot process when we bring
- * up the other cores, we prefer to read the MPU configuration of the first core
- */
-class KernelspaceMpuConfiguration
-{
-public:
-    /**
-     * Constructor
-     * Reads the kernelspace MPU configuration (thus only region 0, 1 and,
-     * if enabled, region 2) and stores it in the object, ready to be applied
-     * to other cores.
-     */
-    KernelspaceMpuConfiguration();
-
-    /**
-     * Apply the stored kernelspace MPU configuration. Meant to be called during
-     * multi-core bringup on all cores except the first one.
-     */
-    void apply();
-
-private:
-    /**
-     * Number of used regions that need copying from core to core
-     */
-    static constexpr int numUsedRegions=3;
-    unsigned int regValues[2*numUsedRegions];
-};
-
 #else //__MPU_PRESENT==1
 
 #warning Architecture does not provide an MPU, kernel-level W^X will not be enforced

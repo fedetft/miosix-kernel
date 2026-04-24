@@ -35,6 +35,7 @@
 #include "interfaces/cpu_const.h"
 #include "interfaces_private/cpu.h"
 #include "interfaces_private/mpu.h"
+#include "interfaces/cache.h"
 #include "kernel/error.h"
 #include "arch/cpu/common/cortexMx_interrupts.h"
 
@@ -146,9 +147,17 @@ __attribute__((noreturn)) void IRQcontinueInitCore1()
     // Read main function info from FIFO
     void (*f)()=reinterpret_cast<void (*)()>(fifoReceive());
     // Kernel-level W^X, cache configuration, and userspace memory protection.
-    // We paste the configuration that was copied from the first core.
-    auto mpuCfg=reinterpret_cast<KernelspaceMpuConfiguration*>(fifoReceive());
-    mpuCfg->apply();
+    // We use the same code from boot.cpp for core 0 initialization
+    extern unsigned char _xram_start asm("_xram_start");
+    extern unsigned char _xram_size asm("_xram_size");
+    const unsigned char *xramBase=&_xram_start;
+    //NOTE: volatile is important, otherwise compiler for some reason
+    //assumes _xram_size can't be nullptr, so xramSize cannot be 0
+    volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+    IRQenableMPU(xramBase,xramSize);
+    // Enable cache after the MPU since in Cortex-M CPUs the MPU driver
+    // also configures cacheability
+    IRQenableCache();
     // Initialize all interrupts to a default priority
     NVIC_SetPriority(SVCall_IRQn,defaultIrqPriority);
     NVIC_SetPriority(PendSV_IRQn,defaultIrqPriority);
@@ -201,12 +210,6 @@ void IRQinitSMP(void *const stackPtrs[], void (*const mains[])()) noexcept
     // IRQcontinueInitCore1
     unsigned long fp=reinterpret_cast<unsigned long>(mains[0]);
     if(!fifoSend(fp)) errorHandler(Error::UNEXPECTED);
-    // Copy the kernelspace MPU configuration from the first core and pass it
-    // to the other cores. Passing a pointer to our stack is safe since we'll
-    // synchronously wait for the other core to start before returning
-    KernelspaceMpuConfiguration mpuCfg;
-    unsigned long mpuCfgPtr=reinterpret_cast<unsigned long>(&mpuCfg);
-    if(!fifoSend(mpuCfgPtr)) errorHandler(Error::UNEXPECTED);
     // Register IPI (FIFO) interrupt handler for core 0
     IRQregisterIrqOnCurrentCore(SIO_IRQ_PROC0_IRQn,IRQinterProcessorInterruptHandler,nullptr);
     // Register timer interrupt handler for core 0
