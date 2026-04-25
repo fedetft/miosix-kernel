@@ -248,7 +248,7 @@ int main()
                 break;
             case 's':
                 iprintf("Shutting down\n");
-                return 0;
+                shutdown();
             default:
                 iprintf("Unrecognized option\n");
         }
