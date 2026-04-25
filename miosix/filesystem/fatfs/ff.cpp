@@ -983,7 +983,7 @@ static FRESULT chk_share (	/* Check if the file can be accessed */
 			be = 1;
 		}
 	}
-	if (i == FF_FS_LOCK) {	/* The object has not been opened */
+	if (i == miosix::FATFS_MAX_OPEN_FILES) {	/* The object has not been opened */
 		return (!be && acc != 2) ? FR_TOO_MANY_OPEN_FILES : FR_OK;	/* Is there a blank entry for new object? */
 	}
 
