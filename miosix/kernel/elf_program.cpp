@@ -536,6 +536,7 @@ void ProcessImage::load(const ElfProgram& program)
                         case DT_MX_RAMSIZE:
                             tie(image,size)=ProcessPool::instance()
                                     .allocate(dyn->d_un.d_val);
+                            break;
                         case DT_MX_STACKSIZE:
                             mainStackSize=dyn->d_un.d_val;
                             break;
