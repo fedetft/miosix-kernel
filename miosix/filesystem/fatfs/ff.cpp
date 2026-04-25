@@ -540,7 +540,7 @@ static const BYTE LfnOfs[] = {1,3,5,7,9,14,16,18,20,22,24,28,30};	/* FAT: Offset
 #endif
 //static WCHAR LfnBuf[FF_MAX_LFN + 1];		/* LFN working buffer */
 #define DEF_NAMBUF
-#define INIT_NAMBUF(fs)
+#define INIT_NAMBUF(fs) (void) fs; // By Raul Radu: This is done just to avoid unused warning
 #define FREE_NAMBUF()
 #define LEAVE_MKFS(res)	return res
 
@@ -751,158 +751,161 @@ static int dbc_2nd (BYTE c)
 #if FF_USE_LFN
 
 /* Get a Unicode code point from the TCHAR string in defined API encodeing */
-static DWORD tchar2uni (	/* Returns a character in UTF-16 encoding (>=0x10000 on surrogate pair, 0xFFFFFFFF on decode error) */
-	const TCHAR** str		/* Pointer to pointer to TCHAR string in configured encoding */
-)
-{
-	DWORD uc;
-	const TCHAR *p = *str;
+// By Raul Radu: we have our own implementation of this
+// static DWORD tchar2uni (	/* Returns a character in UTF-16 encoding (>=0x10000 on surrogate pair, 0xFFFFFFFF on decode error) */
+// 	const TCHAR** str		/* Pointer to pointer to TCHAR string in configured encoding */
+// )
+// {
+// 	DWORD uc;
+// 	const TCHAR *p = *str;
 
-#if FF_LFN_UNICODE == 1		/* UTF-16 input */
-	WCHAR wc;
+// #if FF_LFN_UNICODE == 1		/* UTF-16 input */
+// 	WCHAR wc;
 
-	uc = *p++;	/* Get an encoding unit */
-	if (IsSurrogate(uc)) {	/* Surrogate? */
-		wc = *p++;		/* Get low surrogate */
-		if (!IsSurrogateH(uc) || !IsSurrogateL(wc)) return 0xFFFFFFFF;	/* Wrong surrogate? */
-		uc = uc << 16 | wc;
-	}
+// 	uc = *p++;	/* Get an encoding unit */
+// 	if (IsSurrogate(uc)) {	/* Surrogate? */
+// 		wc = *p++;		/* Get low surrogate */
+// 		if (!IsSurrogateH(uc) || !IsSurrogateL(wc)) return 0xFFFFFFFF;	/* Wrong surrogate? */
+// 		uc = uc << 16 | wc;
+// 	}
 
-#elif FF_LFN_UNICODE == 2	/* UTF-8 input */
-	BYTE tb;
-	int nf;
+// #elif FF_LFN_UNICODE == 2	/* UTF-8 input */
+// 	BYTE tb;
+// 	int nf;
 
-	uc = (BYTE)*p++;	/* Get an encoding unit */
-	if (uc & 0x80) {	/* Multiple byte code? */
-		if        ((uc & 0xE0) == 0xC0) {	/* 2-byte sequence? */
-			uc &= 0x1F; nf = 1;
-		} else if ((uc & 0xF0) == 0xE0) {	/* 3-byte sequence? */
-			uc &= 0x0F; nf = 2;
-		} else if ((uc & 0xF8) == 0xF0) {	/* 4-byte sequence? */
-			uc &= 0x07; nf = 3;
-		} else {							/* Wrong sequence */
-			return 0xFFFFFFFF;
-		}
-		do {	/* Get and merge trailing bytes */
-			tb = (BYTE)*p++;
-			if ((tb & 0xC0) != 0x80) return 0xFFFFFFFF;	/* Wrong sequence? */
-			uc = uc << 6 | (tb & 0x3F);
-		} while (--nf != 0);
-		if (uc < 0x80 || IsSurrogate(uc) || uc >= 0x110000) return 0xFFFFFFFF;	/* Wrong code? */
-		if (uc >= 0x010000) uc = 0xD800DC00 | ((uc - 0x10000) << 6 & 0x3FF0000) | (uc & 0x3FF);	/* Make a surrogate pair if needed */
-	}
+// 	uc = (BYTE)*p++;	/* Get an encoding unit */
+// 	if (uc & 0x80) {	/* Multiple byte code? */
+// 		if        ((uc & 0xE0) == 0xC0) {	/* 2-byte sequence? */
+// 			uc &= 0x1F; nf = 1;
+// 		} else if ((uc & 0xF0) == 0xE0) {	/* 3-byte sequence? */
+// 			uc &= 0x0F; nf = 2;
+// 		} else if ((uc & 0xF8) == 0xF0) {	/* 4-byte sequence? */
+// 			uc &= 0x07; nf = 3;
+// 		} else {							/* Wrong sequence */
+// 			return 0xFFFFFFFF;
+// 		}
+// 		do {	/* Get and merge trailing bytes */
+// 			tb = (BYTE)*p++;
+// 			if ((tb & 0xC0) != 0x80) return 0xFFFFFFFF;	/* Wrong sequence? */
+// 			uc = uc << 6 | (tb & 0x3F);
+// 		} while (--nf != 0);
+// 		if (uc < 0x80 || IsSurrogate(uc) || uc >= 0x110000) return 0xFFFFFFFF;	/* Wrong code? */
+// 		if (uc >= 0x010000) uc = 0xD800DC00 | ((uc - 0x10000) << 6 & 0x3FF0000) | (uc & 0x3FF);	/* Make a surrogate pair if needed */
+// 	}
 
-#elif FF_LFN_UNICODE == 3	/* UTF-32 input */
-	uc = (TCHAR)*p++;	/* Get a unit */
-	if (uc >= 0x110000 || IsSurrogate(uc)) return 0xFFFFFFFF;	/* Wrong code? */
-	if (uc >= 0x010000) uc = 0xD800DC00 | ((uc - 0x10000) << 6 & 0x3FF0000) | (uc & 0x3FF);	/* Make a surrogate pair if needed */
+// #elif FF_LFN_UNICODE == 3	/* UTF-32 input */
+// 	uc = (TCHAR)*p++;	/* Get a unit */
+// 	if (uc >= 0x110000 || IsSurrogate(uc)) return 0xFFFFFFFF;	/* Wrong code? */
+// 	if (uc >= 0x010000) uc = 0xD800DC00 | ((uc - 0x10000) << 6 & 0x3FF0000) | (uc & 0x3FF);	/* Make a surrogate pair if needed */
 
-#else		/* ANSI/OEM input */
-	BYTE sb;
-	WCHAR wc;
+// #else		/* ANSI/OEM input */
+// 	BYTE sb;
+// 	WCHAR wc;
 
-	wc = (BYTE)*p++;			/* Get a byte */
-	if (dbc_1st((BYTE)wc)) {	/* Is it a DBC 1st byte? */
-		sb = (BYTE)*p++;		/* Get 2nd byte */
-		if (!dbc_2nd(sb)) return 0xFFFFFFFF;	/* Invalid code? */
-		wc = (wc << 8) + sb;	/* Make a DBC */
-	}
-	if (wc != 0) {
-		wc = ff_oem2uni(wc, CODEPAGE);	/* ANSI/OEM ==> Unicode */
-		if (wc == 0) return 0xFFFFFFFF;	/* Invalid code? */
-	}
-	uc = wc;
+// 	wc = (BYTE)*p++;			/* Get a byte */
+// 	if (dbc_1st((BYTE)wc)) {	/* Is it a DBC 1st byte? */
+// 		sb = (BYTE)*p++;		/* Get 2nd byte */
+// 		if (!dbc_2nd(sb)) return 0xFFFFFFFF;	/* Invalid code? */
+// 		wc = (wc << 8) + sb;	/* Make a DBC */
+// 	}
+// 	if (wc != 0) {
+// 		wc = ff_oem2uni(wc, CODEPAGE);	/* ANSI/OEM ==> Unicode */
+// 		if (wc == 0) return 0xFFFFFFFF;	/* Invalid code? */
+// 	}
+// 	uc = wc;
 
-#endif
-	*str = p;	/* Next read pointer */
-	return uc;
-}
-
+// #endif
+// 	*str = p;	/* Next read pointer */
+// 	return uc;
+// }
 
 /* Store a Unicode char in defined API encoding */
-static UINT put_utf (	/* Returns number of encoding units written (0:buffer overflow or wrong encoding) */
-	DWORD chr,	/* UTF-16 encoded character (Surrogate pair if >=0x10000) */
-	TCHAR* buf,	/* Output buffer */
-	UINT szb	/* Size of the buffer */
-)
-{
-#if FF_LFN_UNICODE == 1	/* UTF-16 output */
-	WCHAR hs, wc;
 
-	hs = (WCHAR)(chr >> 16);
-	wc = (WCHAR)chr;
-	if (hs == 0) {	/* Single encoding unit? */
-		if (szb < 1 || IsSurrogate(wc)) return 0;	/* Buffer overflow or wrong code? */
-		*buf = wc;
-		return 1;
-	}
-	if (szb < 2 || !IsSurrogateH(hs) || !IsSurrogateL(wc)) return 0;	/* Buffer overflow or wrong surrogate? */
-	*buf++ = hs;
-	*buf++ = wc;
-	return 2;
+// By Raul Radu: we have our own implementation of this
 
-#elif FF_LFN_UNICODE == 2	/* UTF-8 output */
-	DWORD hc;
+// static UINT put_utf (	/* Returns number of encoding units written (0:buffer overflow or wrong encoding) */
+// 	DWORD chr,	/* UTF-16 encoded character (Surrogate pair if >=0x10000) */
+// 	TCHAR* buf,	/* Output buffer */
+// 	UINT szb	/* Size of the buffer */
+// )
+// {
+// #if FF_LFN_UNICODE == 1	/* UTF-16 output */
+// 	WCHAR hs, wc;
 
-	if (chr < 0x80) {	/* Single byte code? */
-		if (szb < 1) return 0;	/* Buffer overflow? */
-		*buf = (TCHAR)chr;
-		return 1;
-	}
-	if (chr < 0x800) {	/* 2-byte sequence? */
-		if (szb < 2) return 0;	/* Buffer overflow? */
-		*buf++ = (TCHAR)(0xC0 | (chr >> 6 & 0x1F));
-		*buf++ = (TCHAR)(0x80 | (chr >> 0 & 0x3F));
-		return 2;
-	}
-	if (chr < 0x10000) {	/* 3-byte sequence? */
-		if (szb < 3 || IsSurrogate(chr)) return 0;	/* Buffer overflow or wrong code? */
-		*buf++ = (TCHAR)(0xE0 | (chr >> 12 & 0x0F));
-		*buf++ = (TCHAR)(0x80 | (chr >> 6 & 0x3F));
-		*buf++ = (TCHAR)(0x80 | (chr >> 0 & 0x3F));
-		return 3;
-	}
-	/* 4-byte sequence */
-	if (szb < 4) return 0;	/* Buffer overflow? */
-	hc = ((chr & 0xFFFF0000) - 0xD8000000) >> 6;	/* Get high 10 bits */
-	chr = (chr & 0xFFFF) - 0xDC00;					/* Get low 10 bits */
-	if (hc >= 0x100000 || chr >= 0x400) return 0;	/* Wrong surrogate? */
-	chr = (hc | chr) + 0x10000;
-	*buf++ = (TCHAR)(0xF0 | (chr >> 18 & 0x07));
-	*buf++ = (TCHAR)(0x80 | (chr >> 12 & 0x3F));
-	*buf++ = (TCHAR)(0x80 | (chr >> 6 & 0x3F));
-	*buf++ = (TCHAR)(0x80 | (chr >> 0 & 0x3F));
-	return 4;
+// 	hs = (WCHAR)(chr >> 16);
+// 	wc = (WCHAR)chr;
+// 	if (hs == 0) {	/* Single encoding unit? */
+// 		if (szb < 1 || IsSurrogate(wc)) return 0;	/* Buffer overflow or wrong code? */
+// 		*buf = wc;
+// 		return 1;
+// 	}
+// 	if (szb < 2 || !IsSurrogateH(hs) || !IsSurrogateL(wc)) return 0;	/* Buffer overflow or wrong surrogate? */
+// 	*buf++ = hs;
+// 	*buf++ = wc;
+// 	return 2;
 
-#elif FF_LFN_UNICODE == 3	/* UTF-32 output */
-	DWORD hc;
+// #elif FF_LFN_UNICODE == 2	/* UTF-8 output */
+// 	DWORD hc;
 
-	if (szb < 1) return 0;	/* Buffer overflow? */
-	if (chr >= 0x10000) {	/* Out of BMP? */
-		hc = ((chr & 0xFFFF0000) - 0xD8000000) >> 6;	/* Get high 10 bits */
-		chr = (chr & 0xFFFF) - 0xDC00;					/* Get low 10 bits */
-		if (hc >= 0x100000 || chr >= 0x400) return 0;	/* Wrong surrogate? */
-		chr = (hc | chr) + 0x10000;
-	}
-	*buf++ = (TCHAR)chr;
-	return 1;
+// 	if (chr < 0x80) {	/* Single byte code? */
+// 		if (szb < 1) return 0;	/* Buffer overflow? */
+// 		*buf = (TCHAR)chr;
+// 		return 1;
+// 	}
+// 	if (chr < 0x800) {	/* 2-byte sequence? */
+// 		if (szb < 2) return 0;	/* Buffer overflow? */
+// 		*buf++ = (TCHAR)(0xC0 | (chr >> 6 & 0x1F));
+// 		*buf++ = (TCHAR)(0x80 | (chr >> 0 & 0x3F));
+// 		return 2;
+// 	}
+// 	if (chr < 0x10000) {	/* 3-byte sequence? */
+// 		if (szb < 3 || IsSurrogate(chr)) return 0;	/* Buffer overflow or wrong code? */
+// 		*buf++ = (TCHAR)(0xE0 | (chr >> 12 & 0x0F));
+// 		*buf++ = (TCHAR)(0x80 | (chr >> 6 & 0x3F));
+// 		*buf++ = (TCHAR)(0x80 | (chr >> 0 & 0x3F));
+// 		return 3;
+// 	}
+// 	/* 4-byte sequence */
+// 	if (szb < 4) return 0;	/* Buffer overflow? */
+// 	hc = ((chr & 0xFFFF0000) - 0xD8000000) >> 6;	/* Get high 10 bits */
+// 	chr = (chr & 0xFFFF) - 0xDC00;					/* Get low 10 bits */
+// 	if (hc >= 0x100000 || chr >= 0x400) return 0;	/* Wrong surrogate? */
+// 	chr = (hc | chr) + 0x10000;
+// 	*buf++ = (TCHAR)(0xF0 | (chr >> 18 & 0x07));
+// 	*buf++ = (TCHAR)(0x80 | (chr >> 12 & 0x3F));
+// 	*buf++ = (TCHAR)(0x80 | (chr >> 6 & 0x3F));
+// 	*buf++ = (TCHAR)(0x80 | (chr >> 0 & 0x3F));
+// 	return 4;
 
-#else						/* ANSI/OEM output */
-	#error "Unsupported encoding"
-	WCHAR wc;
+// #elif FF_LFN_UNICODE == 3	/* UTF-32 output */
+// 	DWORD hc;
 
-	wc = ff_uni2oem(chr, CODEPAGE);
-	if (wc >= 0x100) {	/* Is this a DBC? */
-		if (szb < 2) return 0;
-		*buf++ = (char)(wc >> 8);	/* Store DBC 1st byte */
-		*buf++ = (TCHAR)wc;			/* Store DBC 2nd byte */
-		return 2;
-	}
-	if (wc == 0 || szb < 1) return 0;	/* Invalid character or buffer overflow? */
-	*buf++ = (TCHAR)wc;					/* Store the character */
-	return 1;
-#endif
-}
+// 	if (szb < 1) return 0;	/* Buffer overflow? */
+// 	if (chr >= 0x10000) {	/* Out of BMP? */
+// 		hc = ((chr & 0xFFFF0000) - 0xD8000000) >> 6;	/* Get high 10 bits */
+// 		chr = (chr & 0xFFFF) - 0xDC00;					/* Get low 10 bits */
+// 		if (hc >= 0x100000 || chr >= 0x400) return 0;	/* Wrong surrogate? */
+// 		chr = (hc | chr) + 0x10000;
+// 	}
+// 	*buf++ = (TCHAR)chr;
+// 	return 1;
+
+// #else						/* ANSI/OEM output */
+// 	#error "Unsupported encoding"
+// 	WCHAR wc;
+
+// 	wc = ff_uni2oem(chr, CODEPAGE);
+// 	if (wc >= 0x100) {	/* Is this a DBC? */
+// 		if (szb < 2) return 0;
+// 		*buf++ = (char)(wc >> 8);	/* Store DBC 1st byte */
+// 		*buf++ = (TCHAR)wc;			/* Store DBC 2nd byte */
+// 		return 2;
+// 	}
+// 	if (wc == 0 || szb < 1) return 0;	/* Invalid character or buffer overflow? */
+// 	*buf++ = (TCHAR)wc;					/* Store the character */
+// 	return 1;
+// #endif
+// }
 #endif	/* FF_USE_LFN */
 
 
@@ -2664,7 +2667,7 @@ static void get_fileinfo (
 	BYTE lcf;
 	WCHAR wc, hs;
 	FATFS *fs = dp->obj.fs;
-	UINT nw;
+	// UINT nw; // By Raul Radu: unused
 #else
 	TCHAR c;
 #endif
@@ -2912,7 +2915,7 @@ static FRESULT create_name (	/* FR_OK: successful, FR_INVALID_NAME: could not cr
 	char32_t wc;
 	WCHAR *lfn;
 	const /*TCHAR*/char* p;
-	DWORD uc;
+	// DWORD uc; // By Raul Radu: unused
 	UINT i, ni, si, di;
 
 
@@ -3443,7 +3446,7 @@ static FRESULT mount_volume (	/* FR_OK(0): successful, !=0: an error occurred */
 )
 {
 	int vol;
-	FATFS *fs;
+	// FATFS *fs;
 	DSTATUS stat;
 	LBA_t bsect;
 	DWORD tsect, sysect, fasize, nclst, szbfat;
@@ -3780,7 +3783,7 @@ FRESULT f_open (
 {
 	FRESULT res;
 	DIR_ dj;
-	FATFS *fs;
+	// FATFS *fs;
 #if !FF_FS_READONLY
 	DWORD cl, bcs, clst, tm;
 	LBA_t sc;
@@ -4666,7 +4669,7 @@ FRESULT f_opendir (
 )
 {
 	FRESULT res;
-	FATFS *fs;
+	// FATFS *fs;
 	DEF_NAMBUF
 
 
