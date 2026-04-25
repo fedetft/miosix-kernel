@@ -443,7 +443,10 @@ namespace miosix
         
         // In case of wrong file system type, make fail the mount
         if(filesystem.fs_type != FS_EXFAT)
+        {
             failed = true;
+            f_mount(&filesystem, 1, true);
+        }
     }
 
     int ExFatFs::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
