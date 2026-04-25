@@ -24,11 +24,8 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-#include "filesystem/fatfs/ffconf.h"
-
-// #if _FS_EXFAT == 0 // Raul Radu: we want both extfat and fat32 to be available
-#ifndef FAT32_H
-#define	FAT32_H
+#pragma once
+ #include "filesystem/fatfs/ffconf.h"
 
 #include "filesystem/file.h"
 #include "kernel/sync.h"
@@ -135,6 +132,3 @@ private:
 #endif //WITH_FILESYSTEM
 
 } //namespace miosix
-
-#endif //FAT32_H
-// #endif // Raul Radu: we want both extfat and fat32 to be available
