@@ -29,6 +29,7 @@
 #include "cortexMx_mpu.h"
 #include "kernel/error.h"
 #include "miosix_settings.h"
+#include "interfaces_private/userspace.h"
 
 #if __MPU_PRESENT==1
 
@@ -84,16 +85,70 @@ void IRQenableMPU()
 {
     extern unsigned char _xram_start asm("_xram_start");
     extern unsigned char _xram_size asm("_xram_size");
-    const unsigned char *xramBase=&_xram_start;
+    const unsigned int xramBase=reinterpret_cast<unsigned int>(&_xram_start);
     //NOTE: volatile is important, otherwise compiler for some reason
     //assumes _xram_size can't be nullptr, so xramSize cannot be 0
     volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
+
+    #ifdef __CODE_IN_XRAM
+    constexpr bool xramExec=true;
+    #else //__CODE_IN_XRAM
+    constexpr bool xramExec=false;
+    #endif //__CODE_IN_XRAM
 
     #if __CORTEX_M == 33U
     // ARMv8-M MPU attributes are stored in separate registers, indexed in RLAR
     MPU->MAIR0 = (0xaa << 0); // Normal, outer/inner write through, no write alloc
     MPU->MAIR1 = 0;
-    #endif
+
+    // NOTE: using the MPU in ARMv8M is a mess because regions cannot overlap
+    // Thus we can no longer do a "divide and conquer" approach where we use
+    // low numbered regions for kernel-level W^X and cacheability, and overlay
+    // on top the regions for processes. When the kernel is compiled without
+    // processes we only use regions 0,1,6 and never change them after boot.
+    // When processes are enabled, we use up to a total of 7 regions (0 to 6),
+    // out of which the first 6 are changed dynamically at every context switch.
+    // Region 6 is only used when there is an XRAM, but it's not necessarily
+    // used *for* the XRAM. It's used for the RAM memory region that does *not*
+    // contain the process pool. So if the process pool is in XRAM, then region
+    // 6 is the internal SRAM, while if the process pool is in the internal SRAM
+    // then region 6 is the XRAM. Region 6 is the only statically configured
+    // region that never changes after boot. When the kernel is running, only
+    // two other regions are used: 0 which is the code, and 1 which is
+    // "the other RAM" if there's an XRAM and thus region 6 is used, or
+    // "the only RAM" if there's no XRAM and thus region 6 is not used.
+    // The use of regions when a userspace process is running is even more
+    // complicated and it redefines the meaning of regions 0 to 5. It's
+    // described in cortexMx_userspace.cpp
+    #ifdef WITH_PROCESSES
+    extern unsigned char _process_pool_start asm("_process_pool_start");
+    const unsigned int poolBase=reinterpret_cast<unsigned int>(&_process_pool_start);
+    bool flip=false;                      //no XRAM, region 1 must be SRAM
+    if(xramSize)
+    {
+        if(poolBase>=xramBase) flip=true; //pool in XRAM, use region 6 for SRAM
+        else flip=false;                  //pool in SRAM, use region 6 for XRAM
+    }
+    #else //WITH_PROCESSES
+    constexpr bool flip=false;            //no processes thus no process pool
+    #endif //WITH_PROCESSES
+
+    //ARM Default memory map: region 0x00000000-0x20000000 for code
+    IRQconfigureMPURegion(0,0x00000000,0x20000000,true);
+    //ARM Default memory map: region 0x20000000-0x40000000 for data
+    IRQconfigureMPURegion(flip ? 6 : 1,0x20000000,0x20000000,false);
+    //External RAM goes to a chip-specific address, only some chips have it
+    if(xramSize) IRQconfigureMPURegion(flip ? 1 : 6,xramBase,xramSize,xramExec);
+
+    //If processes are enabled, populate the data structure that is used to
+    //reconfigure MPU regions 0 to 5 whenever context switching towards the kernel
+    #ifdef WITH_PROCESSES
+    unsigned int *ptr=MPUConfiguration::kernelspaceMpuConfiguration;
+    MPU->RNR=0; ptr[0]=MPU->RBAR; ptr[1]=MPU->RLAR;
+    MPU->RNR=1; ptr[2]=MPU->RBAR; ptr[3]=MPU->RLAR;
+    #endif //WITH_PROCESSES
+
+    #else //__CORTEX_M == 33U
 
     // NOTE: using regions starting from 0 for the kernel because in ARMv6M/7M
     // MPU in case of overlapping regions the one with the highest number takes
@@ -113,13 +168,9 @@ void IRQenableMPU()
     //ARM Default memory map: region 0x20000000-0x40000000 for data
     IRQconfigureMPURegion(region++,0x20000000,0x20000000,false);
     //External RAM goes to a chip-specific address, only some chips have it
-    #ifdef __CODE_IN_XRAM
-    bool xramExec=true;
-    #else //__CODE_IN_XRAM
-    bool xramExec=false;
-    #endif //__CODE_IN_XRAM
-    auto base=reinterpret_cast<unsigned int>(xramBase);
-    if(xramSize) IRQconfigureMPURegion(region++,base,xramSize,xramExec);
+    if(xramSize) IRQconfigureMPURegion(region++,xramBase,xramSize,xramExec);
+
+    #endif //__CORTEX_M == 33U
 
     //After configuring the MPU, enable it
     asm volatile("dsb":::"memory");

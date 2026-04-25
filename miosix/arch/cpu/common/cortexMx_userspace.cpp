@@ -190,10 +190,200 @@ static tuple<size_t, size_t> decodeMpuRegion(unsigned int reg0, unsigned int reg
     return {regionStart,regionEnd};
 }
 
+#if defined(__CORTEX_M) && __CORTEX_M == 33 && __MPU_PRESENT==1
+/*
+ * Since ARM made the stupid design decision to disallow MPU regions to overlap
+ * starting from ARMv8, implementing processes just got harder and more
+ * inefficient.
+ * Miosix uses the MPU also in kernel code to achieve kernel-level W^X and to
+ * override the default cacheability policy, thus we need to cover each existing
+ * memory region with an MPU region for the kernel. These regions diallow
+ * nonprivileged access. On top of that, we need to overlap two regions where
+ * unprivileged access is allowed, that need to be dynamically changed at every
+ * context switch to map to the currently running process.
+ * How do we do it now that overlapping regions is no longer possible?
+ * Here's how: by juggling MPU regions as best as we can
+ *
+ *  Running   Running   Running   Running
+ *  kernel    process   process   process
+ *            from XIP  no XIP    no XIP (code allocated after data)
+ * +-------+ +-------+ +-------+ +-------+
+ * |   6   | |   6   | |   6   | |   6   | SRAM (or XRAM), when both exist
+ * +-------+ +-------+ +-------+ +-------+
+ *
+ * +-------+ +-------+ +-------+ +-------+
+ * |       | |       | |   5   | |   5   |
+ * |       | |   5   | +-------+ +-------+
+ * |       | |       | |  [4]  | |  [1]  |
+ * |       | +-------+ +-------+ +-------+
+ * |   1   | |  [4]  | |   3   | |   3   | XRAM (or SRAM when there's no XRAM)
+ * |       | +-------+ +-------+ +-------+
+ * |       | |       | |  [1]  | |  [4]  |
+ * |       | |   3   | +-------+ +-------+
+ * |       | |       | |   2   | |   2   |
+ * +-------+ +-------+ +-------+ +-------+
+ *
+ * +-------+ +-------+ +-------+ +-------+
+ * |       | |   2   | |       | |       |
+ * |       | +-------+ |       | |       |
+ * |   0   | |  [1]  | |   0   | |   0   | FLASH
+ * |       | +-------+ |       | |       |
+ * |       | |   0   | |       | |       |
+ * +-------+ +-------+ +-------+ +-------+
+ *
+ * We assume the kernel has access to either two or three noncontiguous memory
+ * regions. The first (bottom) is the FLASH memory, which contains the kernel
+ * and the XIP filesystem. The second (middle) is the one that contains the
+ * process pool, the RAM allocator for processes. This region can either contain
+ * *only* the process pool, or contain *both* kernel data and the process pool.
+ * The former is a common configuration when an external RAM (XRAM) is present
+ * and whoever ported the board to Miosix decided to add a linker script
+ * dedicating the entire XRAM for processes.
+ * The latter is a common configuration when there is no XRAM and thus the
+ * internal SRAM has to be partitioned among the kernel and processes. However
+ * these are just examples, there is a lot of freedom in how board designers
+ * can make linker scripts for Miosix.
+ * The third memory region, if present, is the RAM memory where the process
+ * pool is *not* mapped, which again is commonly the SRAM in boards where an
+ * XRAM is present. It ususally contains all kernel data as the entire kernel
+ * data can easily fit in a small internal SRAM.
+ * Somewhat confusingly, region 6 can either be *above* or *below* te other
+ * RAM region (i.e, at higher or lower addresses). What matters is that region
+ * 6 is the RAM wihtout the process pool, wherever that happens to be.
+ *
+ * Numbers in the figure are the used MPU regions for the three possible memory
+ * layouts. Square brackets indicate a region where nonprivileged acces is
+ * allowed. For all process memory layouts, region 1 is always the process code,
+ * while region 4 is always the process data.
+ * The left layout is the one when the kernel (i.e: a kernel thread) is running.
+ * This is how the kernel boots, the configuration is done in cortexMx_mpu.cpp
+ * and a copy of the configuration for regions 0 and 1 is stored in the variable
+ * kernelspaceMpuConfiguration as we'll need to restore this layout at runtime
+ * every time we switch back to the kernel.
+ * The middle left layout is the one when a process is running whose code is in
+ * the XIP filesystem, thus running from FLASH. Since regions cannot overlap, we
+ * need to split the FLASH and the RAM that contains the process pool in three
+ * regions, the one before the process, the one for the process, and the one
+ * after it. The top or bottom regions may also be empty.
+ * The middle right layout is the one when a process is running whose code is in
+ * the process pool. Note that even though both the code and data are in the
+ * pool, the kernel uses two noncontiguous regions anyway, both to make better
+ * use of the available RAM (two smaller blocks may fit where a single larger
+ * block may not), but also to enforce W^X, as well as to share the code region
+ * in case more processes are spawned with the same program.
+ * This memory layout swaps regions 1 and 2 so that regardless of whether the
+ * process is running from XIP or not, the regions where unprivileged access
+ * is allowed are always 1 (code) and 4 (data), which simplifies checking
+ * syscall parameters.
+ * The right layout exists because the process pool allocator makes no guarantee
+ * to allocate the process code at lower addresses then the process data.
+ * In that case, region 1 and 4 are swapped so that region 1 is always the code
+ * and region 4 always the data.
+ *
+ * The cost of this design, which unfortunately is the only possible one now
+ * that overlapping regions are no longer possible, is that there are 6 regions
+ * (0 to 5) that need to be switched at runtime at every context switch.
+ * Can ARM please undo the stupid design decision of forbidding regions overlap?
+ */
+static constexpr unsigned int codeIdx=2*1; ///<index into regValues of process code
+static constexpr unsigned int dataIdx=2*4; ///<index into regValues of process data
+#else //defined(__CORTEX_M) && __CORTEX_M == 33 && __MPU_PRESENT==1
+/*
+ * Thanks to the possibility to overlap MPU regions in ARMv6M/v7M, we use a
+ * divided et impera approach to memory protection.
+ * The code in cortexMx_mpu.cpp configures the kernel memory layout using
+ * regions 0 to 2 (and on some chips also region 3). These regions are
+ * used to achieve kernel-level W^X protection, configure cacheability and
+ * to disallow unprivileged code access.
+ * On top of those, the code in this file uses two regions, 6 and 7 which by
+ * virtue of having a higher number take priority to overlay two regions
+ * where unprivileged access is allowed, one for the process code and one for
+ * the process data. Of course, W^X is enforced also for processes.
+ * These two regions, 6 and 7, are the only regions that need changing at every
+ * context switch to map to the memory arease of the currently running process.
+ */
+static constexpr unsigned int codeIdx=2*0; ///<index into regValues of process code
+static constexpr unsigned int dataIdx=2*1; ///<index into regValues of process data
+#endif //defined(__CORTEX_M) && __CORTEX_M == 33 && __MPU_PRESENT==1
+
 MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elfSize,
         const unsigned int *imageBase, unsigned int imageSize)
 {
+    const unsigned int codeStart=reinterpret_cast<unsigned int>(elfBase);
+    const unsigned int codeEnd=codeStart+elfSize;
+    const unsigned int dataStart=reinterpret_cast<unsigned int>(imageBase);
+    const unsigned int dataEnd=dataStart+imageSize;
     #if __MPU_PRESENT==1
+    #if __CORTEX_M == 33
+    auto mpuRegion=[this](unsigned int region, unsigned int start, unsigned int end,
+                      bool executePermitted, bool unprivilegedAccess)
+    {
+        if(start==end) //Corner case: if address range is empty disable region
+        {
+            regValues[2*region+0]=0; //RBAR=0
+            regValues[2*region+1]=0; //RLAR=0, region disabled
+            return;
+        }
+        unsigned int ap,xn,pxn;
+        if(executePermitted==false && unprivilegedAccess==false)
+        {
+            ap  = 0b00<<1; //RW by privileged only
+            xn  =    1<<0; //No execute
+            pxn =    1<<4; //Privileged no execute
+        } else if(executePermitted==true && unprivilegedAccess==false) {
+            ap  = 0b10<<1; //RO by privileged only
+            xn  =    0<<0; //Execute
+            pxn =    0<<4; //Privileged execute
+        } else if(executePermitted==false && unprivilegedAccess==true) {
+            ap  = 0b01<<1; //RW by privileged and unprivileged
+            xn  =    1<<0; //No execute
+            pxn =    1<<4; //Privileged no execute
+        } else if(executePermitted==true && unprivilegedAccess==true) {
+            ap  = 0b11<<1; //RO by privileged and unprivileged
+            xn  =    0<<0; //Execute
+            pxn =    1<<4; //Privileged no execute
+        }
+        regValues[2*region+0]=(start   & (~0x1f)) | ap | xn; //RBAR
+        regValues[2*region+1]=((end-1) & (~0x1f)) | pxn | 1; //RLAR
+        //NOTE: AttrIndex set to 0, MAIR set in cortexMx_mpu.cpp
+    };
+
+    //The RAM region that contains the process pool can either be the SRAM or
+    //XRAM, the decision has already been made in cortexMx_mpu.cpp
+    unsigned int ramStart,ramEnd;
+    tie(ramStart,ramEnd)=decodeMpuRegion(kernelspaceMpuConfiguration[2],
+                                         kernelspaceMpuConfiguration[3]);
+    if(codeStart<0x20000000)
+    {
+        //This process is has code in the XIP filesystem
+        mpuRegion(0,0x00000000,codeStart, true, false);
+        mpuRegion(1,codeStart, codeEnd,   true, true); //Region 1: code
+        mpuRegion(2,codeEnd,   0x20000000,true, false);
+        mpuRegion(3,ramStart,  dataStart, false,false);
+        mpuRegion(4,dataStart, dataEnd,   false,true); //Region 4: data
+        mpuRegion(5,dataEnd,   ramEnd,    false,false);
+    } else {
+        //This process is has code in the process pool,
+        if(dataStart>codeStart)
+        {
+            //The code region has been allocated before the data region
+            mpuRegion(0,0x00000000,0x20000000,true, false);
+            mpuRegion(2,ramStart,  codeStart, false,false);
+            mpuRegion(1,codeStart, codeEnd,   true, true); //Region 1: code
+            mpuRegion(3,codeEnd,   dataStart, false,false);
+            mpuRegion(4,dataStart, dataEnd,   false,true); //Region 4: data
+            mpuRegion(5,dataEnd,   ramEnd,    false,false);
+        } else {
+            //The code region has been allocated after the data region
+            mpuRegion(0,0x00000000,0x20000000,true, false);
+            mpuRegion(2,ramStart,  dataStart, false,false);
+            mpuRegion(4,dataStart, dataEnd,   false,true); //Region 4: data
+            mpuRegion(3,dataEnd,   codeStart, false,false);
+            mpuRegion(1,codeStart, codeEnd,   true, true); //Region 1: code
+            mpuRegion(5,codeEnd,   ramEnd,    false,false);
+        }
+    }
+    #else // __CORTEX_M == 33
     // NOTE: using regions 6 and 7 for processes because in the ARM MPU in case
     // of overlapping regions the one with the highest number takes priority.
     // The lower regions are used by the kernel and by default forbid access to
@@ -204,33 +394,13 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     // shows that setting it in IRQconfigureMPU for the internal RAM region
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
-    #if __CORTEX_M == 33
-    //NOTE: Unlike previous Cortex CPUs it's no longer possible to mark a region
-    //as RW for privileged but RO for non-privileged
-    const unsigned int MPU_RLAR_PXN_Msk=1<<4; //This bit is missing in the ARM .h
-    // regValues indexes 0/1 are for RNR number 6
-    regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
-                | 3<<MPU_RBAR_AP_Pos; //Privileged: RO, unprivileged: RO
-    regValues[1]=((reinterpret_cast<unsigned int>(elfBase)+elfSize-1) & (~0x1f))
-                | MPU_RLAR_PXN_Msk    //Not executable from the privileged side
-                | 0<<MPU_RLAR_AttrIndx_Pos //NOTE: regions in cortexMx_mpu.cpp
-                | 1; //Enable bit
-    // regValues indexes 2/3 are for RNR number 7
-    regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
-                | 1<<MPU_RBAR_AP_Pos //Privileged: RW, unprivileged: RW
-                | MPU_RBAR_XN_Msk;   //Not executable
-    regValues[3]=((reinterpret_cast<unsigned int>(imageBase)+imageSize-1) & (~0x1f))
-                | MPU_RLAR_PXN_Msk    //Not executable from the privileged side
-                | 0<<MPU_RLAR_AttrIndx_Pos //NOTE: regions in cortexMx_mpu.cpp
-                | 1; //Enable bit
-    #else // __CORTEX_M == 33
-    regValues[0]=(reinterpret_cast<unsigned int>(elfBase) & (~0x1f))
+    regValues[0]=(codeStart & (~0x1f))
                 | MPU_RBAR_VALID_Msk | 6; //Region 6
     regValues[1]=2<<MPU_RASR_AP_Pos  //Privileged: RW, unprivileged: RO
                 | MPU_RASR_C_Msk     //Cacheable, write through
                 | 1 //Enable bit
                 | sizeToMpu(elfSize)<<1;
-    regValues[2]=(reinterpret_cast<unsigned int>(imageBase) & (~0x1f))
+    regValues[2]=(dataStart & (~0x1f))
                 | MPU_RBAR_VALID_Msk | 7; //Region 7
     regValues[3]=3<<MPU_RASR_AP_Pos  //Privileged: RW, unprivileged: RW
                 | MPU_RASR_XN_Msk    //Not executable
@@ -242,10 +412,10 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     #warning Architecture does not provide an MPU, userspace memory protection will not be enforced
     //Although we have no MPU, store enough information to still enable checking
     //syscall parameters in withinForReading()/withinForWriting()
-    regValues[0]=reinterpret_cast<unsigned int>(elfBase);
-    regValues[1]=reinterpret_cast<unsigned int>(elfBase)+elfSize;
-    regValues[2]=reinterpret_cast<unsigned int>(imageBase);
-    regValues[3]=reinterpret_cast<unsigned int>(imageBase)+imageSize;
+    regValues[0]=codeStart;
+    regValues[1]=codeEnd;
+    regValues[2]=dataStart;
+    regValues[3]=dataEnd;
     #endif //__MPU_PRESENT==1
 }
 
@@ -254,16 +424,17 @@ void MPUConfiguration::dumpConfiguration()
     for(int i=0;i<2;i++)
     {
         size_t base, end;
-        tie(base,end)=decodeMpuRegion(regValues[2*i],regValues[2*i+1]);
+        const int region= i==0 ? codeIdx : dataIdx;
+        tie(base,end)=decodeMpuRegion(regValues[region],regValues[region+1]);
         #if __MPU_PRESENT==1
         #if __CORTEX_M == 33
-        char w=regValues[2*i] & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
-        char x=regValues[2*i] & MPU_RBAR_XN_Msk ? '-' : 'x';
-        #else
-        char w=regValues[2*i+1] & (1<<MPU_RASR_AP_Pos) ? 'w' : '-';
-        char x=regValues[2*i+1] & MPU_RASR_XN_Msk ? '-' : 'x';
-        #endif
-        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",i+6,base,end,w,x);
+        char w=regValues[region] & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
+        char x=regValues[region] & MPU_RBAR_XN_Msk ? '-' : 'x';
+        #else //__CORTEX_M == 33
+        char w=regValues[region+1] & (1<<MPU_RASR_AP_Pos) ? 'w' : '-';
+        char x=regValues[region+1] & MPU_RASR_XN_Msk ? '-' : 'x';
+        #endif //__CORTEX_M == 33
+        iprintf("* MPU region %d 0x%08x-0x%08x r%c%c\n",region/2,base,end,w,x);
         #else //__MPU_PRESENT==1
         iprintf("* Memory region %d 0x%08x-0x%08x rwx\n",i,base,end);
         #endif //__MPU_PRESENT==1
@@ -273,6 +444,7 @@ void MPUConfiguration::dumpConfiguration()
 tuple<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
     const unsigned int *ptr, unsigned int size)
 {
+    #if __MPU_PRESENT==1
     unsigned int p=reinterpret_cast<unsigned int>(ptr);
     #if __CORTEX_M == 33
     //ARMv8+ has no power of 2 size constraint, just align pointer to 32 byte
@@ -280,7 +452,7 @@ tuple<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
     unsigned int ap=p & (~0x1f);
     size+=p-ap;
     return {reinterpret_cast<const unsigned int*>(ap), (size+0x1f) & (~0x1f)};
-    #else
+    #else //__CORTEX_M == 33
     constexpr unsigned int maxSize=0x80000000;
     //NOTE: worst case is p=2147483632 size=32, a memory block in the middle of
     //the 2GB mark. To meet the constraint of returning a pointer aligned to its
@@ -306,15 +478,18 @@ tuple<const unsigned int*, unsigned int> MPUConfiguration::roundRegionForMPU(
         if(y==x) return {reinterpret_cast<const unsigned int*>(ap),x};
         x=y;
     }
-    #endif
+    #endif //__CORTEX_M == 33
+    #else //__MPU_PRESENT==1
+    return {ptr,size}; //No MPU, no rounding needed
+    #endif //__MPU_PRESENT==1
 }
 
 bool MPUConfiguration::withinForReading(const void *ptr, size_t size) const
 {
     size_t base=reinterpret_cast<size_t>(ptr);
     size_t codeStart,codeEnd,dataStart,dataEnd;
-    tie(codeStart,codeEnd)=decodeMpuRegion(regValues[0],regValues[1]);
-    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[2],regValues[3]);
+    tie(codeStart,codeEnd)=decodeMpuRegion(regValues[codeIdx],regValues[codeIdx+1]);
+    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[dataIdx],regValues[dataIdx+1]);
     //The last check is to prevent a wraparound to be considered valid
     return (   (base>=codeStart && base+size<=codeEnd)
             || (base>=dataStart && base+size<=dataEnd)) && base+size>=base;
@@ -326,7 +501,7 @@ bool MPUConfiguration::withinForWriting(const void *ptr, size_t size) const
     //used by FaultData::IRQtryAddProgramCounter()
     size_t base=reinterpret_cast<size_t>(ptr);
     size_t dataStart,dataEnd;
-    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[2],regValues[3]);
+    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[dataIdx],regValues[dataIdx+1]);
     //The last check is to prevent a wraparound to be considered valid
     return base>=dataStart && base+size<=dataEnd && base+size>=base;
 }
@@ -335,14 +510,18 @@ bool MPUConfiguration::withinForReading(const char* str) const
 {
     size_t base=reinterpret_cast<size_t>(str);
     size_t codeStart,codeEnd,dataStart,dataEnd;
-    tie(codeStart,codeEnd)=decodeMpuRegion(regValues[0],regValues[1]);
-    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[2],regValues[3]);
+    tie(codeStart,codeEnd)=decodeMpuRegion(regValues[codeIdx],regValues[codeIdx+1]);
+    tie(dataStart,dataEnd)=decodeMpuRegion(regValues[dataIdx],regValues[dataIdx+1]);
     if((base>=codeStart) && (base<codeEnd))
         return strnlen(str,codeEnd-base)<codeEnd-base;
     if((base>=dataStart) && (base<dataEnd))
         return strnlen(str,dataEnd-base)<dataEnd-base;
     return false;
 }
+
+#if __CORTEX_M == 33
+unsigned int MPUConfiguration::kernelspaceMpuConfiguration[4];
+#endif //__CORTEX_M == 33
 
 #endif //WITH_PROCESSES
 

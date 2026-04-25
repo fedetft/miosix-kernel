@@ -292,10 +292,28 @@ private:
     #error Invalid MPUConfiguration for this architecture
     #endif
 
+    #if defined(__CORTEX_M) && __CORTEX_M == 33 && __MPU_PRESENT==1
+    ///ARMv8M does not allow MPU regions to overlap, we are forced to use 6
+    ///regions that are dynamically changed at run-time to replace the
+    ///kernelspace MPU configuration.
+    unsigned int regValues[12];
+    ///Moreover, when context switching back to the kernel we need to restore
+    ///the kernelspace MPU configuration. Doing so only requires to use regions
+    ///0 and 1, regions 2 to 5 are simply disabled
+    static unsigned int kernelspaceMpuConfiguration[4];
+
+    friend void IRQenableMPU(); //Needs access to kernelspaceMpuConfiguration
+    #else //defined(__CORTEX_M) && __CORTEX_M == 33 && __MPU_PRESENT==1
+    ///ARMv6M and v7M allow MPU regions to overlap, thus we can use only two
+    ///regions, one for the process code, one for data, and overlay them on top
+    ///of the kernelspace MPU regions
     ///These value are copied into the MPU registers to configure them
     ///Miosix processes only need two regions (code and data), since each MPU
     ///region requires two registers to be configured, we need 4 registers
+    ///When no MPU is present, we reuse these 4 variables to just store the
+    ///start and end of the two regions (code, data) of the process
     unsigned int regValues[4];
+    #endif //defined(__CORTEX_M) && __CORTEX_M == 33 && __MPU_PRESENT==1
 };
 
 #endif //WITH_PROCESSES

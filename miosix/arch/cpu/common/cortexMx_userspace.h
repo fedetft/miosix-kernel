@@ -138,14 +138,45 @@ inline void MPUConfiguration::IRQenable()
 
     #if __CORTEX_M == 33
     // ARMv8-M
-    MPU->RNR = 6; // regValues indexes 0/1 are for RNR number 6
+    // We have to write 20 registers during a context switch, that's the price
+    // to pay for ARM's stupid design decision to no longer allow MPU regions
+    // to overlap.
+
+    // We disable the MPU while writing to MPU registers as given the various
+    // juggling of MPU regions there could be transient region overlaps between
+    // previous and the next memory map that happen to span across the memory
+    // we're accessing while running this very same code (kernel code and the
+    // regValues variable in the kernel data). If there is, we'd get a memory
+    // fault in the scheduler followed by a reboot.
+    // TODO: if there a register write order that guarantees that no such
+    // transient overlaps exist, we could leave the MPU on, figure this out...
+    MPU->CTRL = 0;
+
+    MPU->RNR = 0;
     MPU->RBAR=regValues[0];
     MPU->RLAR=regValues[1];
-    MPU->RNR = 7; // regValues indexes 2/3 are for RNR number 7
+    MPU->RNR = 1;
     MPU->RBAR=regValues[2];
     MPU->RLAR=regValues[3];
+    MPU->RNR = 2;
+    MPU->RBAR=regValues[4];
+    MPU->RLAR=regValues[5];
+    MPU->RNR = 3;
+    MPU->RBAR=regValues[6];
+    MPU->RLAR=regValues[7];
+    MPU->RNR = 4;
+    MPU->RBAR=regValues[8];
+    MPU->RLAR=regValues[9];
+    MPU->RNR = 5;
+    MPU->RBAR=regValues[10];
+    MPU->RLAR=regValues[11];
+
+    MPU->CTRL = MPU_CTRL_HFNMIENA_Msk
+              | MPU_CTRL_PRIVDEFENA_Msk
+              | MPU_CTRL_ENABLE_Msk;
     #else
     // ARMv7-M
+    // MPU regions can overlap, overlay two regions on top of kernel memory layout
     MPU->RBAR=regValues[0];
     MPU->RASR=regValues[1];
     MPU->RBAR=regValues[2];
@@ -164,16 +195,27 @@ inline void MPUConfiguration::IRQdisable()
     #if __MPU_PRESENT==1
 
     #if __CORTEX_M == 33
-    // MPU region 6 is the process code region. Since the process code can be
-    // run from the process pool (if the corresonding program is not in a XIP
-    // filesystem), region 6 can point to RAM inside the process pool.
-    // In previous Cortex CPUs it was possible to mark a region as RW for
-    // privileged but RO for non-privileged, so we could leave userspace regions
-    // always enabled as they won't interfere with the kernel's ability to write
-    // in the process pool. This is no longer the case for Cortex M33, thus we
-    // need to disable region 6 when context switching towards the kernel.
-    MPU->RNR = 6;
+    // Restore the kernel memory layout. We have to write 14 registers during
+    // a context switch, that's the price to pay for ARM's stupid design
+    // decision to no longer allow MPU regions to overlap
+    // We write regions in reverse order as it's an easy way to make sure no
+    // transient region overlap exist that happen to span across the memory
+    // we're accessing while running this very same code (kernel code and the
+    // kernelspaceMpuConfiguration variable in the kernel data).
+    MPU->RNR = 5;
     MPU->RLAR= 0; //EN=0, disable region
+    MPU->RNR = 4;
+    MPU->RLAR= 0; //EN=0, disable region
+    MPU->RNR = 3;
+    MPU->RLAR= 0; //EN=0, disable region
+    MPU->RNR = 2;
+    MPU->RLAR= 0; //EN=0, disable region
+    MPU->RNR = 1;
+    MPU->RBAR=kernelspaceMpuConfiguration[2];
+    MPU->RLAR=kernelspaceMpuConfiguration[3];
+    MPU->RNR = 0;
+    MPU->RBAR=kernelspaceMpuConfiguration[0];
+    MPU->RLAR=kernelspaceMpuConfiguration[1];
     #endif
 
     // Clear bit 0 of CONTROL register to switch thread mode to privileged. When
