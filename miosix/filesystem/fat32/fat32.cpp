@@ -418,8 +418,10 @@ Fat32Fs::Fat32Fs(intrusive_ref_ptr<FileBase> disk)
     failed=f_mount(&filesystem,1,false)!=FR_OK;
     
     // In case of wrong file system type, make fail the mount
-    if(filesystem.fs_type != FS_FAT12 && filesystem.fs_type != FS_FAT16 && filesystem.fs_type != FS_FAT32)
+    if(!failed && filesystem.fs_type != FS_FAT12 && filesystem.fs_type != FS_FAT16 && filesystem.fs_type != FS_FAT32) {
+        f_mount(&filesystem, 0, true); //Unmount the filesystem
         failed = true; //TODO: Is it really a "NO FILESYSTEM?"
+    }
 }
 
 int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
@@ -472,7 +474,6 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         //If file opened for appending, seek to end of file
         if(flags & _FAPPEND)
             if(f_lseek(f->fil(),f_size(f->fil()))!=FR_OK) return -EFAULT;
-
         file=f;
     } else {
         //About to open a directory
