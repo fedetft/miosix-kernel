@@ -139,8 +139,8 @@
 /  memory for the working buffer, memory management functions, ff_memalloc() and
 /  ff_memfree() exemplified in ffsystem.c, need to be added to the project. */
 
-//Note by TFT: we do want unicode and not ancient code pages
-#define FF_LFN_UNICODE	1
+//Note by TFT: we do want unicodeand not ancient code pages
+#define FF_LFN_UNICODE	2
 /* This option switches the character encoding on the API when LFN is enabled.
 /
 /   0: ANSI/OEM in current CP (TCHAR = char)
