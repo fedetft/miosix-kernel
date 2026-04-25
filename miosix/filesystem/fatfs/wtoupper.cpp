@@ -1,4 +1,3 @@
-
 #include "ff.h"
 #include "miosix_settings.h"
 
@@ -66,7 +65,7 @@ static const unsigned int upperCase[]=
 
 static const int tabSize=sizeof(lowerCase)/sizeof(lowerCase[0]);
 
-unsigned int ff_wtoupper(unsigned int c)
+DWORD ff_wtoupper(DWORD c)
 {
     if(c>='a' && c<='z') return c-('a'-'A');               //26 code points
 
