@@ -88,6 +88,8 @@ DRESULT disk_ioctl (
     {
         case CTRL_SYNC:
             if(pdrv->ioctl(IOCTL_SYNC,0)==0) return RES_OK; else return RES_ERROR;
+        case CTRL_TRIM:
+            return RES_ERROR; //unimplemented, so enabling FF_USE_TRIM does not work
         case GET_SECTOR_COUNT:
             return RES_ERROR; //unimplemented, so f_mkfs() does not work
         case GET_BLOCK_SIZE:
