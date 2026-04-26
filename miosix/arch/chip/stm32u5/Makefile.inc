@@ -8,7 +8,7 @@ PREFIX := arm-miosix-eabi
 ## This architecture supports processes
 POSTLD := mx-postlinker
 
-CPU_INC := arch/cpu/armv7m
+CPU_INC := arch/cpu/armv8m
 ## Select appropriate compiler flags for both ASM/C/C++/linker
 CPU_FLAGS := -mcpu=cortex-m33 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 CHIP_CFLAGS   := -D_CHIP_STM32U5 $(XRAM)
@@ -17,7 +17,7 @@ CHIP_CXXFLAGS := -D_CHIP_STM32U5 $(XRAM)
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/common
 CHIP_SRC :=                                              \
-arch/cpu/armv7m/interfaces-impl/cpu.cpp                  \
+arch/cpu/armv8m/interfaces-impl/cpu.cpp                  \
 arch/cpu/common/cortexMx_interrupts.cpp                  \
 arch/cpu/common/cortexMx_mpu.cpp                         \
 arch/cpu/common/cortexMx_userspace.cpp                   \

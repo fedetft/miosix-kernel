@@ -56,14 +56,16 @@ inline void fastDisableIrq() noexcept
 {
     //Since this function is inline there's the need for a memory barrier to
     //avoid aggressive reordering
-    asm volatile("cpsid i":::"memory");
+    asm volatile("cpsid i \n\t"
+                 "dsb     \n\t":::"memory");
 }
 
 inline void fastEnableIrq() noexcept
 {
     //Since this function is inline there's the need for a memory barrier to
     //avoid aggressive reordering
-    asm volatile("cpsie i":::"memory");
+    asm volatile("cpsie i \n\t"
+                 "dsb     \n\t":::"memory");
 }
 
 inline bool areInterruptsEnabled() noexcept

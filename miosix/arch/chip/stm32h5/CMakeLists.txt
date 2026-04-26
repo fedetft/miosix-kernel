@@ -3,7 +3,7 @@
 ##
 
 # CPU microarchitecture
-set(MIOSIX_CPU_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/armv7m)
+set(MIOSIX_CPU_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/armv8m)
 
 # Set the path to the multilib directory for this architecture (used by clang)
 set(MIOSIX_MULTILIB_PATH thumb/v8-m.main+fp/hard)
@@ -15,7 +15,7 @@ set(MIOSIX_CHIP_CXX_FLAGS -D_CHIP_STM32H5)
 
 # Select architecture specific files
 set(MIOSIX_CHIP_SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/armv7m/interfaces-impl/cpu.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/armv8m/interfaces-impl/cpu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/common/cortexMx_interrupts.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/common/cortexMx_mpu.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/cpu/common/cortexMx_userspace.cpp

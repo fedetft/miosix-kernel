@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2024 by Terraneo Federico                          *
+ *   Copyright (C) 2013-2024 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -31,51 +31,74 @@
 
 namespace miosix {
 
-/**
- * \addtogroup Interfaces
- * \{
- */
-
-#ifndef __NVIC_PRIO_BITS
-#error "__NVIC_PRIO_BITS undefined"
-#endif //__NVIC_PRIO_BITS
-
-/// Default interrupt priority. All interrupt priorities are set at boot to this
-/// value. ARM Cortex use 0 for the highest priority and (1<<__NVIC_PRIO_BITS)-1
-/// for the lowest one. We chose to use the top 3/4 of the range for higher than
-/// default priority and the bottom 1/4 of the range for lower than default.
-/// With 4 bit priorities the default is 11
-/// With 3 bit priorities the default is 5
-/// With 2 bit priorities the default is 2
-constexpr int defaultIrqPriority=(0.75f*(1<<__NVIC_PRIO_BITS))-1;
-
-/// Minimum interrupt priority that the hardware provides
-constexpr int minimumIrqPriority=(1<<__NVIC_PRIO_BITS)-1;
-
-inline void fastDisableIrq() noexcept
+inline int atomicSwap(volatile int *p, int v)
 {
-    //Since this function is inline there's the need for a memory barrier to
-    //avoid aggressive reordering
-    asm volatile("cpsid i":::"memory");
+    int result;
+    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
+    do {
+        result=__LDREXW(ptr);
+    } while(__STREXW(v,ptr));
+    asm volatile("":::"memory");
+    return result;
 }
 
-inline void fastEnableIrq() noexcept
+inline void atomicAdd(volatile int *p, int incr)
 {
-    //Since this function is inline there's the need for a memory barrier to
-    //avoid aggressive reordering
-    asm volatile("cpsie i":::"memory");
+    int value;
+    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
+    do {
+        value=__LDREXW(ptr);
+    } while(__STREXW(value+incr,ptr));
+    asm volatile("":::"memory");
 }
 
-inline bool areInterruptsEnabled() noexcept
+inline int atomicAddExchange(volatile int *p, int incr)
 {
-    int i;
-    asm volatile("mrs   %0, primask    \n\t":"=r"(i));
-    if(i!=0) return false;
-    return true;
+    int result;
+    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
+    do {
+        result=__LDREXW(ptr);
+    } while(__STREXW(result+incr,ptr));
+    asm volatile("":::"memory");
+    return result;
 }
 
-/**
- * \}
- */
+inline int atomicCompareAndSwap(volatile int *p, int prev, int next)
+{
+    int result;
+    volatile uint32_t *ptr=reinterpret_cast<volatile uint32_t*>(p);
+    do {
+        result=__LDREXW(ptr);
+        if(result!=prev)
+        {
+            __CLREX();
+            return result;
+        }
+    } while(__STREXW(next,ptr));
+    asm volatile("":::"memory");
+    return result;
+}
+
+inline void *atomicFetchAndIncrement(void * const volatile * p, int offset,
+        int incr)
+{
+    void *result;
+    volatile uint32_t *rcp;
+    int rc;
+    do {
+        for(;;)
+        {
+            result=*p;
+            if(result==0) return 0;
+            rcp=reinterpret_cast<uint32_t*>(result)+offset;
+            rc=__LDREXW(rcp);
+            asm volatile("":::"memory");
+            if(result==*p) break;
+            __CLREX();
+        }
+    } while(__STREXW(rc+incr,rcp));
+    asm volatile("":::"memory");
+    return result;
+}
 
 } //namespace miosix

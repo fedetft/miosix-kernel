@@ -29,6 +29,13 @@
 
 #include "interfaces/arch_registers.h"
 
+#ifndef __FPU_PRESENT
+#define __FPU_PRESENT 0 //__FPU_PRESENT undefined means no FPU
+#endif
+#if (__FPU_PRESENT!=0) && (__FPU_USED!=1)
+#error "__FPU_USED should be 1"
+#endif
+
 namespace miosix {
 
 /**
@@ -36,43 +43,45 @@ namespace miosix {
  * \{
  */
 
-#ifndef __NVIC_PRIO_BITS
-#error "__NVIC_PRIO_BITS undefined"
-#endif //__NVIC_PRIO_BITS
+#if __FPU_PRESENT==1
 
-/// Default interrupt priority. All interrupt priorities are set at boot to this
-/// value. ARM Cortex use 0 for the highest priority and (1<<__NVIC_PRIO_BITS)-1
-/// for the lowest one. We chose to use the top 3/4 of the range for higher than
-/// default priority and the bottom 1/4 of the range for lower than default.
-/// With 4 bit priorities the default is 11
-/// With 3 bit priorities the default is 5
-/// With 2 bit priorities the default is 2
-constexpr int defaultIrqPriority=(0.75f*(1<<__NVIC_PRIO_BITS))-1;
+/// \internal Size in words of vector to store CPU context during context switch
+/// ((10+16)*4=104Bytes). Only sp, r4-r11, EXC_RETURN and s16-s31 are saved
+/// here, since r0-r3,r12,lr,pc,xPSR, old sp and s0-s15,fpscr are saved by
+/// hardware on the process stack on armv7m_fpu CPUs. EXC_RETURN, or the lr,
+/// value to use to return from the exception is necessary to know if the
+/// thread has used fp regs, as an extension specific to armv7m_fpu CPUs.
+const unsigned char CTXSAVE_SIZE=10+16;
 
-/// Minimum interrupt priority that the hardware provides
-constexpr int minimumIrqPriority=(1<<__NVIC_PRIO_BITS)-1;
+/// \internal Size of additional context saved on the stack during context switch.
+/// If zero, this architecture does not save anything on stack during context
+/// save. Size is in bytes, not words. MUST be divisible by 4. This constant is
+/// used to increase the stack size by the size of context save frame.
+/// (8+17)*4=100Bytes
+///  8 registers=r0-r3,r12,lr,pc,xPSR
+/// 17 registers=s0-s15,fpscr
+const unsigned int CTXSAVE_ON_STACK=(8+17)*4;
 
-inline void fastDisableIrq() noexcept
-{
-    //Since this function is inline there's the need for a memory barrier to
-    //avoid aggressive reordering
-    asm volatile("cpsid i":::"memory");
-}
+#else //__FPU_PRESENT==1
 
-inline void fastEnableIrq() noexcept
-{
-    //Since this function is inline there's the need for a memory barrier to
-    //avoid aggressive reordering
-    asm volatile("cpsie i":::"memory");
-}
+/// \internal Size in words of vector to store CPU context during context switch
+/// (9*4=36Bytes). Only sp and r4-r11 are saved here, since r0-r3,r12,lr,pc,xPSR
+/// and old sp are saved by hardware on the process stack on armv7m CPUs.
+const unsigned char CTXSAVE_SIZE=9;
 
-inline bool areInterruptsEnabled() noexcept
-{
-    int i;
-    asm volatile("mrs   %0, primask    \n\t":"=r"(i));
-    if(i!=0) return false;
-    return true;
-}
+/// \internal Size of additional context saved on the stack during context switch.
+/// If zero, this architecture does not save anything on stack during context
+/// save. Size is in bytes, not words. MUST be divisible by 4. This constant is
+/// used to increase the stack size by the size of context save frame.
+const unsigned int CTXSAVE_ON_STACK=32;
+
+#endif //__FPU_PRESENT==1
+
+/// \internal Stack alignment required by the CPU
+const unsigned int CTXSAVE_STACK_ALIGNMENT=8;
+
+/// \internal Offset in words to retrieve the thread stack pointer in ctxsave
+const unsigned int STACK_OFFSET_IN_CTXSAVE=0;
 
 /**
  * \}
