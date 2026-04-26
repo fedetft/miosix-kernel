@@ -356,6 +356,10 @@ void ElfProgram::validateHeader()
         }
     }
     if(codeSegmentPresent==false) return; //Can't not have code segment
+    // We could support programs without data segment but ProcessImage::load
+    // doesn't handle this case. Since libsyscalls causes a data segment to be
+    // present even with an empty main, we just reject programs with no data
+    if(dataSegmentPresent==false) return;
     // All checks passed setting error code to 0
     ec=0;
 }
