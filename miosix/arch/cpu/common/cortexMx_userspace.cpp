@@ -346,6 +346,13 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
         regValues[2*region+0]=(start   & (~0x1f)) | ap | xn; //RBAR
         regValues[2*region+1]=((end-1) & (~0x1f)) | pxn | 1; //RLAR
         //NOTE: AttrIndex set to 0, MAIR set in cortexMx_mpu.cpp
+
+        // unsigned int rbase,rend;
+        // tie(rbase,rend)=decodeMpuRegion(regValues[2*region],regValues[2*region+1]);
+        // char w=regValues[2*region] & (0b10<<MPU_RBAR_AP_Pos) ? '-' : 'w';
+        // char x=regValues[2*region] & MPU_RBAR_XN_Msk ? '-' : 'x';
+        // char s=regValues[2*region] & (0b01<<MPU_RBAR_AP_Pos) ? '*' : ' ';
+        // iprintf("* MPU region %d 0x%08x-0x%08x r%c%c%c\n",region,rbase,rend,w,x,s);
     };
 
     //The RAM region that contains the process pool can either be the SRAM or
