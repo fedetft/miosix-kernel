@@ -195,6 +195,7 @@ inline void MPUConfiguration::IRQdisable()
     #if __MPU_PRESENT==1
 
     #if __CORTEX_M == 33
+    // ARMv8-M
     // Restore the kernel memory layout. We have to write 14 registers during
     // a context switch, that's the price to pay for ARM's stupid design
     // decision to no longer allow MPU regions to overlap
@@ -216,6 +217,13 @@ inline void MPUConfiguration::IRQdisable()
     MPU->RNR = 0;
     MPU->RBAR=kernelspaceMpuConfiguration[0];
     MPU->RLAR=kernelspaceMpuConfiguration[1];
+    #else
+    // ARMv7-M
+    // Region 6 (process code) is disabled as it's marked executable
+    // Region 7 can remain enabled as from the point of view of the kernel is
+    // configured in an indistinguishable way from the rest of the RAM
+    MPU->RNR = 6;
+    MPU->RASR= 0;
     #endif
 
     // Clear bit 0 of CONTROL register to switch thread mode to privileged. When

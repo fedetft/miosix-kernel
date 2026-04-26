@@ -401,18 +401,20 @@ MPUConfiguration::MPUConfiguration(const unsigned int *elfBase, unsigned int elf
     // shows that setting it in IRQconfigureMPU for the internal RAM region
     // causes the boot to fail.
     // For this reason, all regions are marked as not shareable
+    (void)codeEnd;
+    (void)dataEnd;
     regValues[0]=(codeStart & (~0x1f))
                 | MPU_RBAR_VALID_Msk | 6; //Region 6
-    regValues[1]=2<<MPU_RASR_AP_Pos  //Privileged: RW, unprivileged: RO
-                | MPU_RASR_C_Msk     //Cacheable, write through
-                | 1 //Enable bit
+    regValues[1]=0b110<<MPU_RASR_AP_Pos   //Privileged: RO, unprivileged: RO
+                | MPU_RASR_C_Msk          //Cacheable, write through
+                | 1                       //Enable bit
                 | sizeToMpu(elfSize)<<1;
     regValues[2]=(dataStart & (~0x1f))
                 | MPU_RBAR_VALID_Msk | 7; //Region 7
-    regValues[3]=3<<MPU_RASR_AP_Pos  //Privileged: RW, unprivileged: RW
-                | MPU_RASR_XN_Msk    //Not executable
-                | MPU_RASR_C_Msk     //Cacheable, write through
-                | 1 //Enable bit
+    regValues[3]=0b011<<MPU_RASR_AP_Pos   //Privileged: RW, unprivileged: RW
+                | MPU_RASR_XN_Msk         //Not executable
+                | MPU_RASR_C_Msk          //Cacheable, write through
+                | 1                       //Enable bit
                 | sizeToMpu(imageSize)<<1;
     #endif
     #else //__MPU_PRESENT==1
