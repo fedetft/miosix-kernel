@@ -25,6 +25,8 @@
 
 #include "ff.h"
 
+#ifdef WITH_FILESYSTEM
+
 #if FF_USE_LFN != 0	/* This module will be blanked if in non-LFN configuration */
 
 #define MERGE2(a, b) a ## b
@@ -15457,3 +15459,6 @@ WCHAR ff_oem2uni (	/* Returns Unicode character in UTF-16, zero on error */
 
 // By Raul Radu: we have our ff_wtoupper implementation
 #endif /* #if FF_USE_LFN != 0 */
+
+#endif //WITH_FILESYSTEM
+
