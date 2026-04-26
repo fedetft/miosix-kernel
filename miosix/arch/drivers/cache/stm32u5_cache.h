@@ -27,12 +27,20 @@
 
 #pragma once
 
+#include "interfaces/arch_registers.h"
+
 namespace miosix {
 
-// TODO: this chip has a custom ICACHE and DCACHE by ST, add code to support them
+// This chip has a custom ICACHE and DCACHE by ST
 
+// TODO: the DCACHE is only used when accessing external memories, add support
+// for it as soon as we get access to a board with an external RAM
 inline void markBufferBeforeDmaWrite(const void *buffer, int size) {}
 inline void markBufferAfterDmaRead(void *buffer, int size) {}
-inline void IRQenableCache() {}
+
+inline void IRQenableCache()
+{
+    ICACHE->CR = ICACHE_CR_WAYSEL | ICACHE_CR_EN;
+}
 
 } //namespace miosix
