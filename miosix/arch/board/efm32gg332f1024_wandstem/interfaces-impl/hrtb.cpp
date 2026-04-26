@@ -65,6 +65,10 @@ bool isInputTransceiver=true;
 static int faseGPIO=0;
 static int faseTransceiver=0;
 
+namespace miosix {
+long long irqNs=0x7FFFFFFFFFFFFFFFLL;
+} //namespace miosix
+
 static inline unsigned int IRQread32Timer(){
     unsigned int high=TIMER3->CNT;
     unsigned int low=TIMER1->CNT;
@@ -134,6 +138,7 @@ static  void callScheduler(){
     TIMER3->IFC = TIMER_IFC_CC1;
     //This line takes about 7.7microseconds
     long long ns = tc->tick2ns(vt->uncorrected2corrected(IRQgetTickCorrectedVht()));
+    irqNs=0x7FFFFFFFFFFFFFFFLL;
     IRQwakeThreads(ns);
 }
 

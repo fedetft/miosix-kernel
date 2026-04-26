@@ -38,6 +38,7 @@ static HRTB *b=nullptr;
 static TimeConversion tc;
 static VHT *vht=nullptr;
 static VirtualClock *vt=nullptr;
+extern long long irqNs;
 
 long long getTime() noexcept
 {
@@ -59,7 +60,13 @@ void IRQosTimerInit()
 
 void IRQosTimerSetInterrupt(long long ns) noexcept
 {
+    irqNs=ns;
     b->IRQsetNextInterruptCS(b->removeBasicCorrection(vht->corrected2uncorrected(vt->corrected2uncorrected(tc.ns2tick(ns)))));
+}
+
+long long IRQosTimerGetInterrupt() noexcept
+{
+    return irqNs;
 }
 
 // long long ContextSwitchTimer::getNextInterrupt() const
