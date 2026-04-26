@@ -77,6 +77,17 @@ void initUserThreadCtxsave(unsigned int *ctxsave, unsigned int pc, int argc,
     ctxsave[9]=0xfffffffd; //EXC_RETURN=thread mode, use psp, no floating ops
     //leaving the content of s16-s31 uninitialized
     #endif //__FPU_PRESENT==1
+
+    #if __CORTEX_M == 33U
+    // ARMv8-M stack pointer limit register
+    // The use of heapEnd+WATERMARK_LEN as stack bottom only works for the main
+    // thread in a process, but other threads don't have argc,argv,envp anyway
+    #if __FPU_PRESENT==1
+    ctxsave[26]=reinterpret_cast<unsigned int>(heapEnd)+WATERMARK_LEN;
+    #else  //__FPU_PRESENT==1
+    ctxsave[9]=reinterpret_cast<unsigned int>(heapEnd)+WATERMARK_LEN;
+    #endif //__FPU_PRESENT==1
+    #endif //__CORTEX_M == 33U
 }
 
 //

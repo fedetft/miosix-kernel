@@ -46,12 +46,12 @@ namespace miosix {
 #if __FPU_PRESENT==1
 
 /// \internal Size in words of vector to store CPU context during context switch
-/// ((10+16)*4=104Bytes). Only sp, r4-r11, EXC_RETURN and s16-s31 are saved
+/// ((10+16+1)*4=108Bytes). Only sp, r4-r11, EXC_RETURN, s16-s31, psplim are saved
 /// here, since r0-r3,r12,lr,pc,xPSR, old sp and s0-s15,fpscr are saved by
 /// hardware on the process stack on armv7m_fpu CPUs. EXC_RETURN, or the lr,
 /// value to use to return from the exception is necessary to know if the
 /// thread has used fp regs, as an extension specific to armv7m_fpu CPUs.
-const unsigned char CTXSAVE_SIZE=10+16;
+const unsigned char CTXSAVE_SIZE=10+16+1;
 
 /// \internal Size of additional context saved on the stack during context switch.
 /// If zero, this architecture does not save anything on stack during context
@@ -65,9 +65,10 @@ const unsigned int CTXSAVE_ON_STACK=(8+17)*4;
 #else //__FPU_PRESENT==1
 
 /// \internal Size in words of vector to store CPU context during context switch
-/// (9*4=36Bytes). Only sp and r4-r11 are saved here, since r0-r3,r12,lr,pc,xPSR
-/// and old sp are saved by hardware on the process stack on armv7m CPUs.
-const unsigned char CTXSAVE_SIZE=9;
+/// (9+1*4=40Bytes). Only sp, r4-r11, psplim are saved here, since
+/// r0-r3,r12,lr,pc,xPSR and old sp are saved by hardware on the process stack
+/// on armv7m CPUs.
+const unsigned char CTXSAVE_SIZE=9+1;
 
 /// \internal Size of additional context saved on the stack during context switch.
 /// If zero, this architecture does not save anything on stack during context

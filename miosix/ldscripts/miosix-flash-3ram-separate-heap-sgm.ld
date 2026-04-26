@@ -192,6 +192,7 @@ SECTIONS
     .irq_stack (NOLOAD) :
     {
         . = ORIGIN(ram1);
+        _irq_stack_bottom = .;
         . = . + _irq_stack_size;
         _irq_stack_top = .;
     } > ram1

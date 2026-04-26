@@ -928,7 +928,7 @@ Thread *Thread::doCreate(void*(*startfunc)(void*), unsigned int stacksize,
     //On some architectures some registers are saved on the stack, therefore
     //initKernelThreadCtxsave *must* be called after filling the stack.
     initKernelThreadCtxsave(thread->ctxsave,&Thread::threadLauncher,
-                            reinterpret_cast<unsigned int*>(thread),
+                            reinterpret_cast<unsigned int*>(thread),base,
                             startfunc,argv);
 
     if(options & DETACHED) thread->flags.IRQsetDetached();

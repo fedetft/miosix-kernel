@@ -86,11 +86,14 @@ namespace miosix {
  * some of the registers on the stack, this function will need to push on the
  * stack a frame with the initial values of the stack-saved registers
  * corresponds to the entry point of a function taking two arguments
+ * \param spLimit bottom of the stack, used on some architectures for hardware
+ * stack overflow detection
  * \param arg0 first argument of the thread entry function
  * \param arg1 second argument of the thread entry function
  */
 void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),void*),
-                             unsigned int *sp, void *(*arg0)(void*), void *arg1) noexcept;
+                             unsigned int *sp, unsigned int *spLimit,
+                             void *(*arg0)(void*), void *arg1) noexcept;
 
 /**
  * \internal

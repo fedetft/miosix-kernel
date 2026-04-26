@@ -464,6 +464,11 @@ void __attribute__((naked)) Reset_Handler()
      * After switching stack we continue boot by calling
      * miosix::IRQkernelBootEntryPoint()
      */
+    #if __CORTEX_M == 33
+    //ARMv8M supports hardware stack overflow checking, configure IRQ stack limit
+    asm volatile("ldr r0,  =_irq_stack_bottom             \n\t"
+                 "msr msplim, r0                          \n\t");
+    #endif
     asm volatile("cpsid i                                 \n\t" //Disable interrupts
                  "bl  _ZN6miosix21IRQmemoryAndClockInitEv \n\t" //Initialize PLL,FLASH,XRAM
                  "ldr r0,  =_heap_end                     \n\t" //Get pointer to heap end

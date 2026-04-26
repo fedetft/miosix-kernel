@@ -42,6 +42,7 @@
 
 /*
  * In this architecture, registers are saved in the following order:
+ * *ctxsave+104 --> psplim
  * *ctxsave+100 --> s31
  * ...
  * *ctxsave+40  --> s16
@@ -102,7 +103,9 @@
                  "   lsls   r2,  lr,  #27       \n"/*check if bit #4 is set */ \
                  "   bmi    0f                  \n"                            \
                  "   vldmia.32 r0, {s16-s31}    \n"/*restore s16-s31 if need*/ \
-                 "0: msr    psp, r1             \n"/*restore PROCESS sp*/      \
+                 "0: ldr    r0,  [r0, #64]      \n"/*get psplim*/              \
+                 "   msr    psplim, r0          \n"/*update PROCESS sp limit*/ \
+                 "   msr    psp, r1             \n"/*restore PROCESS sp*/      \
                  "   bx     lr                  \n"/*return*/                  \
                  );
 
@@ -110,6 +113,7 @@
 
 /*
  * In this architecture, registers are saved in the following order:
+ * *ctxsave+36 --> psplim
  * *ctxsave+32 --> r11
  * *ctxsave+28 --> r10
  * *ctxsave+24 --> r9
@@ -160,7 +164,9 @@
  */
 #define restoreContext()                                                     \
     asm volatile("ldr   r0,  [r4]        \n\t" /*get current context*/        \
-                 "ldmia r0,  {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/    \
+                 "ldmia r0!, {r1,r4-r11} \n\t" /*restore r4-r11 + r1=psp*/    \
+                 "ldr   r0,  [r0]        \n\t" /*get psplim*/                 \
+                 "msr   psplim, r0       \n\t" /*update PROCESS sp limit*/    \
                  "msr   psp, r1          \n\t" /*restore PROCESS sp*/         \
                  "ldmia sp!, {pc}        \n\t" /*return*/                     \
                  );

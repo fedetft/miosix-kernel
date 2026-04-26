@@ -30,8 +30,10 @@
 namespace miosix {
 
 void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),void*),
-                             unsigned int *sp, void *(*arg0)(void*), void *arg1) noexcept
+                             unsigned int *sp, unsigned int *spLimit,
+                             void *(*arg0)(void*), void *arg1) noexcept
 {
+    (void)spLimit;
     ctxsave[0]=reinterpret_cast<unsigned int>(arg0);
     ctxsave[1]=reinterpret_cast<unsigned int>(arg1);
     ctxsave[2]=0;

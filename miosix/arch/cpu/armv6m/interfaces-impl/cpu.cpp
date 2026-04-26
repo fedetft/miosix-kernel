@@ -31,8 +31,10 @@
 namespace miosix {
 
 void initKernelThreadCtxsave(unsigned int *ctxsave, void (*pc)(void *(*)(void*),void*),
-                             unsigned int *sp, void *(*arg0)(void*), void *arg1) noexcept
+                             unsigned int *sp, unsigned int *spLimit,
+                             void *(*arg0)(void*), void *arg1) noexcept
 {
+    (void)spLimit;
     unsigned int *stackPtr=sp;
     //Stack is full descending, so decrement first
     stackPtr--; *stackPtr=0x01000000;                                 //--> xPSR
