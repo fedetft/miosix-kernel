@@ -72,6 +72,7 @@ set(MIOSIX_BOARDS
     stm32f746zg_nucleo
     stm32f765ii_marco_ram_board
     stm32f767zi_nucleo
+    stm32f767zi_skyward_cu_v2
     stm32f769ni_discovery
     stm32h503rb_generic
     stm32h723zg_nucleo

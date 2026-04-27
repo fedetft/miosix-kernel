@@ -53,6 +53,7 @@
 #OPT_BOARD := stm32f746zg_nucleo
 #OPT_BOARD := stm32f765ii_marco_ram_board
 #OPT_BOARD := stm32f767zi_nucleo
+#OPT_BOARD := stm32f767zi_skyward_cu_v2
 #OPT_BOARD := stm32f769ni_discovery
 #OPT_BOARD := stm32h503rb_generic
 #OPT_BOARD := stm32h723zg_nucleo
