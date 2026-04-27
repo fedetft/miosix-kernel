@@ -2672,7 +2672,9 @@ static void get_fileinfo (
 	TCHAR c;
 #endif
 
-	fno->lfname[0]= 0;			/* By Raul Radu: Invalidate file info for miosix */
+	if (fno->lfname) {
+		fno->lfname[0]= 0;			/* By Raul Radu: Invalidate file info for miosix */
+	}
 #if !FF_USE_LFN					// By Raul Radu: this case is useful only when LFN is disabled
 	fno->fname[0] = 0;			/* Invaidate file info */
 #endif
@@ -2681,26 +2683,27 @@ static void get_fileinfo (
 #if FF_USE_LFN		/* LFN configuration */
 #if FF_FS_EXFAT
 	if (fs->fs_type == FS_EXFAT) {	/* exFAT volume */
-		UINT nc = 0;
+		if (fno->lfname) {
+			UINT nc = 0;
 
-		si = SZDIRE * 2; di = 0;	/* 1st C1 entry in the entry block */
-		hs = 0;
-		while (nc < fs->dirbuf[XDIR_NumName]) {
-			if (si >= MAXDIRB(FF_MAX_LFN)) {	/* Truncated directory block? */
-				di = 0; break;
+			si = SZDIRE * 2; di = 0;	/* 1st C1 entry in the entry block */
+			hs = 0;
+			while (nc < fs->dirbuf[XDIR_NumName]) {
+				if (si >= MAXDIRB(FF_MAX_LFN)) {	/* Truncated directory block? */
+					di = 0; break;
+				}
+				if ((si % SZDIRE) == 0) si += 2;	/* Skip entry type field */
+				wc = ld_word(fs->dirbuf + si); si += 2; nc++;	/* Get a character */
+				std::pair<miosix::Unicode::error,int> result;
+				result = miosix::Unicode::putUtf8(&fno->lfname[di],wc,fno->lfsize - 1 - di);
+				if(result.first != miosix::Unicode::OK) { di = 0; break; }	/* No LFN if buffer overflow */
+				di += result.second;
 			}
-			if ((si % SZDIRE) == 0) si += 2;	/* Skip entry type field */
-			wc = ld_word(fs->dirbuf + si); si += 2; nc++;	/* Get a character */
-			std::pair<miosix::Unicode::error,int> result;
-			result = miosix::Unicode::putUtf8(&fno->lfname[di],wc,fno->lfsize - 1 - di);
-			if(result.first != miosix::Unicode::OK) { di = 0; break; }	/* No LFN if buffer overflow */
-			di += result.second;
+			if (hs != 0) di = 0;					/* Broken surrogate pair? */
+			if (di == 0) fno->lfname[di++] = '\?';	/* Inaccessible object name? */
+			fno->lfname[di] = 0;					/* Terminate the name */
+			fno->altname[0] = 0;					/* exFAT does not support SFN */
 		}
-		if (hs != 0) di = 0;					/* Broken surrogate pair? */
-		if (di == 0) fno->lfname[di++] = '\?';	/* Inaccessible object name? */
-		fno->lfname[di] = 0;					/* Terminate the name */
-		fno->altname[0] = 0;					/* exFAT does not support SFN */
-
 		fno->fattrib = fs->dirbuf[XDIR_Attr] & AM_MASKX;		/* Attribute */
 		fno->fsize = (fno->fattrib & AM_DIR) ? 0 : ld_qword(fs->dirbuf + XDIR_FileSize);	/* Size */
 		fno->ftime = ld_word(fs->dirbuf + XDIR_ModTime + 0);	/* Time */
@@ -2710,18 +2713,20 @@ static void get_fileinfo (
 	} else
 #endif
 	{	/* FAT/FAT32 volume */
-		if (dp->blk_ofs != 0xFFFFFFFF) {	/* Get LFN if available */
-			si = di = 0;
-			hs = 0;
-			while (fs->lfnbuf[si] != 0) {
-				wc = fs->lfnbuf[si++];		/* Get an LFN character (UTF-16) */
-				std::pair<miosix::Unicode::error,int> result;
-				result = miosix::Unicode::putUtf8(&fno->lfname[di],wc,fno->lfsize - 1 - di);
-				if(result.first != miosix::Unicode::OK) { di = 0; break; }	/* No LFN if buffer overflow */
-				di += result.second;
+		if (fno->lfname) {
+			if (dp->blk_ofs != 0xFFFFFFFF) {	/* Get LFN if available */
+				si = di = 0;
+				hs = 0;
+				while (fs->lfnbuf[si] != 0) {
+					wc = fs->lfnbuf[si++];		/* Get an LFN character (UTF-16) */
+					std::pair<miosix::Unicode::error,int> result;
+					result = miosix::Unicode::putUtf8(&fno->lfname[di],wc,fno->lfsize - 1 - di);
+					if(result.first != miosix::Unicode::OK) { di = 0; break; }	/* No LFN if buffer overflow */
+					di += result.second;
+				}
+				if (hs != 0) di = 0;	/* Broken surrogate pair? */
+				fno->lfname[di] = 0;		/* Terminate the LFN (null string means LFN is invalid) */
 			}
-			if (hs != 0) di = 0;	/* Broken surrogate pair? */
-			fno->lfname[di] = 0;		/* Terminate the LFN (null string means LFN is invalid) */
 		}
 	}
 
@@ -2751,7 +2756,7 @@ static void get_fileinfo (
 	}
 	fno->altname[di] = 0;	/* Terminate the SFN  (null string means SFN is invalid) */
 
-	if (fno->lfname[0] == 0) {	/* If LFN is invalid, altname[] needs to be copied to lfname[] */
+	if (fno->lfname && fno->lfname[0] == 0) {	/* If LFN is invalid, altname[] needs to be copied to lfname[] */
 		if (di == 0) {	/* If LFN and SFN both are invalid, this object is inaccessible */
 			fno->lfname[di++] = '\?';
 		} else {
@@ -2773,32 +2778,34 @@ static void get_fileinfo (
 	}
 
 #else	/* Non-LFN configuration */
-	si = di = 0;
-	while (si < 11) {		/* Copy name body and extension */
-		c = (TCHAR)dp->dir[si++];
-		if (c == ' ') continue;		/* Skip padding spaces */
-		if (c == RDDEM) c = DDEM;	/* Restore replaced DDEM character */
-		if (si == 9) fno->fname[di++] = '.';/* Insert a . if extension is exist */
-		fno->fname[di++] = c;
-	}
-	fno->fname[di] = 0;		/* Terminate the SFN */
+	if (fno->lfname) {
+		si = di = 0;
+		while (si < 11) {		/* Copy name body and extension */
+			c = (TCHAR)dp->dir[si++];
+			if (c == ' ') continue;		/* Skip padding spaces */
+			if (c == RDDEM) c = DDEM;	/* Restore replaced DDEM character */
+			if (si == 9) fno->fname[di++] = '.';/* Insert a . if extension is exist */
+			fno->fname[di++] = c;
+		}
+		fno->fname[di] = 0;		/* Terminate the SFN */
 
-	//By TFT: unlike plain FatFs we always want to fill lfname with an
-	//utf8-encoded file name. If there is no lfn (or is too long or
-	//otherwise broken), then take the sfn (which is utf16) and copy it to
-	//lfname, converting it to utf8 in the process    
-	di = 0;
-	lcf = NS_BODY;
-	while ((wc = fno->altname[di]) != 0) {	/* Copy fname[] to lfname[] with case information */
-		if (wc == '.') lcf = NS_EXT;
-		if (IsUpper(wc) && (dp->dir[DIR_NTres] & lcf)) wc += 0x20;
+		//By TFT: unlike plain FatFs we always want to fill lfname with an
+		//utf8-encoded file name. If there is no lfn (or is too long or
+		//otherwise broken), then take the sfn (which is utf16) and copy it to
+		//lfname, converting it to utf8 in the process    
+		di = 0;
+		lcf = NS_BODY;
+		while ((wc = fno->altname[di]) != 0) {	/* Copy fname[] to lfname[] with case information */
+			if (wc == '.') lcf = NS_EXT;
+			if (IsUpper(wc) && (dp->dir[DIR_NTres] & lcf)) wc += 0x20;
 
-		std::pair<miosix::Unicode::error,int> result;
-		result = miosix::Unicode::putUtf8(&fno->lfname[di],wc,fno->lfsize - 1 - di);
-		if(result.first != miosix::Unicode::OK) { di = 0; break; }	/* No LFN if buffer overflow */
-		di += result.second;
+			std::pair<miosix::Unicode::error,int> result;
+			result = miosix::Unicode::putUtf8(&fno->lfname[di],wc,fno->lfsize - 1 - di);
+			if(result.first != miosix::Unicode::OK) { di = 0; break; }	/* No LFN if buffer overflow */
+			di += result.second;
+		}
+		fno->lfname[di] = 0;	/* Terminate the LFN */
 	}
-	fno->lfname[di] = 0;	/* Terminate the LFN */
 #endif
 
 	fno->fattrib = dp->dir[DIR_Attr] & AM_MASK;			/* Attribute */
