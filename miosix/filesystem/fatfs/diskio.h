@@ -13,7 +13,7 @@
 #define _USE_IOCTL	1	/* 1: Enable disk_ioctl fucntion */
 
 #include <filesystem/file.h>
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 #ifdef WITH_FILESYSTEM
 

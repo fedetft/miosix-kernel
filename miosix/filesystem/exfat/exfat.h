@@ -32,7 +32,7 @@
 #include "filesystem/file.h"
 #include "kernel/sync.h"
 #include "filesystem/fatfs/ff.h"
-#include "config/miosix_settings.h"
+#include "miosix_settings.h"
 
 namespace miosix
 {
