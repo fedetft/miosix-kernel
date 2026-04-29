@@ -49,7 +49,7 @@ namespace miosix {
 // Declaration of interrupt handler functions, used to fill the interrupt table
 //
 
-extern char _main_stack_top asm("_irq_stack_top"); //defined in the linker script
+extern char _irq_stack_top asm("_irq_stack_top"); //defined in the linker script
 void __attribute__((naked)) Reset_Handler();
 void NMI_Handler();
 void HardFault_Handler();
@@ -177,7 +177,7 @@ struct InterruptTable
 __attribute__((section(".isr_vector"))) extern const InterruptTable hardwareInterruptTable
 (
     #if __CORTEX_M != 0
-        &_main_stack_top,    // Stack pointer
+        &_irq_stack_top,    // Stack pointer
         Reset_Handler,       // Reset Handler
         NMI_Handler,         // NMI Handler
         HardFault_Handler,   // Hard Fault Handler
@@ -194,7 +194,7 @@ __attribute__((section(".isr_vector"))) extern const InterruptTable hardwareInte
         PendSV_Handler,      // PendSV Handler
         SysTick_Handler      // SysTick Handler
     #else //__CORTEX_M != 0
-        &_main_stack_top,    // Stack pointer
+        &_irq_stack_top,    // Stack pointer
         Reset_Handler,       // Reset Handler
         NMI_Handler,         // NMI Handler
         HardFault_Handler,   // Hard Fault Handler
@@ -422,7 +422,7 @@ void __attribute__((naked)) Reset_Handler()
      * After booting, Miosix uses the MSP only for interrupt handlers, which
      * are executed from a dedicated stack memory area placed in the
      * microcontroller internal memory. The top of this stack is identified by
-     * the symbol _main_stack_top.
+     * the symbol _irq_stack_top.
      * Miosix uses the PSP as the stack of the currently running thread.
      * Stack threads are allocated on the heap, which can also be in an external
      * SRAM or SDRAM memory for boards that have one.
