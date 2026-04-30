@@ -6,9 +6,6 @@
 ## Base directory with else header files for this board
 CHIP_INC := arch/chip/nrf52
 
-## Select linker script
-LINKER_SCRIPT := unikernel.ld
-
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 BOARD_SRC :=                                  \
