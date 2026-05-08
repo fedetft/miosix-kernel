@@ -147,6 +147,18 @@ const unsigned char MAX_OPEN_FILES=8;
 #define WITH_ROMFS
 #endif
 
+// TODO: ++ Debugger
+///\def PROCESS_DEBUGGER
+/// If uncommented enables the process debugger.
+//#define PROCESS_DEBUGGER
+
+// Disable process debugger even if enabled when processes are enabled
+#if defined (PROCESS_DEBUGGER) && !defined (WITH_PROCESSES)
+#undef PROCESS_DEBUGGER
+_Pragma ("GCC warning \"process debugger is enabled but processes are disabled, debugger will not be included\"")
+#endif
+// TODO: -- Debugger
+
 #endif // WITH_FILESYSTEM
 
 //
