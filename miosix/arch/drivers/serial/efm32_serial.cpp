@@ -42,7 +42,8 @@ namespace miosix {
 // A note on the baudrate/500: the buffer is selected so as to withstand
 // 20ms of full data rate. In the 8N1 format one char is made of 10 bits.
 // So (baudrate/10)*0.02=baudrate/500
-EFM32Serial::EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx)
+EFM32Serial::EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx,
+                         unsigned int location)
         : Device(Device::TTY), rxQueue(rxQueueMin+baudrate/500), rxWaiting(0),
           baudrate(baudrate)
 {
@@ -52,17 +53,41 @@ EFM32Serial::EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx)
         rx.mode(Mode::INPUT_PULL_UP_FILTER);
         switch(id)
         {
-            case 0:
+            // Ports USART0 and USART1 are present in all efm32g and efm32gg
+            // microcontrollers, the others may be present or not depending on
+            // the configuration
+            case EFM32Serial::USART0_ID:
                 port=USART0;
                 irqn=USART0_RX_IRQn;
                 CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_USART0;
                 port->IRCTRL=0; //USART0 also has IrDA mode
                 break;
-            case 1:
+            case EFM32Serial::USART1_ID:
                 port=USART1;
                 irqn=USART1_RX_IRQn;
                 CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_USART1;
                 break;
+            #ifdef USART2
+            case EFM32Serial::USART2_ID:
+                port=USART2;
+                irqn=USART2_RX_IRQn;
+                CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_USART2;
+                break;
+            #endif
+            #ifdef UART0
+            case EFM32Serial::UART0_ID:
+                port=UART0;
+                irqn=UART0_RX_IRQn;
+                CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_UART0;
+                break;
+            #endif
+            #ifdef UART1
+            case EFM32Serial::UART1_ID:
+                port=UART1;
+                irqn=UART1_RX_IRQn;
+                CMU->HFPERCLKEN0|=CMU_HFPERCLKEN0_UART1;
+                break;
+            #endif
             default:
                 errorHandler(Error::UNEXPECTED);
         }
@@ -79,7 +104,7 @@ EFM32Serial::EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx)
     port->INPUT=0;
     port->I2SCTRL=0;
     #endif //_CHIP_EFM32GG
-    port->ROUTE=USART_ROUTE_LOCATION_LOC0 //Default location, hardcoded for now!
+    port->ROUTE=((location&0x3)<<_USART_ROUTE_LOCATION_SHIFT)
               | USART_ROUTE_TXPEN         //Enable TX pin
               | USART_ROUTE_RXPEN;        //Enable RX pin
     //The number we need is periphClock/baudrate/16-1, but with two bits of

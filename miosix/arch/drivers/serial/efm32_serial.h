@@ -54,8 +54,13 @@ public:
      * hardware USART.
      * \param id a number to select the USART
      * \param baudrate serial port baudrate
+     * \param tx GPIO to configure as usart tx, see datasheet for restrictions
+     * \param rx GPIO to configure as usart rx, see datasheet for restrictions
+     * \param location USART alternate function location id, must be correct
+     *                 for the GPIO pins passed to tx and rx (see datasheet).
      */
-    EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx);
+    EFM32Serial(int id, int baudrate, GpioPin tx, GpioPin rx,
+                unsigned int location=0);
     
     /**
      * Read a block of data
@@ -99,6 +104,15 @@ public:
      * Destructor
      */
     ~EFM32Serial();
+
+    /**
+     * EFM32 serial port identifiers to be passed to the id parameter of the
+     * constructor
+     */
+    enum EFM32SerialID: int
+    {
+        USART0_ID=0, USART1_ID, USART2_ID, UART0_ID, UART1_ID
+    };
     
 private:
     /**
