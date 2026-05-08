@@ -11,6 +11,7 @@ _process_pool_size = 96K;
 
 MEMORY
 {
+    /* The first 16KB are used by the factory-programmed bootloader */
     flash(rx)   : ORIGIN = 0x00004000, LENGTH = 1M-16K
     ram(wx)     : ORIGIN = 0x20000000, LENGTH = 128K
 }
