@@ -263,8 +263,7 @@ typedef enum IRQn
 #define ANALOG_PRESENT
 #define ANALOG_COUNT        1
 
-#include "core_cm3.h"       /* Cortex-M3 processor and core peripherals */
-#include "system_efm32gg.h" /* System Header */
+#include <CMSIS/Include/core_cm3.h> //By TFT: fix path
 
 /** @} End of group EFM32GG990F1024_Part */
 

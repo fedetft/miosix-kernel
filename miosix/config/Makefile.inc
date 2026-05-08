@@ -10,6 +10,7 @@
 #OPT_BOARD := atsam4lc2aa_generic
 #OPT_BOARD := efm32g222f128_generic
 #OPT_BOARD := efm32gg332f1024_wandstem
+#OPT_BOARD := efm32gg990f1024_dk3750
 #OPT_BOARD := lpc2138_generic
 #OPT_BOARD := lpc2138_miosix_board
 #OPT_BOARD := nrf52840_generic
