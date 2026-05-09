@@ -47,6 +47,8 @@ kercalls/libc_integration.cpp                                              \
 kercalls/libstdcpp_integration.cpp                                         \
 e20/e20.cpp                                                                \
 e20/unmember.cpp                                                           \
+debugger/debugger.cpp                                                      \
+debugger/debugger_interface.cpp                                            \
 util/util.cpp                                                              \
 util/unicode.cpp                                                           \
 util/version.cpp                                                           \

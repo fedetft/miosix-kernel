@@ -470,6 +470,33 @@ void Thread::IRQwakeup()
         IRQinvokeScheduler();
 }
 
+#ifdef PROCESS_DEBUGGER
+// This function can only be called from within DebugMon_handle, after acquiring
+// a global lock
+void Thread::IRQdebugWait()
+{
+    Thread *cur=const_cast<Thread*>(runningThreads[getCurrentCoreId()]);
+    cur->flags.IRQsetDebugWait(cur);
+    IRQinvokeScheduler();
+}
+
+void Thread::debugWakeup()
+{
+    //pausing the kernel is not enough because of IRQwait and IRQwakeup
+    FastGlobalIrqLock lock;
+    IRQdebugWakeup();
+}
+
+void Thread::IRQdebugWakeup()
+{
+    this->flags.IRQclearDebugWait(this);
+    // Heuristic load balancing: threads waking from I/O get preferentially
+    // allocated to lower core numbers
+    if(IRQconsiderRescheduling<Hlb::FromFirst>(this,getCurrentCoreId()))
+        IRQinvokeScheduler();
+}
+#endif
+
 Thread *Thread::getCurrentThread()
 {
     //Need to add lock if SMP, see comment in Thread::IRQgetCurrentThread()
@@ -1214,5 +1241,25 @@ void Thread::ThreadFlags::IRQsetDeleted(Thread *self)
     flags |= DELETED;
     Scheduler::IRQwaitStatusHook(self);
 }
+
+#ifdef PROCESS_DEBUGGER
+void Thread::ThreadFlags::IRQsetDebugWait(Thread *self)
+{
+    flags |= WAIT_DEBUG;
+    Scheduler::IRQwaitStatusHook(self);
+}
+void Thread::ThreadFlags::unsafe_setDebugWait()
+{
+    flags |= WAIT_DEBUG;
+}
+
+void Thread::ThreadFlags::IRQclearDebugWait(Thread *self)
+{
+    bool wasReady=isReady();
+    flags &= ~WAIT_DEBUG;
+    if(wasReady==false && isReady()) Scheduler::IRQwokenThread(self);
+    Scheduler::IRQwaitStatusHook(self);
+}
+#endif
 
 } //namespace miosix

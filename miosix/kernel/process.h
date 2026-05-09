@@ -237,6 +237,9 @@ private:
     friend class ControlScheduler;
     //Needs access to mpu
     friend class EDFScheduler;
+    #ifdef PROCESS_DEBUGGER
+    friend class Debugger;
+    #endif
 };
 
 /**

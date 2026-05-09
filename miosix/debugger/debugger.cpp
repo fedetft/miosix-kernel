@@ -1,6 +1,6 @@
+#ifdef PROCESS_DEBUGGER
+
 #include "debugger.h"
-#include "debugger_interface.h"
-#include "interfaces/endianness.h"
 
 #include <cstring>
 #include <fcntl.h>
@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 #include <termios.h>
 #include <unistd.h>
+#include <interfaces/endianness.h>
 
 // Report stub communication on stdout
 #define LOG_STUB_ON_STDOUT
@@ -23,8 +24,7 @@ AttachedProcessInfo Debugger::attached;
 RegisterFile Debugger::registerFile;
 bool Debugger::failed;
 
-#define format(buffer, ...)\
-    buffer.setLen(sniprintf(buffer.getData(), buffer.size, __VA_ARGS__)
+#define format(x, ...) x.setLen(sniprintf(x.getData(), x.size, __VA_ARGS__))
 
 // Accessory functions only used here
 // Only makes sense with characters 0-9 and a-f
@@ -92,14 +92,12 @@ int GDBBuffer::setBytes(unsigned int* addr, unsigned int size) {
     return len;
 }
 
-int GDBBuffer::setComment(char comment[]) {
-    const auto size = strlen(comment);
-    const auto len = size * 2 + 1;
-    if (this->size <= len) return 0;
-    clear();
-    appendChar('O');
-    for (int i = 0; i < size; i ++) {
-        const char byte = comment[i];
+int GDBBuffer::appendHexString(char string[]) {
+    const auto bytes = strlen(string);
+    const auto len = size * 2;
+    if (size <= len) return 0;
+    for (int i = 0; i < bytes; i ++) {
+        const char byte = string[i];
         data[head++] = hexToAscii(byte >>   4);
         data[head++] = hexToAscii(byte &  0xf);
     }
@@ -226,6 +224,7 @@ void Debugger::sendPacket() {
 }
 
 void Debugger::handleCommand() {
+
     switch (buffer.getData()[0]) {
     case '!':   extendedMode();     break;
     case '?':   stopReply();        break;
@@ -249,64 +248,59 @@ void Debugger::handleCommand() {
 
 void Debugger::stopReply() {
 
-    // FIXME: sync
-        // attached.process->threads[attached.threadId]->IRQdebugWakeup();
+    {
+        // Global lock
+        FastGlobalIrqLock dLock;
+        attached.thread->IRQdebugWakeup();
+        attached.thread = nullptr;
+        // While process is not STOP
+        while(attached.running) {
+            // "Post" this thread
+            thread = Thread::IRQgetCurrentThread();
+            // Go to sleep
+            Thread::IRQglobalIrqUnlockAndWait(dLock);
+        }
+    }
 
-    // FIXME: use attached.info correctly
-
-    switch (attached.stop.reason) {
-    case StopInfo::Reason::EXIT: {
-        attachedPid = wait(&attachedEc);
-        format(buffer, "W" "%02x", attached.stop.code & 0xff);
-        attached.clear();
-        fpb.clear();
-    } break;
-    // Fault: report SIGSEGV
-    case StopInfo::Reason::FAULT: {
-        buffer.setComment("Process terminated due to a fault");
-        sendPacket();
-        attachedPid = wait(&attachedEc);
-        format(buffer, "X" "%02x", SIGSEGV);
-        attached.clear();
-        fpb.clear();
-    } break;
-    // Process not running: report successful exit
-    case StopInfo::Reason::NONE: {
+    switch (attached.reason) {
+    case StopReason::NONE: {
         format(buffer, "W" "00");
     } break;
-    case StopInfo::Reason::EXECVE: {
+    case StopReason::EXIT: {
+        attached.pid = wait(&attached.ec);
+        format(buffer, "W" "%02x", attached.code & 0xff);
+        attached.clear();
+        BreakpointUnit::clear();
+    } break;
+    case StopReason::FAULT: {
+        attached.pid = wait(&attached.ec);
+        buffer.clear();
+        buffer.appendChar('O');
+        buffer.appendHexString("Process terminated due to a fault");
+        sendPacket();
+        // Fault: report SIGSEGV
+        format(buffer, "X" "%02x", SIGSEGV);
+        attached.clear();
+        BreakpointUnit::clear();
+    } break;
+    case StopReason::EXECVE: {
+        BreakpointUnit::clear();
         if (features.supported(GDBFeatures::EXEC_EVENTS)) {
-            formatBuffer("T" "%02x" "exec:", SIGTRAP);
-            for (char* p = Debugger::attached.name; *p; p++) {
-                buffer.appendChar(hexToAscii((*p & 0xf0) >> 4));
-                buffer.appendChar(hexToAscii(*p & 0x0f));
-            }
+            format(buffer, "T" "%02x" "exec:", SIGTRAP);
+            buffer.appendHexString(Debugger::attached.name);
             Debugger::attached.name = nullptr;
         } else {
-            // TODO: Reacting to an execve, stub must communicate remote exec file,
-            // e.g.: /bin/example
-            // which may differ from local file, which has a different path and a
-            // -dbg extension
-            // e.g.: ./bin/example-dbg
-            // Either choose a proper translation or drop execve handle support,
-            // treating it as an exit command (will hang up until the program
-            // finishes execution
-            attachedPid = wait(&attachedEc);
-            formatBuffer("W00");
+            attached.pid = wait(&attached.ec);
+            format(buffer, "S" "%02x", SIGTRAP);
             attached.clear();
-            fpb.clear();
         }
     } break;
-    // case StopInfo::Reason::DEBUGEVENT: {
-    //     // To add support for more debug events (swbreak, hwbreak)
-    //     formatBuffer("S" "%02x", SIGTRAP);
-    // }
     default:
-        formatBuffer("S" "%02x", SIGTRAP);
+        format(buffer, "S" "%02x", SIGTRAP);
     };
 }
 
-static inline  appendBigEndian64(GDBBuffer& buffer, char* valPtr) {
+static inline void appendBigEndian64(GDBBuffer& buffer, char* valPtr) {
     const auto ptr = reinterpret_cast<unsigned long long*>(valPtr); 
     *ptr = toBigEndian64(*ptr); 
     buffer.appendRegister64(*ptr);
@@ -339,7 +333,7 @@ void Debugger::handleCommand_gG() {
         buffer.clear();
         for (int i = 0; i < registerFile.entries; i++) {
             const auto size = registerFile.getSize(i);
-            if(! registers.read(i, valPtr)) {
+            if(! registerFile.read(attached.thread, i, valPtr)) {
                 for(int i=0; i < (size * 2); i++)
                     buffer.appendChar('x');
                 continue;
@@ -359,7 +353,7 @@ void Debugger::handleCommand_gG() {
 
         auto readPtr = buffer.getData();
         for(int i = 0; i < registerFile.entries ; i ++) {
-            const auto size = registerFile.registerSize(entry);
+            const auto size = registerFile.getSize(i);
             const auto readSize = size * 2;
             const auto oldChar = readPtr[readSize];
             readPtr[readSize] = '\0';
@@ -370,7 +364,7 @@ void Debugger::handleCommand_gG() {
             #endif
                 parseBigEndian32(readPtr, valPtr);
 
-            if(! registers.write(entry, valPtr)) {
+            if(! registerFile.write(attached.thread, i, valPtr)) {
                 buffer.setReturnCode(GDBReturnCode::REGISTER_WRITE_FAIL);
                 return;
             }
@@ -386,12 +380,12 @@ void Debugger::handleCommand_pP() {
     const auto read = buffer.getData()[0] == 'p';
     char* separator;
     const auto entry = strtoul(buffer.getData() + 1, &separator, 16);
-    const auto size = registers.registerSize(entry);
+    const auto size = registerFile.getSize(entry);
     char valPtr[MAX_REGISTER_SIZE_BYTES];
 
     if (read) {
         buffer.clear();
-        if(! registers.read(entry, valPtr)) {
+        if(! registerFile.read(attached.thread, entry, valPtr)) {
             for(int i=0; i < (size * 2); i++)
                 buffer.appendChar('x');
             return;
@@ -410,7 +404,7 @@ void Debugger::handleCommand_pP() {
         else if (size == 4)
         #endif
             parseBigEndian32(readPtr, valPtr);
-        buffer.setReturnCode(registers.write(entry, valPtr)
+        buffer.setReturnCode(registerFile.write(attached.thread, entry, valPtr)
                 ? OK
                 : REGISTER_WRITE_FAIL);
     }
@@ -423,7 +417,6 @@ void Debugger::handleCommand_mM() {
     const auto len = strtoul(separator + 1, &separator, 16);
 
     if (read) {
-        // FIXME: Processtable[attached.pid]
         if (! attached.process->mpu.withinForReading(baseAddress, len)) {
             buffer.setReturnCode(MEMORY_READ_FAIL);
             return;
@@ -436,7 +429,7 @@ void Debugger::handleCommand_mM() {
             return;
         }
         const char *const messageBase = buffer.getData();
-        const unsigned int readPtr = (separator - messageBase) + 1;
+        const unsigned int hexOffset = (separator - messageBase) + 1;
         for(unsigned int  writeIdx =  0    ,   readIdx =  hexOffset
                         ; writeIdx <  len  &&  readIdx <  buffer.len()
                         ; writeIdx ++      ,   readIdx += 2) {
@@ -449,22 +442,26 @@ void Debugger::handleCommand_mM() {
 }
 
 void Debugger::handleCommand_cs() {
-    // FIXME: attached.status
-    attached.status = (buffer.getData()[0] == 'c')
-        ? DebugStatus::RUN
-        : DebugStatus::STEP
-        ;
-    unsigned int pc;
-    const auto valid = registers.read(RegisterName::pc, reinterpret_cast<char*>(&pc));
-    if (!valid) {
-        buffer.setReturnCode(REGISTER_READ_FAIL);
-        return;
-    }
-    if (isCodeBreakpoint(pc))
-        pc += BREAKPOINT_INSTRUCTION_SIZE;
-    registers.write(RegisterName::pc, reinterpret_cast<char*>(&pc));
-    // FIXME: attached
-    attached.stop.reason = StopInfo::Reason::NONE;
+    // Prepare struct to wake up thread
+    attached.running = true;
+    attached.reason = StopReason::NONE;
+    attached.thread->debugStatus = (buffer.getData()[0] == 'c')
+                                 ? DebugStatus::RUN
+                                 : DebugStatus::STEP
+                                 ;
+    // NOTE: No need to do so: can jump over breakpoint, safer
+    // unsigned int pc;
+    // const auto valid = registerFile.read(attached.thread, 
+    //         RegisterName::pc, reinterpret_cast<char*>(&pc));
+    // if (!valid) {
+    //     buffer.setReturnCode(REGISTER_READ_FAIL);
+    //     return;
+    // }
+    // if (isCodeBreakpoint(pc))
+    //     pc += BREAKPOINT_INSTRUCTION_SIZE;
+    // registerFile.write(attached.thread,
+    //         RegisterName::pc, reinterpret_cast<char*>(&pc));
+
     stopReply();
 }
 
@@ -511,7 +508,7 @@ void Debugger::handleCommand_q() {
         }
         buffer.clear();
         buffer.appendChar(more ? 'm' : 'l');
-        buffer.appendString(&targetXMLString[qMessage.offset], qMessage.length);
+        buffer.appendString((char*)&targetXMLString[qMessage.offset], qMessage.length);
     } break;
     #define layoutMacro(m,p)\
         extern char __##m##_##p asm("_"#m"_"#p); \
@@ -533,7 +530,7 @@ void Debugger::handleCommand_q() {
         // whole message is sent as a single packet, otherwise I will have to
         // properly implement 'm' and 'l' messages
         // TODO: How to determine blocksize?
-        formatBuffer(
+        format(buffer,
             "l"
             "<memory-map>"
                 "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>"
@@ -564,26 +561,29 @@ void Debugger::handleCommand_zZ() {
         return;
     }
 
+    int idx = -1;
     switch(buffer.getData()[1]) {
     case '0': {
-        idx = insert ? fpb.addSoftBreakpoint(   baseAddress, kind)
-                     : fpb.removeSoftBreakpoint(baseAddress, kind);
+        if (kind != 2 && kind != 4) break;
+        idx = insert ? BreakpointUnit::addSoftBreakpoint(   baseAddress, kind)
+                     : BreakpointUnit::removeSoftBreakpoint(baseAddress, kind);
     } break;
     case '1': {
-        idx = insert ? fpb.addBreakpoint(   baseAddress, kind)
-                     : fpb.removeBreakpoint(baseAddress, kind);
+        if (kind != 2 && kind != 4) break;
+        idx = insert ? BreakpointUnit::addBreakpoint(   baseAddress, kind)
+                     : BreakpointUnit::removeBreakpoint(baseAddress, kind);
     } break;
     case '2': {
-        idx = insert ? fpb.addWatchpoint(   baseAddress, kind, WatchpointType::WRITE)
-                     : fpb.removeWatchpoint(baseAddress, kind, WatchpointType::WRITE);
+        idx = insert ? BreakpointUnit::addWatchpoint(   baseAddress, kind, WatchpointType::WRITE)
+                     : BreakpointUnit::removeWatchpoint(baseAddress, kind, WatchpointType::WRITE);
     } break;
     case '3': {
-        idx = insert ? fpb.addWatchpoint(   baseAddress, kind, WatchpointType::READ)
-                     : fpb.removeWatchpoint(baseAddress, kind, WatchpointType::READ);
+        idx = insert ? BreakpointUnit::addWatchpoint(   baseAddress, kind, WatchpointType::READ)
+                     : BreakpointUnit::removeWatchpoint(baseAddress, kind, WatchpointType::READ);
     } break;
     case '4': {
-        idx = insert ? fpb.addWatchpoint(   baseAddress, kind, WatchpointType::ACCESS)
-                     : fpb.removeWatchpoint(baseAddress, kind, WatchpointType::ACCESS);
+        idx = insert ? BreakpointUnit::addWatchpoint(   baseAddress, kind, WatchpointType::ACCESS)
+                     : BreakpointUnit::removeWatchpoint(baseAddress, kind, WatchpointType::ACCESS);
     } break;
     default:
         buffer.clear();
@@ -633,11 +633,13 @@ void Debugger::vrun() {
 
     attached.name = str + 1;
 
-    attachedEc=posix_spawn(&attachedPid,args[0],nullptr,nullptr,args, nullptr);
-    if (attachedEc != 0) {
+    attached.ec=posix_spawn(&(attached.pid),args[0],nullptr,nullptr,args, nullptr);
+    if (attached.ec != 0) {
         buffer.setReturnCode(GDBReturnCode::SPAWN_FAIL);
         return;
     }
+
+    // If process creation comletes successfully: attached.process is set
     attached.name = nullptr;
     delete[] args;
 
@@ -665,8 +667,8 @@ void Debugger::parsePacket_q(QMessage* qMessage) {
     static const char q_feats[]     = "qXfer:features:read:target.xml"/*:*/;
     //                                                    ^ Annex: target only
 
-    const auto ptr = buffer.getData();
-    const auto limit = ptr + buffer.len();
+          auto ptr   = buffer.getData();
+    const auto limit = buffer.getData() + buffer.len();
 
     // Simple packets
     if (strParEq(ptr, qsupported))
@@ -688,4 +690,48 @@ void Debugger::parsePacket_q(QMessage* qMessage) {
     qMessage->length = strtoul(separator + 1,   &separator, 16);
 }
 
+unsigned int BreakpointUnit::dirty      = 0xffffffff;
+int BreakpointUnit::breakpointsNum      = fpbGetAvailableBreakpoints();
+int BreakpointUnit::watchpointsNum      = fpbGetAvailableWatchpoints();
+Breakpoint* BreakpointUnit::breakpoints = new Breakpoint[fpbGetAvailableBreakpoints()];
+Watchpoint* BreakpointUnit::watchpoints = new Watchpoint[fpbGetAvailableWatchpoints()];
+
+const unsigned int BreakpointUnit::mask         = fpbGetSupportedWatchpointMask(),
+                   BreakpointUnit::revision     = fpbGetRevisionVersion(),
+                   BreakpointUnit::writeMask    = fpbGetWriteMask();
+
+SoftBreakpoint::SoftBreakpoint(unsigned int address, unsigned int kind) {
+    this->address = address;
+    this->kind = kind;
 }
+
+void SoftBreakpoint::applyPatch() {
+    if (kind == 2) {
+        const auto addr = reinterpret_cast<unsigned short*>(address);
+        istr = *addr;
+        *addr = BREAKPOINT_INSTRUCTION_2;
+    } else {
+        const auto addr = reinterpret_cast<unsigned int*>(address);
+        istr = *addr;
+        *addr = BREAKPOINT_INSTRUCTION_4;
+    }
+}
+
+void SoftBreakpoint::removePatch() {
+    if (kind == 2) {
+        const auto addr = reinterpret_cast<unsigned short*>(address);
+        *addr = istr;
+    } else {
+        const auto addr = reinterpret_cast<unsigned int*>(address);
+        *addr = istr;
+    }
+    clear();
+}
+
+bool SoftBreakpoint::eq (const SoftBreakpoint& other) const {
+    return address == other.address && kind == other.kind;
+}
+
+}
+
+#endif

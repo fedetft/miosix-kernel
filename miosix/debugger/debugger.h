@@ -1,6 +1,11 @@
 #pragma once
 
+#include "debug_registers.h"
 #include "debugger_interface.h"
+
+#include "kernel/process.h"
+#include "kernel/thread.h"
+#include "sys/types.h"
 
 namespace miosix {
 
@@ -17,7 +22,7 @@ public:
      * @param ref to store value
      * @return true if valid read, false otherwise
      */
-    bool read(int i, char* ref);
+    bool read(Thread* t, int i, char* ref);
 
     /**
      * @brief Writes the value pinted by ref into register i
@@ -28,7 +33,7 @@ public:
      * @param value value to write
      * @return true if valid write, false otherwise
      */
-    bool write(int i, char* ref);
+    bool write(Thread* t, int i, char* ref);
 
     /**
      * @brief Return the size of register i in bytes
@@ -142,7 +147,7 @@ public:
      */
     int setBytes(unsigned int* addr, unsigned int bytes);
 
-    int setComment(char comment[]);
+    int appendHexString(char string[]);
 
     /**
      * @brief Returns the number of bytes still available
@@ -177,15 +182,13 @@ private:
         "StubBuffers must be large enough to store all registers with hex encoding (2 bytes per register)");
 };
 
-typedef enum {
-    // TODO: consider starting @ exit
-    NONE,                   // No process is running yet, for extended mode
-    DEBUGEVENT,             // Process stopped due to debug event,
-    EXIT,                   // Process exited normally, code is return value
-    FAULT,                  // Thread terminated, code is the fault reason
-    EXECVE,                 // Process called execve: preserved in
-                            // DebugMon_Handler
-} StopReason;
+enum class StopReason {
+    NONE,                   // No thread running (start)
+    DEBUGEVENT,             // Debug event triggered
+    EXIT,                   // Exited normally, code is return value
+    FAULT,                  // Terminated,      code is the fault reason
+    EXECVE,                 // Execve called
+};
 
 /**
  * @class AttachedProcessInfo
@@ -198,26 +201,23 @@ typedef enum {
 class AttachedProcessInfo {
 public:
 
-    char*           name    = nullptr;
-    pid_t           pid     = 0;
-    int             ec;
-    unsigned int    tid     = 0;
-    unsigned int    code    = 0;
-    StopReason      reason  = NONE;
+    char*           name        = nullptr;
+    Process*        process     = nullptr;
+    Thread*         thread      = nullptr;
+    unsigned int    code        = 0;
+    bool            running     = false;
+    StopReason      reason      = StopReason::NONE;
 
-    // FIXME: Move to Thread.h
-    //  - private
-    //  - friend class Debugger
-    DebugStatus status   =  DebugStatus::STOP;
+    pid_t           pid;
+    int             ec;
 
     void clear() {
         name        = nullptr;
-        pid         = 0;
-        tid         = 0;
+        process     = nullptr;
+        thread      = nullptr;
         code        = 0;
-        reason      = NONE;
-        // FIXME: for all threads in process
-        status      = DebugStatus::STOP;
+        running     = false;
+        reason      = StopReason::NONE;
     }
 };
 
@@ -312,6 +312,8 @@ public:
 
 private:
 
+    Thread* thread = nullptr;
+
     // FileNo forcommunication with GDB
     int serial = -1;
     
@@ -321,12 +323,7 @@ private:
 
     // Share information between Debugger and other modules
     static AttachedProcessInfo attached;
-    // TODO: make fully static
     static RegisterFile registerFile;
-
-    // FIXME: BreakpointUnit in separated class, make all static, IRQsyncLocal
-    // takes thread as arg
-    static BreakpointUnit fpb;
 
     static bool failed;
 
@@ -351,6 +348,282 @@ private:
     void parsePacket_v(VMessage* vMessage);
     void parsePacket_q(QMessage* qMessage);
     
+};
+
+class Breakpoint {
+public:
+
+    Breakpoint() = default;
+    Breakpoint(unsigned int address, unsigned int kind);
+
+private:
+
+    friend class BreakpointUnit;
+    bool enabled();
+    bool eq (const Breakpoint& other) const;
+    inline void IRQsetLocal(int id) { FPB->FP_COMP[id] = value; }
+
+    void remove();
+
+    unsigned int value = 0;
+
+};
+
+class Watchpoint {
+public:
+
+    Watchpoint() = default;
+    Watchpoint(unsigned int address, unsigned int kind, WatchpointType type);
+
+private:
+
+    friend class BreakpointUnit;
+    bool enabled();
+    bool eq (const Watchpoint& other) const;
+    inline void IRQsetLocal(int id) {
+        _DWT->WP[id].COMP      = address;
+        _DWT->WP[id].MASK      = mask;
+        _DWT->WP[id].FUNCTION  = type;
+    }
+
+    void remove();
+
+    unsigned int    address;
+    unsigned int    mask;
+    WatchpointType  type    = WatchpointType::NONE;
+
+};
+
+class SoftBreakpoint {
+public:
+
+    SoftBreakpoint() = default;
+    SoftBreakpoint(unsigned int address, unsigned int kind);
+
+private:
+
+    friend class BreakpointUnit;
+    bool enabled() { return address; }
+    bool eq (const SoftBreakpoint& other) const;
+
+    void applyPatch();
+    void removePatch();
+    inline void clear() { address = 0; }
+
+    unsigned int address = 0;
+    unsigned int istr;
+    char kind;
+
+};
+
+class BreakpointUnit {
+public:
+    BreakpointUnit ();
+    ~BreakpointUnit ();
+
+    /**
+     * @brief Sets a breakpoint at the specified address
+     *
+     * Does NOT check if a breakpoint already exists at the same address
+     *
+     * @param address 
+     * @param kind Breakpoint's width
+     * @return the address of the comparator holding the breakpoint, -1 if no comparator are available
+     */
+    static int addBreakpoint(unsigned int address, unsigned int kind) {
+        for(int i=0; i<breakpointsNum; i++) {
+            if(!breakpoints[i].enabled()) {
+                breakpoints[i] = Breakpoint(address, kind);
+                markDirty();
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * @brief Remove a breakpoint from specified address
+     *
+     * @param address 
+     * @param kind Breakpoint's width
+     * @return the address of the comparator that was holding the breakpoint, -1 if no comparator was found
+     */
+    static int removeBreakpoint(unsigned int address, unsigned int kind) {
+        Breakpoint breakpoint(address, kind);
+        for(int i=0; i<breakpointsNum; i++) {
+            if (breakpoints[i].eq(breakpoint)) {
+                breakpoints[i].remove();
+                markDirty();
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * @brief Sets a watchpoint at the specified address
+     *
+     * Does NOT check if a watchpoint already exists at the same address
+     *
+     * @param address 
+     * @param kind Watchpoint's width
+     * @param type READ/WRITE/ACCESS
+     * @return the address of the comparator holding the watchpoint, -1 if no comparator are available
+     */
+    static int addWatchpoint(unsigned int address, unsigned int kind, WatchpointType type) {
+        for(int i=0; i<watchpointsNum; i++) {
+            if(!watchpoints[i].enabled()) {
+                watchpoints[i] = Watchpoint(address, kind, type);
+                markDirty();
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * @brief Remove a watchpoint from specified address
+     *
+     * @param address 
+     * @param kind Watchpoint's width
+     * @param type READ/WRITE/ACCESS
+     * @return the address of the comparator that was holding the watchpoint, -1 if no comparator was found
+     */
+    static int removeWatchpoint(unsigned int address, unsigned int kind, WatchpointType type) {
+        Watchpoint watchpoint(address, kind, type);
+        for(int i=0; i<watchpointsNum; i++) {
+            if (watchpoints[i].eq(watchpoint)) {
+                watchpoints[i].remove();
+                markDirty();
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    /**
+     * @brief Adds a software breakpoint at the specified address
+     *
+     * @param addressk 
+     * @param kind 
+     * @return 
+     */
+    static int addSoftBreakpoint(unsigned int address, unsigned int kind) {
+        if (kind != 2 && kind != 4) return -1;
+        for(int i=0; i<softBreakpointsNum; i++) {
+            if(!softBreakpoints[i].enabled()) {
+                SoftBreakpoint softBreakpoint(address, kind);
+                softBreakpoints[i] = softBreakpoint;
+                softBreakpoint.applyPatch();
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * @brief Remove a software breakpoint from the specified address
+     *
+     * @param addressk 
+     * @param kind 
+     * @return 
+     */
+    static int removeSoftBreakpoint(unsigned int address, unsigned int kind) {
+        if (kind != 2 && kind != 4) return -1;
+        for(int i=0; i<softBreakpointsNum; i++) {
+            if(!softBreakpoints[i].enabled()) {
+                SoftBreakpoint softBreakpoint(address, kind);
+                softBreakpoints[i] = softBreakpoint;
+                softBreakpoint.applyPatch();
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * @brief Clear Flashpatch Unit to a new state
+     */
+    static void clear() {
+        for (int i = 0; i < breakpointsNum; i++)
+            breakpoints[i].remove();
+        for (int i = 0; i < watchpointsNum; i++)
+            watchpoints[i].remove();
+        for (int i = 0; i < softBreakpointsNum; i++)
+            softBreakpoints[i].clear();
+        markDirty();
+    }
+
+    // FIXME: #if corenumber > sizeof(unsignedint) * 8 #error
+    static inline unsigned int cpuDirty(unsigned int coreId) {
+        return dirty & (1 << coreId);
+    }
+
+    static inline void clearDirtyBit(unsigned int coreId) {
+        dirty &= ~(1 << coreId);
+    }
+
+    static inline void markDirty() {
+        dirty = 0xffffffff;
+    }
+
+    static inline int getBreakpointsNum()       { return breakpointsNum; }
+    static inline int getWatchpointsNum()       { return watchpointsNum; }
+    static inline int getSoftBreakpointsNum()   { return softBreakpointsNum; }
+
+    /**
+     * @brief Update FPB of the local cpu
+     *
+     * Needs GlobalIrqLock acquired to be consistent
+     */
+
+    static inline void IRQsyncLocal(Thread* t) {
+        switch(t->debugStatus) {
+        case DebugStatus::PEND: {
+            // Triggers debugmonitor even if disabled
+            debugMonitorPendSet();
+        } break;
+        case DebugStatus::STEP: {
+            debugMonitorEnable();
+            flashPatchDisable();
+            debugMonitorSteppingEnable();
+        } break;
+        default:
+            debugMonitorEnable();
+            flashPatchEnable();
+            debugMonitorSteppingDisable();
+            const auto coreId = getCurrentCoreId();
+            if (!cpuDirty(coreId)) return;
+            // Update CPU debug register
+            for (int i = 0; i < breakpointsNum; i++) breakpoints[i].IRQsetLocal(i);
+            for (int i = 0; i < watchpointsNum; i++) watchpoints[i].IRQsetLocal(i);
+            clearDirtyBit(coreId);
+        }
+    }
+
+    inline void IRQdisableLocal() {
+        // Disable DebugMon_handler, ignores step and dwt
+        debugMonitorDisable();
+        // Dissable Flashpatch unit
+        flashPatchDisable();
+        // clear pending debugmonitor events
+        debugMonitorPendClear();
+    }
+
+private:
+
+    static int breakpointsNum,
+               watchpointsNum;
+    static const int softBreakpointsNum = 8;
+
+    static Breakpoint* breakpoints;
+    static Watchpoint* watchpoints;
+    static SoftBreakpoint softBreakpoints[softBreakpointsNum];
+
+    static unsigned int dirty;
+    
+    static const unsigned int mask, writeMask, revision;
+
 };
 
 }

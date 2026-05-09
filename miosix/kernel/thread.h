@@ -100,6 +100,17 @@ class FaultData;
 class SyscallParameters;
 #endif //WITH_PROCESSES
 
+#ifdef PROCESS_DEBUGGER
+// FIXME: Remove huge comment
+enum class DebugStatus {
+                    //                          MON_EN      FP_EN       MON_STEP    MON_PEND    Debugger
+    RUN,            // Thread is running:       SET         SET         CLEAR       CLEAR       WAIT
+    STEP,           // Thread is stepping:      SET         CLEAR       SET         CLEAR       WAIT
+    PEND,           // Debugevent is pending:   ---         ---         ---         SET         WAIT
+    STOP,           // Thread is stopped:       CLEAR       CLEAR       CLEAR       CLEAR       RUN
+};
+#endif
+
 /**
  * This class represents a thread. It has methods for creating, deleting and
  * handling threads.<br>It has private constructor and destructor, since memory
@@ -671,6 +682,37 @@ public:
     static bool IRQreportFault(const FaultData& fault);
     
     #endif //WITH_PROCESSES
+    
+    #ifdef PROCESS_DEBUGGER
+
+    /**
+     * This method stops the thread until debugWakeup() is called.
+     * Using a different waiting flag than thread's default wait
+     *
+     * // CANNOT be called when the kernel is paused.
+     */
+    static void IRQdebugWait();
+
+    /**
+     * Wakeup a thread from debugWait().
+     * This function causes a context switch if the woken thread priorirty is
+     * higher than the one that is currently running one on at least one core.
+     * <br>CANNOT be called when the kernel is paused.
+     */
+    void debugWakeup();
+
+    /**
+     * Wakeup a thread from debugWait().
+     * Starting from Miosix 3 this function causes the scheduler interrupt to
+     * become pending if the woken thread priorirty is higher than the one that
+     * is currently running on at least one core. A context switch will thus
+     * occur as soon as interrupts are enabled again.
+     * 
+     * Can only be called inside an IRQ or when interrupts are disabled.
+     */
+    void IRQdebugWakeup();
+
+    #endif
 
     #ifdef WITH_PTHREAD_KEYS
 
@@ -796,6 +838,24 @@ private:
             if(userspace) flags |= USERSPACE; else flags &= ~USERSPACE;
         }
 
+        #ifdef PROCESS_DEBUGGER
+        /**
+         * Set the waitDebug flag of the thread.
+         * Can only be called with interrupts disabled or within an interrupt.
+         * \param self thread whose status changed
+         */
+        void IRQsetDebugWait(Thread *self);
+        // TODO: doc
+        void unsafe_setDebugWait();
+
+        /**
+         * Set the waitDebug flag of the thread.
+         * Can only be called with interrupts disabled or within an interrupt.
+         * \param self thread whose status changed
+         */
+        void IRQclearDebugWait(Thread *self);
+        #endif
+
         /**
          * \return true if the wait flag is set
          */
@@ -823,10 +883,17 @@ private:
          */
         bool isDeleting() const { return flags & DELETING; }
 
+        #ifndef PROCESS_DEBUGGER
         /**
          * \return true if the thread is in the ready status
          */
         bool isReady() const { return (flags & 0x27)==0; }
+        #else
+        /**
+         * \return true if the thread is in the ready status
+         */
+        bool isReady() const { return (flags & 0xa7)==0; }
+        #endif
 
         /**
          * \return true if the thread is detached
@@ -842,6 +909,13 @@ private:
          * \return true if the thread is running unprivileged inside a process.
          */
         bool isInUserspace() const { return flags & USERSPACE; }
+
+        #ifdef PROCESS_DEBUGGER
+        /**
+         * \return true if the thread is waiting due to hitting a debug trap
+         */
+        bool isWaitingDebug() const { return flags & WAIT_DEBUG; }
+        #endif
 
         //Unwanted methods
         ThreadFlags(const ThreadFlags& p) = delete;
@@ -871,6 +945,11 @@ private:
         
         ///\internal Thread is running in userspace
         static const unsigned int USERSPACE=1<<6;
+
+        #ifdef PROCESS_DEBUGGER 
+        ///\internal Thread is in wait status due to a debug event debug event
+        static const unsigned int WAIT_DEBUG=1<<7;
+        #endif
 
         unsigned char flags;///<\internal flags are stored here
     };
@@ -1095,6 +1174,13 @@ private:
     //Needs access to timeCounterData
     friend class CPUTimeCounter;
     #endif //WITH_CPU_TIME_COUNTER
+    #ifdef PROCESS_DEBUGGER
+    DebugStatus debugStatus;
+    //Needs access to debugStatus, userContext, flags
+    friend class RegisterFile;
+    friend class Debugger;
+    friend class BreakpointUnit;
+    #endif
 };
 
 /**
