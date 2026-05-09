@@ -85,10 +85,9 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
     unsigned int* const stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
 
     bool fpuPresent = true;
-    static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK;
-    #if ctxSaveOnStackAligned % 8
-        #error "CTXSAVE_ON_STACK does not respect stack alignment");
-    #endif
+    static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK + 4;
+    static_assert(ctxSaveOnStackAligned % CTXSAVE_STACK_ALIGNMENT == 0,
+            "CTXSAVE_ON_STACK does not respect stack alignment");
     auto offset = ctxSaveOnStackAligned;
     if (ctx[9] & (1 << 4)) {
         fpuPresent = false;

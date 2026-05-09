@@ -696,6 +696,7 @@ int BreakpointUnit::breakpointsNum      = fpbGetAvailableBreakpoints();
 int BreakpointUnit::watchpointsNum      = fpbGetAvailableWatchpoints();
 Breakpoint* BreakpointUnit::breakpoints = new Breakpoint[fpbGetAvailableBreakpoints()];
 Watchpoint* BreakpointUnit::watchpoints = new Watchpoint[fpbGetAvailableWatchpoints()];
+SoftBreakpoint BreakpointUnit::softBreakpoints[BreakpointUnit::softBreakpointsNum];
 
 const unsigned int BreakpointUnit::mask         = fpbGetSupportedWatchpointMask(),
                    BreakpointUnit::revision     = fpbGetRevisionVersion(),

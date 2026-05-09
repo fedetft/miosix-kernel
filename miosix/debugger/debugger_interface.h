@@ -59,7 +59,7 @@ const int REGISTER_FILE_SIZE_BYTES =
     // Base registers
     (17*4) + (1 * 4)
 #if FPU_REGISTERS == 1
-    // FPU registers
+    // FPU registers (d0-d15 + fpscr)
     + (16*8) + (1*4)
 #endif
 ;

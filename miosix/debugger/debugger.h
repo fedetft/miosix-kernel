@@ -3,9 +3,8 @@
 #include "debug_registers.h"
 #include "debugger_interface.h"
 
-#include "kernel/process.h"
-#include "kernel/thread.h"
 #include "sys/types.h"
+#include <miosix.h>
 
 namespace miosix {
 
@@ -179,7 +178,7 @@ private:
     unsigned int head;
 
     static_assert(size > RegisterFile::sizeBytes * 2,
-        "StubBuffers must be large enough to store all registers with hex encoding (2 bytes per register)");
+        "StubBuffers must be large enough to store all registers with hex encoding (2 hex per byte)");
 };
 
 enum class StopReason {
