@@ -1,9 +1,8 @@
-#ifdef PROCESS_DEBUGGER
-
-#include "debugger_interface.h"
-
 #include "debug_registers.h"
+#include "debugger_interface.h"
 #include "debugger.h"
+
+#ifdef PROCESS_DEBUGGER
 
 namespace miosix {
 
@@ -42,10 +41,10 @@ bool Breakpoint::enabled() { return this->value & FP_Comp_ENABLE_MASK; }
 bool Breakpoint::eq(const Breakpoint& other) const { return this->value == other.value; }
 
 Watchpoint::Watchpoint(unsigned int address, unsigned int kind, WatchpointType type) {
-    const unsigned int tz = __builtin_ctz(kind);
+    const auto tz = __builtin_ctz(kind);
 
     // Just checking, GDB should know about this
-    if (kind != (1 << tz)) Debugger::fail();
+    if (kind != static_cast<unsigned int>(1 << tz)) Debugger::fail();
 
     this->address   = address;
     this->mask      = tz;
@@ -74,26 +73,16 @@ int RegisterFile::getSize(int i) {
                                     return 4;
 }
 
-static inline bool invalidState() {
-    // if (! (Debugger::attached.process
-    //  && Debugger::attached.process->threads[Debugger::attached.threadId]->flags.isInUserspace()))
-    //     return false;
-
-    return ( Debugger::attached.pid == 0
-        // || // Use processTable
-            );
-}
-
 bool RegisterFile::read(Thread* t, int regNum, char *ref) {
-    if (invalidState()) return false;
+    if (Debugger::attached.thread == nullptr) return false;
     if (getSize(regNum) == 0) return false;
 
     const auto dest = reinterpret_cast<unsigned int*>(ref);
 
     // TODO: Maybe is there a better way than exposing class
-    const unsigned int* ctx = t->userCtxsave;
+    unsigned int* const ctx = t->userCtxsave;
     // Already validated in debugmon excepiton
-    const unsigned int* stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
+    unsigned int* const stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
 
     bool fpuPresent = true;
     static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK;
@@ -155,15 +144,15 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
         return true;
     }
 
-    auto off = (regNum - d0) * 2;
-    auto dest64 = reinterpret_cast<unsigned long long*>(ref);
+    const auto off = (regNum - d0) * 2;
+    const auto dest64 = reinterpret_cast<unsigned long long*>(ref);
     // d0-d7 (either d0-d7 or s0-s15)
     if (regNum <= d7) {
-        auto src = *reinterpret_cast<unsigned long long*>(stackPtr + 8 + off);
+        const auto src = *reinterpret_cast<unsigned long long*>(stackPtr + 8 + off);
         *dest64 = src;
     } else {
         // d8-d15 (either d8-d15 or s16-s31)
-        auto src = *reinterpret_cast<unsigned long long*>(ctx + 9 + off);
+        const auto src = *reinterpret_cast<unsigned long long*>(ctx + 9 + off);
         *dest64 = src;
     }
 
@@ -177,17 +166,16 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
 
 bool RegisterFile::write(Thread* t, int regNum, char* ref) {
 
-    if (invalidState()) return false;
+    if (Debugger::attached.thread == nullptr) return false;
     if (getSize(regNum) == 0) return false;
 
     // To make interface generic for bigger registers
     const auto value = *reinterpret_cast<unsigned int*>(ref);
 
-    // TODO: Maybe is there a better way than exposing class
-    const unsigned int* ctx = t->userCtxsave;
+    unsigned int* const ctx = t->userCtxsave;
     
     // Already validated in debugmon excepiton
-    const unsigned int* stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
+    unsigned int* const stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
 
     bool fpuPresent = true;
     static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK;

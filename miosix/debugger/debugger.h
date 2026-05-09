@@ -154,7 +154,7 @@ public:
      *
      * @return 
      */
-    const unsigned int available() {return size - head; }
+    const int available() {return size - head; }
 
     /**
      * @brief Returns the content of the buffer
@@ -312,8 +312,6 @@ public:
 
 private:
 
-    Thread* thread = nullptr;
-
     // FileNo forcommunication with GDB
     int serial = -1;
     
@@ -324,8 +322,13 @@ private:
     // Share information between Debugger and other modules
     static AttachedProcessInfo attached;
     static RegisterFile registerFile;
+    static Thread* thread;
+
 
     static bool failed;
+
+    friend void DebugMon_Handler();
+    friend class RegisterFile;
 
     inline void extendedMode() { buffer.setReturnCode(OK); }
 

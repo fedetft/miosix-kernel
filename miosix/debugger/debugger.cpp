@@ -1,6 +1,6 @@
-#ifdef PROCESS_DEBUGGER
-
 #include "debugger.h"
+
+#ifdef PROCESS_DEBUGGER
 
 #include <cstring>
 #include <fcntl.h>
@@ -22,7 +22,8 @@ namespace miosix {
 
 AttachedProcessInfo Debugger::attached;
 RegisterFile Debugger::registerFile;
-bool Debugger::failed;
+bool Debugger::failed = false;
+Thread* Debugger::thread = nullptr;
 
 #define format(x, ...) x.setLen(sniprintf(x.getData(), x.size, __VA_ARGS__))
 
@@ -48,7 +49,7 @@ int GDBBuffer::appendChar(char character) {
 }
 
 int GDBBuffer::appendString(char* str, unsigned int len) {
-    if (available() <= len) return 0;
+    if (available() <= static_cast<int>(len)) return 0;
     memcpy(&data[head], str, len);
     head += len;
     data[head] = '\0';
@@ -96,7 +97,7 @@ int GDBBuffer::appendHexString(char string[]) {
     const auto bytes = strlen(string);
     const auto len = size * 2;
     if (size <= len) return 0;
-    for (int i = 0; i < bytes; i ++) {
+    for (unsigned int i = 0; i < bytes; i ++) {
         const char byte = string[i];
         data[head++] = hexToAscii(byte >>   4);
         data[head++] = hexToAscii(byte &  0xf);
@@ -107,7 +108,7 @@ int GDBBuffer::appendHexString(char string[]) {
 
 void Debugger::listen(char serialName[]) {
     failed = false;
-    serial = open(serial, O_RDWR | O_NOCTTY);
+    serial = open(serialName, O_RDWR | O_NOCTTY);
     if(serial < 0) {
         perror("open");
         fail();

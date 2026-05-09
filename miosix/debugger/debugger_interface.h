@@ -75,6 +75,6 @@ const int MAX_REGISTER_SIZE_BYTES =
 extern const char targetXMLString[];
 extern const unsigned int targetXMLStringLen;
 
-static bool isCodeBreakpoint(unsigned int pc);
+bool isCodeBreakpoint(unsigned int pc);
 
 }
