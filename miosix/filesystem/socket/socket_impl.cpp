@@ -592,7 +592,7 @@ int miosix::Socket::accept(intrusive_ref_ptr<Socket> pnewsock,
   if ((addr != NULL) && (addrlen != NULL)) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_accept(%d) returning new sock=%d addr=", s, newsock));
     ip_addr_debug_print_val(SOCKETS_DEBUG, naddr);
-    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F"\n", port));
+    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%" U16_F "\n", port));
   } else {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_accept(%d) returning new sock=%d\n", s, newsock));
   }
@@ -623,7 +623,7 @@ int miosix::Socket::bind(const struct sockaddr *name, socklen_t namelen)
   SOCKADDR_TO_IPADDR_PORT(name, &local_addr, local_port);
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_bind(%d, addr=", s));
   ip_addr_debug_print_val(SOCKETS_DEBUG, local_addr);
-  LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F")\n", local_port));
+  LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%" U16_F ")\n", local_port));
 
 #if LWIP_IPV4 && LWIP_IPV6
   /* Dual-stack: Unmap IPv4 mapped IPv6 addresses */
@@ -705,7 +705,7 @@ int miosix::Socket::connect(const struct sockaddr *name, socklen_t namelen)
     SOCKADDR_TO_IPADDR_PORT(name, &remote_addr, remote_port);
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_connect(%d, addr=", s));
     ip_addr_debug_print_val(SOCKETS_DEBUG, remote_addr);
-    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F")\n", remote_port));
+    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%" U16_F ")\n", remote_port));
 
 #if LWIP_IPV4 && LWIP_IPV6
     /* Dual-stack: Unmap IPv4 mapped IPv6 addresses */
@@ -817,7 +817,7 @@ lwip_recv_tcp(struct lwip_sock *sock, void *mem, size_t len, int flags)
       sock->lastdata.pbuf = p;
     }
 
-    LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recv_tcp: buflen=%"U16_F" recv_left=%d off=%d\n",
+    LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recv_tcp: buflen=%" U16_F " recv_left=%d off=%d\n",
                                 p->tot_len, (int)recv_left, (int)recvd));
 
     if (recv_left > p->tot_len) {
@@ -922,7 +922,7 @@ lwip_recv_tcp_from(struct lwip_sock *sock, struct sockaddr *from, socklen_t *fro
     netconn_getaddr(sock->conn, &tmpaddr, &port, 0);
     LWIP_DEBUGF(SOCKETS_DEBUG, ("%s(%d):  addr=", dbg_fn, dbg_s));
     ip_addr_debug_print_val(SOCKETS_DEBUG, tmpaddr);
-    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F" len=%d\n", port, (int)dbg_ret));
+    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%" U16_F " len=%d\n", port, (int)dbg_ret));
     if (from && fromlen) {
       return lwip_sock_make_addr(sock->conn, &tmpaddr, port, from, fromlen);
     }
@@ -969,7 +969,7 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
     sock->lastdata.netbuf = buf;
   }
   buflen = buf->p->tot_len;
-  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom_udp_raw: buflen=%"U16_F"\n", buflen));
+  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom_udp_raw: buflen=%" U16_F "\n", buflen));
 
   copied = 0;
   /* copy the pbuf payload into the iovs */
@@ -994,7 +994,7 @@ lwip_recvfrom_udp_raw(struct lwip_sock *sock, int flags, struct msghdr *msg, u16
   {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom_udp_raw(%d):  addr=", dbg_s));
     ip_addr_debug_print_val(SOCKETS_DEBUG, *netbuf_fromaddr(buf));
-    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F" len=%d\n", netbuf_fromport(buf), copied));
+    LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%" U16_F " len=%d\n", netbuf_fromport(buf), copied));
     if (msg->msg_name && msg->msg_namelen) {
       lwip_sock_make_addr(sock->conn, netbuf_fromaddr(buf), netbuf_fromport(buf),
                           (struct sockaddr *)msg->msg_name, &msg->msg_namelen);
@@ -1051,7 +1051,7 @@ miosix::Socket::recvfrom(void *mem, size_t len, int flags,
 {
   ssize_t ret;
 
-  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d, %p, %"SZT_F", 0x%x, ..)\n", s, mem, len, flags));
+  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom(%d, %p, %" SZT_F ", 0x%x, ..)\n", s, mem, len, flags));
 #if LWIP_TCP
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_TCP) {
     ret = lwip_recv_tcp(sock, mem, len, flags);
@@ -1207,7 +1207,7 @@ ssize_t miosix::Socket::send(const void *data, size_t size, int flags)
   u8_t write_flags;
   size_t written;
 
-  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_send(%d, data=%p, size=%"SZT_F", flags=0x%x)\n",
+  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_send(%d, data=%p, size=%" SZT_F ", flags=0x%x)\n",
                               s, data, size, flags));
 
   if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_TCP) {
@@ -1227,7 +1227,7 @@ ssize_t miosix::Socket::send(const void *data, size_t size, int flags)
   written = 0;
   err = netconn_write_partly(sock->conn, data, size, write_flags, &written);
 
-  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_send(%d) err=%d written=%"SZT_F"\n", s, err, written));
+  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_send(%d) err=%d written=%" SZT_F "\n", s, err, written));
   done_socket(sock);
   /* casting 'written' to ssize_t is OK here since the netconn API limits it to SSIZE_MAX */
   return (err == ERR_OK ? (ssize_t)written : -err_to_errno(err));
@@ -1430,10 +1430,10 @@ ssize_t miosix::Socket::sendto(const void *data, size_t size, int flags,
   netbuf_fromport(&buf) = remote_port;
 
 
-  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_sendto(%d, data=%p, short_size=%"U16_F", flags=0x%x to=",
+  LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_sendto(%d, data=%p, short_size=%" U16_F ", flags=0x%x to=",
                               s, data, short_size, flags));
   ip_addr_debug_print_val(SOCKETS_DEBUG, buf.addr);
-  LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F"\n", remote_port));
+  LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%" U16_F "\n", remote_port));
 
   /* make the buffer point to the data that should be sent */
 #if LWIP_NETIF_TX_SINGLE_PBUF
@@ -2502,7 +2502,7 @@ lwip_getaddrname(struct lwip_sock* sock, struct sockaddr *name, socklen_t *namel
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_getaddrname(%d, addr=", s));
   ip_addr_debug_print_val(SOCKETS_DEBUG, naddr);
-  LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%"U16_F")\n", port));
+  LWIP_DEBUGF(SOCKETS_DEBUG, (" port=%" U16_F ")\n", port));
 
   if (*namelen > IPADDR_SOCKADDR_GET_LEN(&saddr)) {
     *namelen = IPADDR_SOCKADDR_GET_LEN(&saddr);
@@ -3356,24 +3356,24 @@ lwip_setsockopt_impl(lwip_sock* sock, int level, int optname, const void *optval
           break;
         case TCP_KEEPALIVE:
           sock->conn->pcb.tcp->keep_idle = (u32_t)(*(const int *)optval);
-          LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPALIVE) -> %"U32_F"\n",
+          LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPALIVE) -> %" U32_F "\n",
                                       s, sock->conn->pcb.tcp->keep_idle));
           break;
 
 #if LWIP_TCP_KEEPALIVE
         case TCP_KEEPIDLE:
           sock->conn->pcb.tcp->keep_idle = 1000 * (u32_t)(*(const int *)optval);
-          LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPIDLE) -> %"U32_F"\n",
+          LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPIDLE) -> %" U32_F "\n",
                                       s, sock->conn->pcb.tcp->keep_idle));
           break;
         case TCP_KEEPINTVL:
           sock->conn->pcb.tcp->keep_intvl = 1000 * (u32_t)(*(const int *)optval);
-          LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPINTVL) -> %"U32_F"\n",
+          LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPINTVL) -> %" U32_F "\n",
                                       s, sock->conn->pcb.tcp->keep_intvl));
           break;
         case TCP_KEEPCNT:
           sock->conn->pcb.tcp->keep_cnt = (u32_t)(*(const int *)optval);
-          LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPCNT) -> %"U32_F"\n",
+          LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_setsockopt(%d, IPPROTO_TCP, TCP_KEEPCNT) -> %" U32_F "\n",
                                       s, sock->conn->pcb.tcp->keep_cnt));
           break;
 #endif /* LWIP_TCP_KEEPALIVE */
@@ -3573,7 +3573,7 @@ miosix::Socket::ioctl(int cmd, void *argp)
       }
       *((int *)argp) = recv_avail;
 
-      LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_ioctl(%d, FIONREAD, %p) = %"U16_F"\n", s, argp, *((u16_t *)argp)));
+      LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_ioctl(%d, FIONREAD, %p) = %" U16_F "\n", s, argp, *((u16_t *)argp)));
       done_socket(sock);
       return 0;
 #else /* LWIP_SO_RCVBUF */
