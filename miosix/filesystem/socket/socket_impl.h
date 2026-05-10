@@ -80,10 +80,6 @@ struct lwip_sock {
 #endif
 };
 
-#ifndef set_errno
-#define set_errno(err) do { if (err) { errno = (err); } } while(0)
-#endif
-
 #if !LWIP_TCPIP_CORE_LOCKING
 /** Maximum optlen used by setsockopt/getsockopt */
 #define LWIP_SETGETSOCKOPT_MAXOPTLEN LWIP_MAX(16, sizeof(struct ifreq))
