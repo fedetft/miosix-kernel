@@ -889,6 +889,8 @@ sysconf:
 .L6000:
 	b    syscallfailed32
 
+// TODO: implement networking syscall thunks
+
 /* common jump target for all failing syscalls with 32 bit return value */
 .section .text.__seterrno32
 syscallfailed32:

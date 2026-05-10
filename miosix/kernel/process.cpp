@@ -966,6 +966,8 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 break;
             }
 
+            // TODO: implement networking syscalls
+
             default:
                 exitCode=SIGSYS; //Bad syscall
                 #ifdef WITH_ERRLOG

@@ -396,6 +396,9 @@ enum class Syscall
 
     // Misc syscalls
     SYSCONF   = 59
+
+    // TODO: Networking syscalls
+
 };
 
 } //namespace miosix

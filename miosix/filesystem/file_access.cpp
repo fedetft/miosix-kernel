@@ -36,6 +36,7 @@
 #include "littlefs/lfs_miosix.h"
 #include "pipe/pipe.h"
 #include "kernel/logging.h"
+#include "socket/socket.h"
 #ifdef WITH_PROCESSES
 #include "kernel/process.h"
 #endif //WITH_PROCESSES
@@ -312,6 +313,43 @@ int FileDescriptorTable::pipe(int fds[2])
     filesCloexec[fds[1]]=false;
     return 0;
 }
+
+#ifdef WITH_NETWORKING
+
+int FileDescriptorTable::socket(int domain, int type, int protocol)
+{
+    intrusive_ref_ptr<FileBase> sock(new Socket);
+    if (!sock) return -ENOMEM;
+    int result = sock->socket(domain,type,protocol);
+    if(result<0) return result;
+
+    Lock<KernelMutex> l(mutex);
+    int fd=getAvailableFd();
+    if(fd<0) return fd;
+    files[fd]=sock;
+    return fd;
+}
+
+int FileDescriptorTable::accept(int fd, struct sockaddr *addr,
+                                socklen_t *addrlen)
+{
+    intrusive_ref_ptr<FileBase> sock=getFile(fd);
+    if(!sock) return -EBADF;
+
+    intrusive_ref_ptr<Socket> newsock(new Socket);
+    if (!newsock) return -ENOMEM;
+
+    int result=sock->accept(newsock,addr,addrlen);
+    if(result<0) return result;
+
+    Lock<KernelMutex> l(mutex);
+    int newfd=getAvailableFd();
+    if(newfd<0) return newfd;
+    files[newfd]=newsock;
+    return newfd;
+}
+
+#endif //WITH_NETWORKING
 
 int FileDescriptorTable::statImpl(const char* name, struct stat* pstat, bool f)
 {

@@ -25,42 +25,34 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#ifndef LWIP_ARCH_CC_H
-#define LWIP_ARCH_CC_H
+#include "socket.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstring>
 
-/* Use the system provided struct timeval */
-#define LWIP_TIMEVAL_PRIVATE 0
-#include <sys/time.h>
+#ifdef WITH_NETWORKING
 
-/* Use the system provided errno */
-#define LWIP_ERRNO_STDINCLUDE 1
+namespace miosix {
 
-// TODO: implement good source of random to LWIP_RAND()
-
-// TODO: byte order swap functions
-/*
-#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
-
-// Include the impl header directly to facilitate inlining
-#include <interfaces-impl/endianness_impl.h>
-
-#ifndef lwip_htons
-u16_t lwip_htons(u16_t x);
-#endif
-#define lwip_ntohs(x) lwip_htons(x)
-
-#ifndef lwip_htonl
-u32_t lwip_htonl(u32_t x);
-#endif
-#define lwip_ntohl(x) lwip_htonl(x)
-*/
-
-#ifdef __cplusplus
+Socket::Socket() : FileBase(intrusive_ref_ptr<FilesystemBase>(), O_RDWR) {
+    sock = new lwip_sock();
 }
-#endif
 
-#endif /* LWIP_ARCH_CC_H */
+Socket::~Socket() { 
+    close();
+    delete sock; 
+}
+
+off_t Socket::lseek(off_t pos, int whence) { return -ESPIPE; }
+
+int Socket::ftruncate(off_t size) { return -EINVAL; }
+
+int Socket::fstat(struct stat *pstat) const {
+    std::memset(pstat, 0, sizeof(struct stat));
+    pstat->st_mode = S_IFSOCK | S_IRWXU | S_IRWXG | S_IRWXO;
+    pstat->st_nlink = 1;
+    return 0;
+}
+
+} // namespace miosix
+
+#endif // WITH_NETWORKING
