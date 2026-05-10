@@ -40,6 +40,7 @@
 #include "interfaces_private/os_timer.h"
 #include "interfaces_private/sleep.h"
 #include "interfaces_private/smp.h"
+#include "debugger/debugger.h"
 #include "timeconversion.h"
 #include "pthread_private.h"
 #include <stdexcept>
@@ -797,12 +798,29 @@ void Thread::IRQhandleSvc()
             cur->flags.IRQsetUserspace(true);
             ::ctxsave[coreId]=cur->userCtxsave;
             proc->mpu.IRQenable();
+            #ifdef PROCESS_DEBUGGER
+            // Thread switches to userspace: enable sync local debug hardware to
+            // Debugger status
+            if (proc == Debugger::attached.process)
+                BreakpointUnit::IRQsyncLocal(cur);
+            #endif
             break;
         default:
             //All other syscalls are handled by switching to kernelspace
             cur->flags.IRQsetUserspace(false);
             ::ctxsave[coreId]=cur->ctxsave;
             MPUConfiguration::IRQdisable();
+            #ifdef PROCESS_DEBUGGER
+            // If this thread is associated to the attached process: clear local
+            // debug hardware
+            if (proc == Debugger::attached.process) {
+                // If status ist step: Thread tried to stop over an svc
+                if (cur->debugStatus == DebugStatus::STEP)
+                    cur->debugStatus  = DebugStatus::PEND;
+                // Disable BPU for the duration of svc
+                BreakpointUnit::IRQdisableLocal();
+            }
+            #endif
             break;
     }
 }
@@ -819,6 +837,14 @@ bool Thread::IRQreportFault(const FaultData& fault)
     //Switch to kernel mode
     cur->flags.IRQsetUserspace(false);
     ::ctxsave[getCurrentCoreId()]=cur->ctxsave;
+    #ifdef PROCESS_DEBUGGER
+    // Notify debugger that a fault happened
+    if (proc == Debugger::attached.process) {
+        // TODO: pass fault reason
+        Debugger::attached.IRQstop(cur, StopReason::FAULT, 0);
+        if (Debugger::thread) Debugger::thread->IRQwakeup();
+    }
+    #endif
     MPUConfiguration::IRQdisable();
     return true;
 }

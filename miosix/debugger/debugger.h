@@ -146,7 +146,7 @@ public:
      */
     int setBytes(unsigned int* addr, unsigned int bytes);
 
-    int appendHexString(char string[]);
+    int appendHexString(const char string[]);
 
     /**
      * @brief Returns the number of bytes still available
@@ -200,7 +200,7 @@ enum class StopReason {
 class AttachedProcessInfo {
 public:
 
-    char*           name        = nullptr;
+    const char*     name        = nullptr;
     Process*        process     = nullptr;
     Thread*         thread      = nullptr;
     unsigned int    code        = 0;
@@ -217,6 +217,16 @@ public:
         code        = 0;
         running     = false;
         reason      = StopReason::NONE;
+    }
+
+    inline void IRQstop(Thread* thread, StopReason reason, unsigned int code) {
+        running = false;
+        if (this->reason == StopReason::NONE) {
+            // only update stop status if no other thread did so previously
+            this->thread = thread;
+            this->reason = reason;
+            this->code = code;
+        }
     }
 };
 
@@ -323,13 +333,20 @@ private:
     static RegisterFile registerFile;
     static Thread* thread;
 
-
     static bool failed;
 
+    //Nedds attached
     friend void DebugMon_Handler();
-    friend class RegisterFile;
-
-    inline void extendedMode() { buffer.setReturnCode(OK); }
+    //Needs attached
+    friend class Process;
+    //Needs attached
+    friend class Thread;
+    #ifdef SCHED_TYPE_PRIORITY
+    //Needs attached
+    friend class PriorityScheduler;
+    #else
+    #error Current scheduler is not configured for process debugger
+    #endif
 
     void recvPacket();
     void sendPacket();
@@ -579,6 +596,7 @@ public:
      * Needs GlobalIrqLock acquired to be consistent
      */
 
+    #ifdef PROCESS_DEBUGGER
     static inline void IRQsyncLocal(Thread* t) {
         switch(t->debugStatus) {
         case DebugStatus::PEND: {
@@ -590,11 +608,15 @@ public:
             flashPatchDisable();
             debugMonitorSteppingEnable();
         } break;
-        default:
+        case DebugStatus::RUN:
+            // case DebugStatus::RUN:
+            // since DebugStatus::STOP implies the thread has already been
+            // stopped and cannot be scheduled
             debugMonitorEnable();
             flashPatchEnable();
             debugMonitorSteppingDisable();
             const auto coreId = getCurrentCoreId();
+            // If cpu is updated: return
             if (!cpuDirty(coreId)) return;
             // Update CPU debug register
             for (int i = 0; i < breakpointsNum; i++) breakpoints[i].IRQsetLocal(i);
@@ -602,8 +624,9 @@ public:
             clearDirtyBit(coreId);
         }
     }
+    #endif
 
-    inline void IRQdisableLocal() {
+    static inline void IRQdisableLocal() {
         // Disable DebugMon_handler, ignores step and dwt
         debugMonitorDisable();
         // Dissable Flashpatch unit

@@ -44,7 +44,7 @@ Watchpoint::Watchpoint(unsigned int address, unsigned int kind, WatchpointType t
     const auto tz = __builtin_ctz(kind);
 
     // Just checking, GDB should know about this
-    if (kind != static_cast<unsigned int>(1 << tz)) Debugger::fail();
+    if (kind != static_cast<unsigned int>(1 << tz)) return;
 
     this->address   = address;
     this->mask      = tz;
@@ -74,7 +74,7 @@ int RegisterFile::getSize(int i) {
 }
 
 bool RegisterFile::read(Thread* t, int regNum, char *ref) {
-    if (Debugger::attached.thread == nullptr) return false;
+    if (t == nullptr) return false;
     if (getSize(regNum) == 0) return false;
 
     const auto dest = reinterpret_cast<unsigned int*>(ref);
@@ -165,7 +165,7 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
 
 bool RegisterFile::write(Thread* t, int regNum, char* ref) {
 
-    if (Debugger::attached.thread == nullptr) return false;
+    if (t == nullptr) return false;
     if (getSize(regNum) == 0) return false;
 
     // To make interface generic for bigger registers

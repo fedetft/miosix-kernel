@@ -2,6 +2,13 @@
 
 namespace miosix {
 
+enum class DebugStatus {
+                    //                          MON_EN      FP_EN       MON_STEP    MON_PEND
+    RUN,            // Thread is running:       SET         SET         CLEAR       CLEAR
+    STEP,           // Thread is stepping:      SET         CLEAR       SET         CLEAR
+    PEND,           // Debugevent is pending:   ---         ---         ---         SET
+};
+
 #if defined(__aarch64__)
     #error "RegisterFile: missing 64 bit layout"
 #elif defined (__arm__) || defined (__thumb__)

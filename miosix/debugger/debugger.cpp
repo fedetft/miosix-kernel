@@ -93,7 +93,7 @@ int GDBBuffer::setBytes(unsigned int* addr, unsigned int size) {
     return len;
 }
 
-int GDBBuffer::appendHexString(char string[]) {
+int GDBBuffer::appendHexString(const char string[]) {
     const auto bytes = strlen(string);
     const auto len = size * 2;
     if (size <= len) return 0;
@@ -227,20 +227,20 @@ void Debugger::sendPacket() {
 void Debugger::handleCommand() {
 
     switch (buffer.getData()[0]) {
-    case '!':   extendedMode();     break;
-    case '?':   stopReply();        break;
-    case 'g':
-    case 'G':   handleCommand_gG(); break;
-    case 'p':
-    case 'P':   handleCommand_pP(); break;
-    case 'm':
-    case 'M':   handleCommand_mM(); break;
+    case '!':   buffer.setReturnCode(OK);   break;
+    case '?':   stopReply();                break;
     case 'c':
-    case 's':   handleCommand_cs(); break;
-    case 'v':   handleCommand_v();  break;
-    case 'q':   handleCommand_q();  break;
-    case 'Z':
-    case 'z':   handleCommand_zZ(); break;
+    case 's':   handleCommand_cs();         break;
+    case 'g':
+    case 'G':   handleCommand_gG();         break;
+    case 'm':
+    case 'M':   handleCommand_mM();         break;
+    case 'p':
+    case 'P':   handleCommand_pP();         break;
+    case 'q':   handleCommand_q();          break;
+    case 'v':   handleCommand_v();          break;
+    case 'z':
+    case 'Z':   handleCommand_zZ();         break;
     default:    buffer.clear();
     }
 
@@ -250,22 +250,24 @@ void Debugger::handleCommand() {
 void Debugger::stopReply() {
 
     {
-        // Global lock
         FastGlobalIrqLock dLock;
-        attached.thread->IRQdebugWakeup();
-        attached.thread = nullptr;
-        // While process is not STOP
+        // While process is running
         while(attached.running) {
-            // "Post" this thread
+            // Set thread to notify
             thread = Thread::IRQgetCurrentThread();
-            // Go to sleep
             Thread::IRQglobalIrqUnlockAndWait(dLock);
         }
     }
+    // When code is here the attached process must already be stopped, not
+    // checking again
 
     switch (attached.reason) {
     case StopReason::NONE: {
         format(buffer, "W" "00");
+    } break;
+    case StopReason::DEBUGEVENT: {
+        // TODO: Support multiple debug halting reason
+        format(buffer, "S" "%02x", SIGTRAP);
     } break;
     case StopReason::EXIT: {
         attached.pid = wait(&attached.ec);
@@ -284,7 +286,7 @@ void Debugger::stopReply() {
         attached.clear();
         BreakpointUnit::clear();
     } break;
-    case StopReason::EXECVE: {
+    case StopReason::EXECVE:
         BreakpointUnit::clear();
         if (features.supported(GDBFeatures::EXEC_EVENTS)) {
             format(buffer, "T" "%02x" "exec:", SIGTRAP);
@@ -295,9 +297,6 @@ void Debugger::stopReply() {
             format(buffer, "S" "%02x", SIGTRAP);
             attached.clear();
         }
-    } break;
-    default:
-        format(buffer, "S" "%02x", SIGTRAP);
     };
 }
 
@@ -445,23 +444,15 @@ void Debugger::handleCommand_mM() {
 void Debugger::handleCommand_cs() {
     // Prepare struct to wake up thread
     attached.running = true;
+    // NOTE: It's mandatory to set stopreason to NONE as only the first thread
+    // which triggers an event can set attached.reason, this is done by checking
+    // on the stopreason
     attached.reason = StopReason::NONE;
     attached.thread->debugStatus = (buffer.getData()[0] == 'c')
                                  ? DebugStatus::RUN
                                  : DebugStatus::STEP
                                  ;
-    // NOTE: No need to do so: can jump over breakpoint, safer
-    // unsigned int pc;
-    // const auto valid = registerFile.read(attached.thread, 
-    //         RegisterName::pc, reinterpret_cast<char*>(&pc));
-    // if (!valid) {
-    //     buffer.setReturnCode(REGISTER_READ_FAIL);
-    //     return;
-    // }
-    // if (isCodeBreakpoint(pc))
-    //     pc += BREAKPOINT_INSTRUCTION_SIZE;
-    // registerFile.write(attached.thread,
-    //         RegisterName::pc, reinterpret_cast<char*>(&pc));
+    attached.thread->debugWakeup();
 
     stopReply();
 }
@@ -596,18 +587,20 @@ void Debugger::handleCommand_zZ() {
         buffer.setReturnCode(BREAKPOINT_FULL);
         return;
     }
+    printf("added in position %d\n", idx);
     buffer.setReturnCode(OK);
 }
 
 void Debugger::vrun() {
     // This code is cursed, it works, I won't touch it further
 
-    char* str = strchr(buffer.getData(), ';');
+    char* const str = strchr(buffer.getData(), ';');
 
     // Starting from first character of the buffer after ; (vRun;2f62696e2f666f6f;626172)
     //                                                           ^
     // If character is a semi ';' terminate string '\0'
     // Transform hex pairs into characters 2f62696e -> "/bin"
+    // TODO: make use of the whole buffer
     int argsNum = 0;
     char* str_end = (char*)buffer.getData()+buffer.len();
     char* w_ptr = str;
@@ -643,6 +636,9 @@ void Debugger::vrun() {
     // If process creation comletes successfully: attached.process is set
     attached.name = nullptr;
     delete[] args;
+
+    // once thread is no longer running (can be as soon as created (skip right
+    // away) can continue execution
 
     stopReply();
 }

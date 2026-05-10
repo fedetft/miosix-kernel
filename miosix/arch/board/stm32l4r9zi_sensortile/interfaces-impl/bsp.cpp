@@ -79,19 +79,31 @@ void IRQbspInit()
     ledOn();
     delayMs(100);
     ledOff();
+#ifdef PROCESS_DEBUGGER
+#else
     IRQsetDefaultConsole(intrusive_ref_ptr<Device>(
         STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
         defaultSerialRtsPin,defaultSerialCtsPin>(
             defaultSerial,defaultSerialSpeed,
             defaultSerialFlowctrl,defaultSerialDma)));
 
+#endif
 }
 
 
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
+    #ifdef PROCESS_DEBUGGER
+    intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup(SDIODriver::instance());
+    devFs->addDevice("auxtty",
+        STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
+        defaultSerialRtsPin,defaultSerialCtsPin>(
+            defaultSerial,defaultSerialSpeed,
+            defaultSerialFlowctrl,defaultSerialDma));
+    #else
     basicFilesystemSetup(SDIODriver::instance());
+    #endif
     #endif //WITH_FILESYSTEM
 }
 

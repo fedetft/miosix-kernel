@@ -743,7 +743,7 @@ void DebugMon_Handler()
         IRQdebugMonFail();
     }
 
-    Process *process = static_cast<Process*>(thread->getProcess());
+    const Process *process = static_cast<Process*>(thread->getProcess());
 
     // Not attached process
     if (process != Debugger::attached.process) {
@@ -751,8 +751,8 @@ void DebugMon_Handler()
         IRQdebugMonFail();
     }
 
-    unsigned int off = 24;
-    unsigned int psp = __get_PSP();
+    const unsigned int off = 24;
+    const unsigned int psp = __get_PSP();
 
     extern char _process_pool_start asm("_process_pool_start");
     extern char _process_pool_end   asm("_process_pool_end");
@@ -764,31 +764,20 @@ void DebugMon_Handler()
         IRQerrorLog("\r\n*** Corrupted user stack pointer");
         IRQdebugMonFail();
     }
-
+    // For multithreading: do this only when no more threads of the process are
+    // running
+    // Set running flag
+    Debugger::attached.IRQstop(thread, StopReason::DEBUGEVENT, 0);
+    // Wakeup debugger thread if waiting
+    if (Debugger::thread != nullptr) {
+        // Wakeup debugger if waiting
+        Debugger::thread->IRQwakeup();
+    }
     // Clear dfsr
     SCB->DFSR = 0b11111;
-
-    // This is the first thread to trigger a debug event
-    if (Debugger::attached.thread == nullptr) {
-        Debugger::attached.thread  = thread;
-        Debugger::attached.reason  = StopReason::DEBUGEVENT;
-    }
-
+    // Wakeup debugged thread
     thread->IRQdebugWait();
-    // TODO: for multithreading: only set for last thread (no thread of the
-    // attached process can be scheduled)
-    Debugger::attached.running = false;
-
-    if (Debugger::thread == nullptr) {
-        IRQerrorLog("\r\n*** Debug event when no debugger is lisening");
-        IRQdebugMonFail();
-    }
-
-    // Wakeup debugger
-    Debugger::thread->IRQwakeup();
-
     #else // PROCESS_DEBUGGER
-
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");
     tryPrintingProgramCounter();

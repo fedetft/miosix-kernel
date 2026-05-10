@@ -38,11 +38,13 @@
 #include <limits.h>
 #include <spawn.h>
 
+#include "thread.h"
 #include "sync.h"
 #include "process_pool.h"
 #include "process.h"
 #include "interfaces/cpu_const.h"
 #include "interfaces_private/userspace.h"
+#include "debugger/debugger.h"
 
 using namespace std;
 
@@ -185,6 +187,29 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
         parent->childs.remove(proc.get());
         throw bad_alloc(); //Thread allocation failed
     }
+    #ifdef PROCESS_DEBUGGER
+    bool attached = false;
+    {
+        // Prevent multiple attempts at creating an attached process
+        Lock<KernelMutex> l(processTable.procMutex);
+        const char* processName = reinterpret_cast<const char* const*>(args.data())[0];
+        if (Debugger::attached.process == nullptr
+        && Debugger::attached.name != nullptr
+        && strcmp(Debugger::attached.name, processName) == 0) {
+            Debugger::attached.process = reinterpret_cast<Process*>(thr->getProcess());
+            Debugger::attached.name = nullptr;
+            attached = true;
+        }
+    }
+    // Avoid nested locking
+    if (attached) {
+        FastGlobalIrqLock dLock;
+        // The process is now running, it needs to step into debugmonitor
+        Debugger::attached.running = true;
+        thr->debugStatus = DebugStatus::STEP;
+    }
+    #endif
+
     //Cannot throw bad_alloc due to the reserve in Process's constructor.
     //This ensures we will never be in the uncomfortable situation where a
     //thread has already been created but there's no memory to list it
@@ -811,6 +836,18 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
             case Syscall::EXIT:
             {
                 exitCode=(sp.getParameter<0>() & 0xff)<<8;
+                #ifdef PROCESS_DEBUGGER
+                {
+                    FastGlobalIrqLock dLock;
+                    // TODO: maybe move if outside
+                    if (this == Debugger::attached.process) {
+                        // TODO: determine current thread
+                        Debugger::attached.IRQstop(Thread::IRQgetCurrentThread(),
+                                StopReason::EXIT, exitCode >> 0);
+                        if (Debugger::thread) Debugger::thread->IRQwakeup();
+                    }
+                }
+                #endif
                 return Exit;
             }
 
@@ -829,6 +866,16 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                         ElfProgram program(path);
                         if(program.errorCode()==0)
                         {
+                            #ifdef PROCESS_DEBUGGER
+                            if (this == Debugger::attached.process) {
+                                FastGlobalIrqLock dLock;
+                                    Debugger::attached.name = path;
+                                    // TODO: determine current thread
+                                    Debugger::attached.IRQstop(Thread::IRQgetCurrentThread(),
+                                        StopReason::EXIT, exitCode >> 8);
+                                    if (Debugger::thread) Debugger::thread->IRQwakeup();
+                            }
+                            #endif
                             try {
                                 //TODO: when threads within processes are
                                 //implemented, kill all other threads
