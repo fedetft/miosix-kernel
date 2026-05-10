@@ -966,7 +966,390 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 break;
             }
 
-            // TODO: implement networking syscalls
+            #ifdef WITH_NETWORKING
+            case Syscall::READV:
+            {
+                int fd = sp.getParameter<0>();
+                auto iov = reinterpret_cast<const struct iovec *>(sp.getParameter<1>());
+                int iovcnt = sp.getParameter<2>();
+                // Check the iovec array
+                if(!mpu.withinForReading(iov, iovcnt * sizeof(struct iovec)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+                // Check the buffers pointed by the iovec array
+                for (int i = 0; i < iovcnt; i++)
+                {
+                    if (!mpu.withinForWriting(iov[i].iov_base, iov[i].iov_len))
+                    {
+                        sp.setParameter<0>(-EFAULT);
+                        break;
+                    }
+                }
+                ssize_t result = fileTable.readv(fd, iov, iovcnt);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::WRITEV:
+            {
+                int fd = sp.getParameter<0>();
+                auto iov = reinterpret_cast<const struct iovec *>(sp.getParameter<1>());
+                int iovcnt = sp.getParameter<2>();
+                // Check the iovec array
+                if(!mpu.withinForReading(iov, iovcnt * sizeof(struct iovec)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+                // Check the buffers pointed by the iovec array
+                for (int i = 0; i < iovcnt; i++)
+                {
+                    if (!mpu.withinForReading(iov[i].iov_base, iov[i].iov_len))
+                    {
+                        sp.setParameter<0>(-EFAULT);
+                        break;
+                    }
+                }
+                ssize_t result = fileTable.writev(fd, iov, iovcnt);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::SOCKET:
+            {
+                int domain = sp.getParameter<0>();
+                int type = sp.getParameter<1>();
+                int protocol = sp.getParameter<2>();
+
+                int result = fileTable.socket(domain, type, protocol);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::BIND:
+            {
+                int fd = sp.getParameter<0>();
+                auto addr = reinterpret_cast<const struct sockaddr *>(sp.getParameter<1>());
+                unsigned len = sp.getParameter<2>();
+
+                if(!mpu.withinForReading(addr, len))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.bind(fd, addr, len);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::CONNECT:
+            {
+                int fd = sp.getParameter<0>();
+                auto addr = reinterpret_cast<const struct sockaddr *>(sp.getParameter<1>());
+                unsigned len = sp.getParameter<2>();
+
+                if(!mpu.withinForReading(addr, len))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.connect(fd, addr, len);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::LISTEN:
+            {
+                int fd = sp.getParameter<0>();
+                int backlog = sp.getParameter<1>();
+                int result = fileTable.listen(fd, backlog);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::ACCEPT:
+            {
+                int fd = sp.getParameter<0>();
+                auto addr = reinterpret_cast<struct sockaddr *>(sp.getParameter<1>());
+                auto len = reinterpret_cast<socklen_t *>(sp.getParameter<2>());
+
+                if((len!=nullptr && !mpu.withinForWriting(len, sizeof(socklen_t))) ||
+                   (addr!=nullptr && !mpu.withinForWriting(addr, *len)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.accept(fd, addr, len);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::GETSOCKNAME:
+            {
+                int fd = sp.getParameter<0>();
+                auto addr = reinterpret_cast<struct sockaddr *>(sp.getParameter<1>());
+                auto len = reinterpret_cast<socklen_t *>(sp.getParameter<2>());
+
+                if((len!=nullptr && !mpu.withinForWriting(len, sizeof(socklen_t))) ||
+                   (addr!=nullptr && !mpu.withinForWriting(addr, *len)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.getsockname(fd, addr, len);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::GETPEERNAME:
+            {
+                int fd = sp.getParameter<0>();
+                auto addr = reinterpret_cast<struct sockaddr *>(sp.getParameter<1>());
+                auto len = reinterpret_cast<socklen_t *>(sp.getParameter<2>());
+
+                if((len!=nullptr && !mpu.withinForWriting(len, sizeof(socklen_t))) ||
+                   (addr!=nullptr && !mpu.withinForWriting(addr, *len)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.getpeername(fd, addr, len);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::SEND:
+            {
+                int fd = sp.getParameter<0>();
+                auto buf = reinterpret_cast<const void *>(sp.getParameter<1>());
+                size_t size = sp.getParameter<2>();
+                int flags = sp.getParameter<3>();
+
+                if(!mpu.withinForReading(buf, size))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.send(fd, buf, size, flags);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::SENDTO:
+            {
+                int fd = sp.getParameter<0>();
+                auto buf = reinterpret_cast<const void *>(sp.getParameter<1>());
+                size_t size = sp.getParameter<2>();
+                int flags = sp.getParameter<3>();
+                // TODO: only up to 4 parameters are passed in registers
+                auto addr = reinterpret_cast<const struct sockaddr *>(sp.getParameter<4>());
+                socklen_t len = sp.getParameter<5>();
+
+                if(!mpu.withinForReading(buf, size) ||
+                   (addr!=nullptr && !mpu.withinForReading(addr, len)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.sendto(fd, buf, size, flags, addr, len);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::RECV:
+            {
+                int fd = sp.getParameter<0>();
+                auto buf = reinterpret_cast<void *>(sp.getParameter<1>());
+                size_t size = sp.getParameter<2>();
+                int flags = sp.getParameter<3>();
+
+                if(!mpu.withinForWriting(buf, size))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.recv(fd, buf, size, flags);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::RECVFROM:
+            {
+                int fd = sp.getParameter<0>();
+                auto buf = reinterpret_cast<void *>(sp.getParameter<1>());
+                size_t size = sp.getParameter<2>();
+                int flags = sp.getParameter<3>();
+                // TODO: only up to 4 parameters are passed in registers
+                auto addr = reinterpret_cast<struct sockaddr *>(sp.getParameter<4>());
+                auto len = reinterpret_cast<socklen_t *>(sp.getParameter<5>());
+
+                if((len!=nullptr && !mpu.withinForWriting(len, sizeof(socklen_t))) ||
+                   (addr!=nullptr && !mpu.withinForWriting(buf, size)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.recvfrom(fd, buf, size, flags, addr, len);
+                sp.setParameter<0>(result);
+                break;
+            }
+            
+            case Syscall::SHUTDOWN:
+            {
+                int fd = sp.getParameter<0>();
+                int how = sp.getParameter<1>();
+
+                int result = fileTable.shutdown(fd, how);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::SETSOCKOPT:
+            {
+                int fd = sp.getParameter<0>();
+                int level = sp.getParameter<1>();
+                int optname = sp.getParameter<2>();
+                // TODO: only up to 4 parameters are passed in registers
+                auto optval = reinterpret_cast<const void *>(sp.getParameter<3>());
+                socklen_t optlen = sp.getParameter<4>();
+
+                if((optval!=nullptr && !mpu.withinForReading(optval, optlen)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.setsockopt(fd, level, optname, optval, optlen);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::GETSOCKOPT:
+            {
+                int fd = sp.getParameter<0>();
+                int level = sp.getParameter<1>();
+                int optname = sp.getParameter<2>();
+                // TODO: only up to 4 parameters are passed in registers
+                auto optval = reinterpret_cast<void *>(sp.getParameter<3>());
+                auto optlen = reinterpret_cast<socklen_t *>(sp.getParameter<4>());
+
+                if((optlen!=nullptr && !mpu.withinForWriting(optlen, sizeof(socklen_t))) ||
+                   (optval!=nullptr && !mpu.withinForWriting(optval, *optlen)))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+
+                int result = fileTable.getsockopt(fd, level, optname, optval, optlen);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::SENDMSG:
+            {
+                int fd = sp.getParameter<0>();
+                auto msg = reinterpret_cast<const struct msghdr *>(sp.getParameter<1>());
+                int flags = sp.getParameter<2>();
+                // Check message header pointers
+                if(!mpu.withinForReading(msg, sizeof(struct msghdr)) ||
+                   (msg->msg_name!=nullptr && 
+                    !mpu.withinForReading(msg->msg_name, msg->msg_namelen)) ||
+                   (msg->msg_control!=nullptr && 
+                    !mpu.withinForReading(msg->msg_control, msg->msg_controllen)) ||
+                   (msg->msg_iov!=nullptr && 
+                    !mpu.withinForReading(msg->msg_iov, msg->msg_iovlen * sizeof(struct iovec))))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+                // Check the iovec array if present
+                if (msg->msg_iov != nullptr)
+                {
+                    for (msg_iovlen_t i = 0; i < msg->msg_iovlen; i++)
+                    {
+                        if (!mpu.withinForReading(msg->msg_iov[i].iov_base, 
+                                                    msg->msg_iov[i].iov_len))
+                        {
+                            sp.setParameter<0>(-EFAULT);
+                            break;
+                        }
+                    }
+                }
+                // All good, perform the sendmsg
+                int result = fileTable.sendmsg(fd, msg, flags);
+                sp.setParameter<0>(result);
+                break;
+            }
+
+            case Syscall::RECVMSG:
+            {
+                int fd = sp.getParameter<0>();
+                auto msg = reinterpret_cast<struct msghdr *>(sp.getParameter<1>());
+                int flags = sp.getParameter<2>();
+                // Check message header pointers
+                if(!mpu.withinForWriting(msg, sizeof(struct msghdr)) ||
+                   (msg->msg_name!=nullptr && 
+                    !mpu.withinForWriting(msg->msg_name, msg->msg_namelen)) ||
+                   (msg->msg_control!=nullptr && 
+                    !mpu.withinForWriting(msg->msg_control, msg->msg_controllen)) ||
+                   (msg->msg_iov!=nullptr && 
+                    !mpu.withinForReading(msg->msg_iov, msg->msg_iovlen * sizeof(struct iovec))))
+                {
+                    sp.setParameter<0>(-EFAULT);
+                    break;
+                }
+                // Check the iovec array if present
+                if (msg->msg_iov != nullptr)
+                {
+                    for (msg_iovlen_t i = 0; i < msg->msg_iovlen; i++)
+                    {
+                        if (!mpu.withinForWriting(msg->msg_iov[i].iov_base, 
+                                                    msg->msg_iov[i].iov_len))
+                        {
+                            sp.setParameter<0>(-EFAULT);
+                            break;
+                        }
+                    }
+                }
+                // All good, perform the recvmsg
+                int result = fileTable.recvmsg(fd, msg, flags);
+                sp.setParameter<0>(result);
+                break;
+            }
+            #else // WITH_NETWORKING
+            case Syscall::READV:
+            case Syscall::WRITEV:
+            case Syscall::SOCKET:
+            case Syscall::BIND:
+            case Syscall::CONNECT:
+            case Syscall::ACCEPT:
+            case Syscall::GETSOCKNAME:
+            case Syscall::GETPEERNAME:
+            case Syscall::SEND:
+            case Syscall::SENDTO:
+            case Syscall::RECV:
+            case Syscall::RECVFROM:
+            case Syscall::SHUTDOWN:
+            case Syscall::SETSOCKOPT:
+            case Syscall::GETSOCKOPT:
+            case Syscall::SENDMSG:
+            case Syscall::RECVMSG:
+            {
+                sp.setParameter<0>(-EINVAL);
+                break;
+            }
+            #endif // WITH_NETWORKING
 
             default:
                 exitCode=SIGSYS; //Bad syscall
