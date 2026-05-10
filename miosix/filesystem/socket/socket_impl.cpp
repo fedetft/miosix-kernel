@@ -210,9 +210,8 @@ static void sockaddr_to_ipaddr_port(const struct sockaddr *sockaddr, ip_addr_t *
 #define LWIP_SETGETSOCKOPT_DATA_VAR_ALLOC(name, sock) do { \
   name = (struct lwip_setgetsockopt_data *)memp_malloc(MEMP_SOCKET_SETGETSOCKOPT_DATA); \
   if (name == NULL) { \
-    set_errno(ENOMEM); \
     done_socket(sock); \
-    return -1; \
+    return -ENOMEM; \
   } }while(0)
 #else /* LWIP_MPU_COMPATIBLE */
 #define LWIP_SETGETSOCKOPT_DATA_VAR_ALLOC(name, sock)
@@ -527,14 +526,15 @@ int miosix::Socket::accept(intrusive_ref_ptr<Socket> pnewsock,
   if (err != ERR_OK) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_accept(%d): netconn_acept failed, err=%d\n", s, err));
     if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_TCP) {
-      set_errno(EOPNOTSUPP);
+      done_socket(sock);
+      return -EOPNOTSUPP;
     } else if (err == ERR_CLSD) {
-      set_errno(EINVAL);
+      done_socket(sock);
+      return -EINVAL;
     } else {
-      set_errno(err_to_errno(err));
+      done_socket(sock);
+      return -err_to_errno(err);
     }
-    done_socket(sock);
-    return -1;
   }
   LWIP_ASSERT("newconn != NULL", newconn != NULL);
 
@@ -545,9 +545,8 @@ int miosix::Socket::accept(intrusive_ref_ptr<Socket> pnewsock,
 
   if (false /* TODO: check fd creation success */) {
     netconn_delete(newconn);
-    set_errno(ENFILE);
     done_socket(sock);
-    return -1;
+    return -ENFILE;
   }
 
   /* Note that POSIX only requires us to check addr is non-NULL. addrlen must
@@ -560,9 +559,8 @@ int miosix::Socket::accept(intrusive_ref_ptr<Socket> pnewsock,
     if (err != ERR_OK) {
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_accept(%d): netconn_peer failed, err=%d\n", s, err));
       free_socket(newsock, 1);
-      set_errno(err_to_errno(err));
       done_socket(sock);
-      return -1;
+      return -err_to_errno(err);
     }
 
     IPADDR_PORT_TO_SOCKADDR(&tempaddr, &naddr, port);
@@ -599,7 +597,6 @@ int miosix::Socket::accept(intrusive_ref_ptr<Socket> pnewsock,
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_accept(%d) returning new sock=%d\n", s, newsock));
   }
 
-  set_errno(0);
   done_socket(sock);
   done_socket(newsock);
   return 0;
@@ -613,15 +610,14 @@ int miosix::Socket::bind(const struct sockaddr *name, socklen_t namelen)
 
   if (!SOCK_ADDR_TYPE_MATCH(name, sock)) {
     /* sockaddr does not match socket type (IPv4/IPv6) */
-    set_errno(err_to_errno(ERR_VAL));
     done_socket(sock);
-    return -1;
+    return -EINVAL;
   }
 
   /* check size, family and alignment of 'name' */
   LWIP_ERROR("lwip_bind: invalid address", (IS_SOCK_ADDR_LEN_VALID(namelen) &&
              IS_SOCK_ADDR_TYPE_VALID(name) && IS_SOCK_ADDR_ALIGNED(name)),
-             set_errno(err_to_errno(ERR_ARG)); done_socket(sock); return -1;);
+             done_socket(sock); return -EINVAL;);
   LWIP_UNUSED_ARG(namelen);
 
   SOCKADDR_TO_IPADDR_PORT(name, &local_addr, local_port);
@@ -641,13 +637,11 @@ int miosix::Socket::bind(const struct sockaddr *name, socklen_t namelen)
 
   if (err != ERR_OK) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_bind(%d) failed, err=%d\n", s, err));
-    set_errno(err_to_errno(err));
     done_socket(sock);
-    return -1;
+    return -err_to_errno(err);
   }
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_bind(%d) succeeded\n", s));
-  set_errno(0);
   done_socket(sock);
   return 0;
 }
@@ -678,13 +672,11 @@ void miosix::Socket::close()
 
   err = netconn_prepare_delete(sock->conn);
   if (err != ERR_OK) {
-    set_errno(err_to_errno(err));
     done_socket(sock);
     return;
   }
 
   free_socket(sock, is_tcp);
-  set_errno(0);
 }
 
 int miosix::Socket::connect(const struct sockaddr *name, socklen_t namelen)
@@ -693,9 +685,8 @@ int miosix::Socket::connect(const struct sockaddr *name, socklen_t namelen)
 
   if (!SOCK_ADDR_TYPE_MATCH_OR_UNSPEC(name, sock)) {
     /* sockaddr does not match socket type (IPv4/IPv6) */
-    set_errno(err_to_errno(ERR_VAL));
     done_socket(sock);
-    return -1;
+    return -EINVAL;
   }
 
   LWIP_UNUSED_ARG(namelen);
@@ -709,7 +700,7 @@ int miosix::Socket::connect(const struct sockaddr *name, socklen_t namelen)
     /* check size, family and alignment of 'name' */
     LWIP_ERROR("lwip_connect: invalid address", IS_SOCK_ADDR_LEN_VALID(namelen) &&
                IS_SOCK_ADDR_TYPE_VALID_OR_UNSPEC(name) && IS_SOCK_ADDR_ALIGNED(name),
-               set_errno(err_to_errno(ERR_ARG)); done_socket(sock); return -1;);
+               done_socket(sock); return -EINVAL;);
 
     SOCKADDR_TO_IPADDR_PORT(name, &remote_addr, remote_port);
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_connect(%d, addr=", s));
@@ -729,13 +720,11 @@ int miosix::Socket::connect(const struct sockaddr *name, socklen_t namelen)
 
   if (err != ERR_OK) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_connect(%d) failed, err=%d\n", s, err));
-    set_errno(err_to_errno(err));
     done_socket(sock);
-    return -1;
+    return -err_to_errno(err);
   }
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_connect(%d) succeeded\n", s));
-  set_errno(0);
   done_socket(sock);
   return 0;
 }
@@ -762,15 +751,14 @@ int miosix::Socket::listen(int backlog)
   if (err != ERR_OK) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_listen(%d) failed, err=%d\n", s, err));
     if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_TCP) {
-      set_errno(EOPNOTSUPP);
+      done_socket(sock);
+      return -EOPNOTSUPP;
     } else {
-      set_errno(err_to_errno(err));
+      done_socket(sock); 
+      return -err_to_errno(err);
     }
-    done_socket(sock);
-    return -1;
   }
 
-  set_errno(0);
   done_socket(sock);
   return 0;
 }
@@ -819,11 +807,10 @@ lwip_recv_tcp(struct lwip_sock *sock, void *mem, size_t len, int flags)
         /* We should really do some error checking here. */
         LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recv_tcp: p == NULL, error is \"%s\"!\n",
                                     lwip_strerr(err)));
-        set_errno(err_to_errno(err));
         if (err == ERR_CLSD) {
           return 0;
         } else {
-          return -1;
+          return -err_to_errno(err);
         }
       }
       LWIP_ASSERT("p != NULL", p != NULL);
@@ -877,7 +864,6 @@ lwip_recv_tcp_done:
     /* ensure window update after copying all data */
     netconn_tcp_recvd(sock->conn, (size_t)recvd);
   }
-  set_errno(0);
   return recvd;
 }
 #endif
@@ -1092,9 +1078,8 @@ miosix::Socket::recvfrom(void *mem, size_t len, int flags,
     if (err != ERR_OK) {
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvfrom[UDP/RAW](%d): buf == NULL, error is \"%s\"!\n",
                                   s, lwip_strerr(err)));
-      set_errno(err_to_errno(err));
       done_socket(sock);
-      return -1;
+      return -err_to_errno(err);
     }
     ret = (ssize_t)LWIP_MIN(LWIP_MIN(len, datagram_len), SSIZE_MAX);
     if (fromlen) {
@@ -1102,7 +1087,6 @@ miosix::Socket::recvfrom(void *mem, size_t len, int flags,
     }
   }
 
-  set_errno(0);
   done_socket(sock);
   return ret;
 }
@@ -1141,11 +1125,10 @@ ssize_t miosix::Socket::recvmsg(struct msghdr *message, int flags)
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvmsg(%d, message=%p, flags=0x%x)\n", s, (void *)message, flags));
   LWIP_ERROR("lwip_recvmsg: invalid message pointer", message != NULL, return ERR_ARG;);
   LWIP_ERROR("lwip_recvmsg: unsupported flags", (flags & ~(MSG_PEEK|MSG_DONTWAIT)) == 0,
-             set_errno(EOPNOTSUPP); return -1;);
+             return -EOPNOTSUPP;);
 
   if ((message->msg_iovlen <= 0) || (message->msg_iovlen > IOV_MAX)) {
-    set_errno(EMSGSIZE);
-    return -1;
+    return -EMSGSIZE;
   }
 
   /* check for valid vectors */
@@ -1154,9 +1137,8 @@ ssize_t miosix::Socket::recvmsg(struct msghdr *message, int flags)
     if ((message->msg_iov[i].iov_base == NULL) || ((ssize_t)message->msg_iov[i].iov_len <= 0) ||
         ((size_t)(ssize_t)message->msg_iov[i].iov_len != message->msg_iov[i].iov_len) ||
         ((ssize_t)(buflen + (ssize_t)message->msg_iov[i].iov_len) <= 0)) {
-      set_errno(err_to_errno(ERR_VAL));
       done_socket(sock);
-      return -1;
+      return -EINVAL;
     }
     buflen = (ssize_t)(buflen + (ssize_t)message->msg_iov[i].iov_len);
   }
@@ -1186,17 +1168,12 @@ ssize_t miosix::Socket::recvmsg(struct msghdr *message, int flags)
       /* pass MSG_DONTWAIT to lwip_recv_tcp() to prevent waiting for more data */
       recv_flags |= MSG_DONTWAIT;
     }
-    if (buflen > 0) {
-      /* reset socket error since we have received something */
-      set_errno(0);
-    }
     /* " If the socket is connected, the msg_name and msg_namelen members shall be ignored." */
     done_socket(sock);
     return buflen;
 #else /* LWIP_TCP */
-    set_errno(err_to_errno(ERR_ARG));
     done_socket(sock);
-    return -1;
+    return -EINVAL;
 #endif /* LWIP_TCP */
   }
   /* else, UDP and RAW NETCONNs */
@@ -1208,22 +1185,19 @@ ssize_t miosix::Socket::recvmsg(struct msghdr *message, int flags)
     if (err != ERR_OK) {
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_recvmsg[UDP/RAW](%d): buf == NULL, error is \"%s\"!\n",
                                   s, lwip_strerr(err)));
-      set_errno(err_to_errno(err));
       done_socket(sock);
-      return -1;
+      return -err_to_errno(err);
     }
     if (datagram_len > buflen) {
       message->msg_flags |= MSG_TRUNC;
     }
 
-    set_errno(0);
     done_socket(sock);
     return (int)datagram_len;
   }
 #else /* LWIP_UDP || LWIP_RAW */
-  set_errno(err_to_errno(ERR_ARG));
   done_socket(sock);
-  return -1;
+  return -EINVAL;
 #endif /* LWIP_UDP || LWIP_RAW */
 }
 
@@ -1254,10 +1228,9 @@ ssize_t miosix::Socket::send(const void *data, size_t size, int flags)
   err = netconn_write_partly(sock->conn, data, size, write_flags, &written);
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_send(%d) err=%d written=%"SZT_F"\n", s, err, written));
-  set_errno(err_to_errno(err));
   done_socket(sock);
   /* casting 'written' to ssize_t is OK here since the netconn API limits it to SSIZE_MAX */
-  return (err == ERR_OK ? (ssize_t)written : -1);
+  return (err == ERR_OK ? (ssize_t)written : -err_to_errno(err));
 }
 
 ssize_t miosix::Socket::sendmsg(const struct msghdr *msg, int flags)
@@ -1269,13 +1242,13 @@ ssize_t miosix::Socket::sendmsg(const struct msghdr *msg, int flags)
   err_t err = ERR_OK;
 
   LWIP_ERROR("lwip_sendmsg: invalid msghdr", msg != NULL,
-             set_errno(err_to_errno(ERR_ARG)); done_socket(sock); return -1;);
+             done_socket(sock); return -EINVAL;);
   LWIP_ERROR("lwip_sendmsg: invalid msghdr iov", msg->msg_iov != NULL,
-             set_errno(err_to_errno(ERR_ARG)); done_socket(sock); return -1;);
+             done_socket(sock); return -EINVAL;);
   LWIP_ERROR("lwip_sendmsg: maximum iovs exceeded", (msg->msg_iovlen > 0) && (msg->msg_iovlen <= IOV_MAX),
-             set_errno(EMSGSIZE); done_socket(sock); return -1;);
+             done_socket(sock); return -EMSGSIZE;);
   LWIP_ERROR("lwip_sendmsg: unsupported flags", (flags & ~(MSG_DONTWAIT | MSG_MORE)) == 0,
-             set_errno(EOPNOTSUPP); done_socket(sock); return -1;);
+             done_socket(sock); return -EOPNOTSUPP;);
 
   LWIP_UNUSED_ARG(msg->msg_control);
   LWIP_UNUSED_ARG(msg->msg_controllen);
@@ -1289,14 +1262,12 @@ ssize_t miosix::Socket::sendmsg(const struct msghdr *msg, int flags)
 
     written = 0;
     err = netconn_write_vectors_partly(sock->conn, (struct netvector *)msg->msg_iov, (u16_t)msg->msg_iovlen, write_flags, &written);
-    set_errno(err_to_errno(err));
     done_socket(sock);
     /* casting 'written' to ssize_t is OK here since the netconn API limits it to SSIZE_MAX */
-    return (err == ERR_OK ? (ssize_t)written : -1);
+    return (err == ERR_OK ? (ssize_t)written : -err_to_errno(err));
 #else /* LWIP_TCP */
-    set_errno(err_to_errno(ERR_ARG));
     done_socket(sock);
-    return -1;
+    return -EINVAL;
 #endif /* LWIP_TCP */
   }
   /* else, UDP and RAW NETCONNs */
@@ -1309,7 +1280,7 @@ ssize_t miosix::Socket::sendmsg(const struct msghdr *msg, int flags)
     LWIP_UNUSED_ARG(flags);
     LWIP_ERROR("lwip_sendmsg: invalid msghdr name", (((msg->msg_name == NULL) && (msg->msg_namelen == 0)) ||
                IS_SOCK_ADDR_LEN_VALID(msg->msg_namelen)),
-               set_errno(err_to_errno(ERR_ARG)); done_socket(sock); return -1;);
+               done_socket(sock); return -EINVAL;);
 
     /* initialize chain buffer with destination */
     memset(&chain_buf, 0, sizeof(struct netbuf));
@@ -1400,19 +1371,16 @@ ssize_t miosix::Socket::sendmsg(const struct msghdr *msg, int flags)
     /* deallocated the buffer */
     netbuf_free(&chain_buf);
 
-    set_errno(err_to_errno(err));
     done_socket(sock);
-    return (err == ERR_OK ? size : -1);
+    return (err == ERR_OK ? size : -err_to_errno(err));
 sendmsg_emsgsize:
-    set_errno(EMSGSIZE);
     netbuf_free(&chain_buf);
     done_socket(sock);
-    return -1;
+    return -EMSGSIZE;
   }
 #else /* LWIP_UDP || LWIP_RAW */
-  set_errno(err_to_errno(ERR_ARG));
   done_socket(sock);
-  return -1;
+  return -EINVAL;
 #endif /* LWIP_UDP || LWIP_RAW */
 }
 
@@ -1438,15 +1406,14 @@ ssize_t miosix::Socket::sendto(const void *data, size_t size, int flags,
 
   if (size > LWIP_MIN(0xFFFF, SSIZE_MAX)) {
     /* cannot fit into one datagram (at least for us) */
-    set_errno(EMSGSIZE);
     done_socket(sock);
-    return -1;
+    return -EMSGSIZE;
   }
   short_size = (u16_t)size;
   LWIP_ERROR("lwip_sendto: invalid address", (((to == NULL) && (tolen == 0)) ||
              (IS_SOCK_ADDR_LEN_VALID(tolen) &&
               ((to != NULL) && (IS_SOCK_ADDR_TYPE_VALID(to) && IS_SOCK_ADDR_ALIGNED(to))))),
-             set_errno(err_to_errno(ERR_ARG)); done_socket(sock); return -1;);
+             done_socket(sock); return -EINVAL;);
   LWIP_UNUSED_ARG(tolen);
 
   /* initialize a buffer */
@@ -1504,9 +1471,8 @@ ssize_t miosix::Socket::sendto(const void *data, size_t size, int flags,
   /* deallocated the buffer */
   netbuf_free(&buf);
 
-  set_errno(err_to_errno(err));
   done_socket(sock);
-  return (err == ERR_OK ? short_size : -1);
+  return (err == ERR_OK ? short_size : -err_to_errno(err));
 }
 
 int miosix::Socket::socket(int domain, int type, int protocol)
@@ -1544,14 +1510,12 @@ int miosix::Socket::socket(int domain, int type, int protocol)
     default:
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_socket(%d, %d/UNKNOWN, %d) = -1\n",
                                   domain, type, protocol));
-      set_errno(EINVAL);
-      return -1;
+      return -EINVAL;
   }
 
   if (!conn) {
     LWIP_DEBUGF(SOCKETS_DEBUG, ("-1 / ENOBUFS (could not create netconn)\n"));
-    set_errno(ENOBUFS);
-    return -1;
+    return -ENOBUFS;
   }
 
   // Assign the new netconn to this socket
@@ -1559,7 +1523,6 @@ int miosix::Socket::socket(int domain, int type, int protocol)
   netconn_set_callback_arg(this->sock->conn, this->sock);
 
   LWIP_DEBUGF(SOCKETS_DEBUG, ("%d\n", i));
-  set_errno(0);
   return 0;
 }
 
@@ -2486,14 +2449,12 @@ int miosix::Socket::shutdown(int how)
 
   if (sock->conn != NULL) {
     if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_TCP) {
-      set_errno(EOPNOTSUPP);
       done_socket(sock);
-      return -1;
+      return -EOPNOTSUPP;
     }
   } else {
-    set_errno(ENOTCONN);
     done_socket(sock);
-    return -1;
+    return -ENOTCONN;
   }
 
   if (how == SHUT_RD) {
@@ -2504,15 +2465,13 @@ int miosix::Socket::shutdown(int how)
     shut_rx = 1;
     shut_tx = 1;
   } else {
-    set_errno(EINVAL);
     done_socket(sock);
-    return -1;
+    return -EINVAL;
   }
   err = netconn_shutdown(sock->conn, shut_rx, shut_tx);
 
-  set_errno(err_to_errno(err));
   done_socket(sock);
-  return (err == ERR_OK ? 0 : -1);
+  return (err == ERR_OK ? 0 : -err_to_errno(err));
 }
 
 static int
@@ -2526,9 +2485,8 @@ lwip_getaddrname(struct lwip_sock* sock, struct sockaddr *name, socklen_t *namel
   /* get the IP address and port */
   err = netconn_getaddr(sock->conn, &naddr, &port, local);
   if (err != ERR_OK) {
-    set_errno(err_to_errno(err));
     done_socket(sock);
-    return -1;
+    return -err_to_errno(err);
   }
 
 #if LWIP_IPV4 && LWIP_IPV6
@@ -2551,7 +2509,6 @@ lwip_getaddrname(struct lwip_sock* sock, struct sockaddr *name, socklen_t *namel
   }
   MEMCPY(name, &saddr, *namelen);
 
-  set_errno(0);
   done_socket(sock);
   return 0;
 }
@@ -2575,9 +2532,8 @@ int miosix::Socket::getsockopt(int level, int optname, void *optval, socklen_t *
 #endif /* !LWIP_TCPIP_CORE_LOCKING */
 
   if ((NULL == optval) || (NULL == optlen)) {
-    set_errno(EFAULT);
     done_socket(sock);
-    return -1;
+    return -EFAULT;
   }
 
 #if LWIP_TCPIP_CORE_LOCKING
@@ -2632,9 +2588,8 @@ int miosix::Socket::getsockopt(int level, int optname, void *optval, socklen_t *
   LWIP_SETGETSOCKOPT_DATA_VAR_FREE(data);
 #endif /* LWIP_TCPIP_CORE_LOCKING */
 
-  set_errno(err);
   done_socket(sock);
-  return err ? -1 : 0;
+  return err ? -err : 0;
 }
 
 #if !LWIP_TCPIP_CORE_LOCKING
@@ -3055,9 +3010,8 @@ int miosix::Socket::setsockopt(int level, int optname, const void *optval, sockl
 #endif /* !LWIP_TCPIP_CORE_LOCKING */
 
   if (NULL == optval) {
-    set_errno(EFAULT);
     done_socket(sock);
-    return -1;
+    return -EFAULT;
   }
 
 #if LWIP_TCPIP_CORE_LOCKING
@@ -3107,9 +3061,8 @@ int miosix::Socket::setsockopt(int level, int optname, const void *optval, sockl
   LWIP_SETGETSOCKOPT_DATA_VAR_FREE(data);
 #endif  /* LWIP_TCPIP_CORE_LOCKING */
 
-  set_errno(err);
   done_socket(sock);
-  return err ? -1 : 0;
+  return err ? -err : 0;
 }
 
 #if !LWIP_TCPIP_CORE_LOCKING
@@ -3579,9 +3532,8 @@ miosix::Socket::ioctl(int cmd, void *argp)
 #if LWIP_SO_RCVBUF || LWIP_FIONREAD_LINUXMODE
     case FIONREAD:
       if (!argp) {
-        set_errno(EINVAL);
         done_socket(sock);
-        return -1;
+        return -EINVAL;
       }
 #if LWIP_FIONREAD_LINUXMODE
       if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) != NETCONN_TCP) {
@@ -3622,7 +3574,6 @@ miosix::Socket::ioctl(int cmd, void *argp)
       *((int *)argp) = recv_avail;
 
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_ioctl(%d, FIONREAD, %p) = %"U16_F"\n", s, argp, *((u16_t *)argp)));
-      set_errno(0);
       done_socket(sock);
       return 0;
 #else /* LWIP_SO_RCVBUF */
@@ -3637,7 +3588,6 @@ miosix::Socket::ioctl(int cmd, void *argp)
       }
       netconn_set_nonblocking(sock->conn, val);
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_ioctl(%d, FIONBIO, %d)\n", s, val));
-      set_errno(0);
       done_socket(sock);
       return 0;
 
@@ -3645,9 +3595,8 @@ miosix::Socket::ioctl(int cmd, void *argp)
       break;
   } /* switch (cmd) */
   LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_ioctl(%d, UNIMPL: 0x%lx, %p)\n", s, cmd, argp));
-  set_errno(ENOSYS); /* not yet implemented */
   done_socket(sock);
-  return -1;
+  return -ENOSYS; /* not yet implemented */
 }
 
 /** A minimal implementation of fcntl.
@@ -3664,7 +3613,6 @@ miosix::Socket::fcntl(int cmd, int val)
   switch (cmd) {
     case F_GETFL:
       ret = netconn_is_nonblocking(sock->conn) ? O_NONBLOCK : 0;
-      set_errno(0);
 
       if (NETCONNTYPE_GROUP(netconn_type(sock->conn)) == NETCONN_TCP) {
 #if LWIP_TCPIP_CORE_LOCKING
@@ -3705,14 +3653,13 @@ miosix::Socket::fcntl(int cmd, int val)
         /* only O_NONBLOCK, all other bits are zero */
         netconn_set_nonblocking(sock->conn, val & O_NONBLOCK);
         ret = 0;
-        set_errno(0);
       } else {
-        set_errno(ENOSYS); /* not yet implemented */
+        ret = -ENOSYS; /* not yet implemented */
       }
       break;
     default:
       LWIP_DEBUGF(SOCKETS_DEBUG, ("lwip_fcntl(%d, UNIMPL: %d, %d)\n", s, cmd, val));
-      set_errno(ENOSYS); /* not yet implemented */
+      ret = -ENOSYS; /* not yet implemented */
       break;
   }
   done_socket(sock);
@@ -3739,7 +3686,7 @@ lwip_inet_ntop(int af, const void *src, char *dst, socklen_t size)
   const char *ret = NULL;
   int size_int = (int)size;
   if (size_int < 0) {
-    set_errno(ENOSPC);
+    //set_errno(ENOSPC);
     return NULL;
   }
   switch (af) {
@@ -3747,7 +3694,7 @@ lwip_inet_ntop(int af, const void *src, char *dst, socklen_t size)
     case AF_INET:
       ret = ip4addr_ntoa_r((const ip4_addr_t *)src, dst, size_int);
       if (ret == NULL) {
-        set_errno(ENOSPC);
+        //set_errno(ENOSPC);
       }
       break;
 #endif
@@ -3760,7 +3707,7 @@ lwip_inet_ntop(int af, const void *src, char *dst, socklen_t size)
       break;
 #endif
     default:
-      set_errno(EAFNOSUPPORT);
+      //set_errno(EAFNOSUPPORT);
       break;
   }
   return ret;
@@ -3790,7 +3737,7 @@ lwip_inet_pton(int af, const char *src, void *dst)
 #endif
     default:
       err = -1;
-      set_errno(EAFNOSUPPORT);
+      //set_errno(EAFNOSUPPORT);
       break;
   }
   return err;
