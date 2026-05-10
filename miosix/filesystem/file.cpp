@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include "file_access.h"
 #include "miosix_settings.h"
+#include "socket/socket.h"
 
 using namespace std;
 
@@ -81,6 +82,105 @@ int FileBase::getdents(void *dp, int len)
 {
     return -EBADF;
 }
+
+#ifdef WITH_NETWORKING
+
+ssize_t FileBase::readv(const struct iovec *iov, int iovcnt)
+{
+    return -EOPNOTSUPP; // Currently not supported on non-socket files
+}
+
+ssize_t FileBase::writev(const struct iovec *iov, int iovcnt)
+{
+    return -EOPNOTSUPP; // Currently not supported on non-socket files
+}
+
+int FileBase::socket(int domain, int type, int protocol)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::bind(const struct sockaddr *name, socklen_t namelen)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::connect(const struct sockaddr *name, socklen_t namelen)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::listen(int backlog)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::accept(intrusive_ref_ptr<Socket> newsock,
+                     struct sockaddr *addr, socklen_t *addrlen)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::getsockname(struct sockaddr *name, socklen_t *namelen)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::getpeername(struct sockaddr *name, socklen_t *namelen)
+{
+    return -ENOTSOCK;
+}
+
+ssize_t FileBase::send(const void *dataptr, size_t size, int flags)
+{
+    return -ENOTSOCK;
+}
+
+ssize_t FileBase::sendto(const void *dataptr, size_t size, int flags,
+                         const struct sockaddr *to, socklen_t tolen)
+{
+    return -ENOTSOCK;
+}
+
+ssize_t FileBase::recv(void *mem, size_t len, int flags)
+{
+    return -ENOTSOCK;
+}
+
+ssize_t FileBase::recvfrom(void *mem, size_t len, int flags, 
+                           struct sockaddr *from, socklen_t *fromlen)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::shutdown(int how)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::setsockopt(int level, int optname, const void *optval, 
+                         socklen_t optlen)
+{
+    return -ENOTSOCK;
+}
+
+int FileBase::getsockopt(int level, int optname, void *optval,
+                         socklen_t *optlen)
+{
+    return -ENOTSOCK;
+}
+
+ssize_t FileBase::sendmsg(const struct msghdr *message, int flags)
+{
+    return -ENOTSOCK;
+}
+
+ssize_t FileBase::recvmsg(struct msghdr *message, int flags)
+{
+    return -ENOTSOCK;
+}
+
+#endif //WITH_NETWORKING
 
 MemoryMappedFile FileBase::getFileFromMemory()
 {

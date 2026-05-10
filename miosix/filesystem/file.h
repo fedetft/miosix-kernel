@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include "socket/sys/socket.h"
 #include "kernel/intrusive.h"
 #include "miosix_settings.h"
 
@@ -38,6 +39,7 @@ namespace miosix {
 // Forward decls
 class FilesystemBase;
 class StringPart;
+class Socket;
 
 /**
  * Return value of FileBase::getFileFromMemory()
@@ -162,7 +164,7 @@ public:
      * \return the exact return value depends on CMD, -1 is returned on error
      */
     virtual int ioctl(int cmd, void *arg);
-    
+
     /**
      * Also directories can be opened as files. In this case, this system call
      * allows to retrieve directory entries.
@@ -173,6 +175,190 @@ public:
      * failure.
      */
     virtual int getdents(void *dp, int len);
+
+    #ifdef WITH_NETWORKING
+
+    /**
+     * Read data into multiple buffers
+     * \param iov array of iovec structures describing the buffers where the
+     * received message will be stored
+     * \param iovcnt number of elements in the iov array
+     * \param flags receive flags
+     * \return the number of bytes received, or a negative number on failure
+     */
+    ssize_t readv(const struct iovec *iov, int iovcnt);
+
+    /**
+     * Write data from multiple buffers
+     * \param iov array of iovec structures describing the buffers containing
+     * the message to send
+     * \param iovcnt number of elements in the iov array
+     * \param flags send flags
+     * \return the number of bytes sent, or a negative number on failure
+     */
+    ssize_t writev(const struct iovec *iov, int iovcnt);
+
+    /**
+     * Create a socket
+     * \param domain communication domain
+     * \param type socket type
+     * \param protocol protocol to be used with the socket
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int socket(int domain, int type, int protocol);
+
+    /**
+     * Bind a socket to an address
+     * \param name pointer to a sockaddr structure containing the address to
+     * bind to
+     * \param namelen length of the supplied sockaddr structure
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int bind(const struct sockaddr *name, socklen_t namelen);
+
+    /**
+     * Connect a socket to an address
+     * \param name pointer to a sockaddr structure containing the address to
+     * connect to
+     * \param namelen length of the supplied sockaddr structure
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int connect(const struct sockaddr *name, socklen_t namelen);
+
+    /**
+     * Listen for connections on a socket
+     * \param backlog maximum length of the queue of pending connections
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int listen(int backlog);
+
+    /**
+     * Accept a connection on a socket
+     * \param newsock Socket object for the accepted socket
+     * \param addr pointer to a sockaddr structure where the address of the
+     * connecting socket shall be returned, can be null
+     * \param addrlen pointer to length of supplied sockaddr object on input,
+     * length of the stored address on output, can be null if addr is null
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int accept(intrusive_ref_ptr<Socket> newsock,
+                       struct sockaddr *addr, socklen_t *addrlen);
+
+    /**
+     * Get the address of the socket itself
+     * \param name pointer to a sockaddr structure where the address of the
+     * socket shall be returned
+     * \param namelen pointer to length of supplied sockaddr object on input,
+     * length of the stored address on output
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int getsockname(struct sockaddr *name, socklen_t *namelen);
+
+    /**
+     * Get the address of the peer connected to a socket
+     * \param name pointer to a sockaddr structure where the address of the peer
+     * socket shall be returned
+     * \param namelen pointer to length of supplied sockaddr object on input,
+     * length of the stored address on output
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int getpeername(struct sockaddr *name, socklen_t *namelen);
+
+    /**
+     * Send a message on a socket
+     * \param dataptr pointer to the message to send
+     * \param size length of the message to send
+     * \param flags send flags
+     * \return the number of bytes sent, or a negative number on failure
+     */
+    virtual ssize_t send(const void *dataptr, size_t size, int flags);
+
+    /**
+     * Send a message on a socket, to a specific destination
+     * \param dataptr pointer to the message to send
+     * \param size length of the message to send
+     * \param flags send flags
+     * \param to pointer to a sockaddr structure containing the destination
+     * address
+     * \param tolen length of the supplied sockaddr structure
+     * \return the number of bytes sent, or a negative number on failure
+     */
+    virtual ssize_t sendto(const void *dataptr, size_t size, int flags,
+                           const struct sockaddr *to, socklen_t tolen);
+
+    /**
+     * Receive a message from a socket
+     * \param mem buffer where the received message will be stored
+     * \param len length of the supplied buffer
+     * \param flags receive flags
+     * \return the number of bytes received, or a negative number on failure
+     */
+    virtual ssize_t recv(void *mem, size_t len, int flags);
+
+    /**
+     * Receive a message from a socket, and store the source address
+     * \param mem buffer where the received message will be stored
+     * \param len length of the supplied buffer
+     * \param flags receive flags
+     * \param from pointer to a sockaddr structure where the source address will
+     * be stored, can be null if not interested in the source address
+     * \param fromlen pointer to length of supplied sockaddr object on input,
+     * length of the stored address on output, can be null if from is null
+     * \return the number of bytes received, or a negative number on failure
+     */
+    virtual ssize_t recvfrom(void *mem, size_t len, int flags,
+                             struct sockaddr *from, socklen_t *fromlen);
+
+    /**
+     * Shut down part of a full-duplex connection on a socket
+     * \param how specifies what to shut down
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int shutdown(int how);
+
+    /**
+     * Set the value of a socket option
+     * \param level protocol level of the option
+     * \param optname option name
+     * \param optval pointer to the buffer containing the option value
+     * \param optlen length of the supplied buffer
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int setsockopt(int level, int optname, const void *optval,
+                   socklen_t optlen);
+
+    /**
+     * Get the value of a socket option
+     * \param level protocol level of the option
+     * \param optname option name
+     * \param optval pointer to the buffer where the option value will be
+     * returned
+     * \param optlen pointer to the length of the supplied buffer
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int getsockopt(int level, int optname, void *optval, 
+                           socklen_t *optlen);
+
+    /**
+     * Send a message on a socket, to a specific destination
+     * \param message pointer to an msghdr structure describing the message to
+     * send and the destination address
+     * \param flags send flags
+     * \return the number of bytes sent, or a negative number on failure
+     */
+    virtual ssize_t sendmsg(const struct msghdr *message, int flags);
+
+    /**
+     * Receive a message from a socket, and store the source address and
+     * ancillary data
+     * \param message pointer to an msghdr structure describing the message to
+     * receive, and where to store the source address and ancillary data
+     * \param flags receive flags
+     * \return the number of bytes received, or a negative number on failure
+     */   
+    virtual ssize_t recvmsg(struct msghdr *message, int flags);
+
+    #endif //WITH_NETWORKING
 
     /**
      * For filesystems whose backing storage is memory-mapped and additionally

@@ -40,6 +40,7 @@
 #include "kernel/intrusive.h"
 #include "kernel/thread.h"
 #include "miosix_settings.h"
+#include "socket/sys/socket.h" // TODO: replace with sys/socket.h when available
 
 #ifdef WITH_FILESYSTEM
 
@@ -367,6 +368,270 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     int pipe(int fds[2]);
+
+    #ifdef WITH_NETWORKING
+
+    /**
+     * Read data into multiple buffers
+     * \param iov array of iovec structures describing the buffers where the
+     * received message will be stored
+     * \param iovcnt number of elements in the iov array
+     * \param flags receive flags
+     * \return the number of bytes received, or a negative number on failure
+     */
+    ssize_t readv(int fd, const struct iovec *iov, int iovcnt)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->readv(iov,iovcnt);
+    }
+
+    /**
+     * Write data from multiple buffers
+     * \param iov array of iovec structures describing the buffers containing
+     * the message to send
+     * \param iovcnt number of elements in the iov array
+     * \param flags send flags
+     * \return the number of bytes sent, or a negative number on failure
+     */
+    ssize_t writev(int fd, const struct iovec *iov, int iovcnt)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->writev(iov,iovcnt);
+    }
+
+    /**
+     * Create a socket
+     * \param domain communication domain
+     * \param type socket type
+     * \param protocol protocol to be used with the socket
+     * \return the new file descriptor of the created socket, or a negative
+     * number on failure
+     */
+    int socket(int domain, int type, int protocol);
+
+    /**
+     * Bind a socket to an address
+     * \param name pointer to a sockaddr structure containing the address to
+     * bind to
+     * \param namelen length of the supplied sockaddr structure
+     * \return 0 on success, or a negative number on failure
+     */
+    int bind(int fd, const struct sockaddr *name, socklen_t namelen)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->bind(name,namelen);
+    }
+
+    /**
+     * Connect a socket to an address
+     * \param name pointer to a sockaddr structure containing the address to 
+     * connect to
+     * \param namelen length of the supplied sockaddr structure
+     * \return 0 on success, or a negative number on failure
+     */
+    int connect(int fd, const struct sockaddr *name, socklen_t namelen)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->connect(name,namelen);
+    }
+
+    /**
+     * Listen for connections on a socket
+     * \param backlog maximum length of the queue of pending connections
+     * \return 0 on success, or a negative number on failure
+     */
+    int listen(int fd, int backlog)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->listen(backlog);
+    }
+
+    /**
+     * Accept a connection on a socket
+     * \param addr pointer to a sockaddr structure where the address of the 
+     * connecting socket shall be returned, can be null
+     * \param addrlen pointer to length of supplied sockaddr object on input,
+     * length of the stored address on output, can be null if addr is null
+     * \return the new file descriptor of the accepted socket, or a negative
+     * number on failure
+     */
+    int accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
+
+    /**
+     * Get the address of the socket itself
+     * \param name pointer to a sockaddr structure where the address of the 
+     * socket shall be returned
+     * \param namelen pointer to length of supplied sockaddr object on input,
+     * length of the stored address on output
+     * \return 0 on success, or a negative number on failure
+     */
+    int getsockname(int fd, struct sockaddr *name, socklen_t *namelen)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->getsockname(name,namelen);
+    }
+
+    /**
+     * Get the address of the peer connected to a socket
+     * \param name pointer to a sockaddr structure where the address of the peer
+     * socket shall be returned
+     * \param namelen pointer to length of supplied sockaddr object on input,
+     * length of the stored address on output
+     * \return 0 on success, or a negative number on failure
+     */
+    int getpeername(int fd, struct sockaddr *name, socklen_t *namelen)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->getpeername(name,namelen);
+    }
+
+    /**
+     * Send a message on a socket
+     * \param dataptr pointer to the message to send
+     * \param size length of the message to send
+     * \param flags send flags
+     * \return the number of bytes sent, or a negative number on failure
+     */
+    ssize_t send(int fd, const void *dataptr, size_t size, int flags)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->send(dataptr,size,flags);
+    }
+
+    /**
+     * Send a message on a socket, to a specific destination
+     * \param dataptr pointer to the message to send
+     * \param size length of the message to send
+     * \param flags send flags
+     * \param to pointer to a sockaddr structure containing the destination
+     * address
+     * \param tolen length of the supplied sockaddr structure
+     * \return the number of bytes sent, or a negative number on failure
+     */
+    ssize_t sendto(int fd, const void *dataptr, size_t size, int flags,
+                   const struct sockaddr *to, socklen_t tolen)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->sendto(dataptr,size,flags,to,tolen);
+    }
+
+    /**
+     * Receive a message from a socket
+     * \param mem buffer where the received message will be stored
+     * \param len length of the supplied buffer
+     * \param flags receive flags
+     * \return the number of bytes received, or a negative number on failure
+     */
+    ssize_t recv(int fd, void *mem, size_t len, int flags)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->recv(mem,len,flags);
+    }
+
+    /**
+     * Receive a message from a socket, and store the source address
+     * \param mem buffer where the received message will be stored
+     * \param len length of the supplied buffer
+     * \param flags receive flags
+     * \param from pointer to a sockaddr structure where the source address will
+     * be stored, can be null if not interested in the source address
+     * \param fromlen pointer to length of supplied sockaddr object on input,
+     * length of the stored address on output, can be null if from is null
+     * \return the number of bytes received, or a negative number on failure
+     */
+    ssize_t recvfrom(int fd, void *mem, size_t len, int flags, 
+                     struct sockaddr *from, socklen_t *fromlen)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->recvfrom(mem,len,flags,from,fromlen);
+    }
+
+    /**
+     * Shut down part of a full-duplex connection on a socket
+     * \param how specifies what to shut down
+     * \return 0 on success, or a negative number on failure
+     */
+    int shutdown(int fd, int how)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->shutdown(how);
+    }
+
+    /**
+     * Set the value of a socket option
+     * \param level protocol level of the option
+     * \param optname option name
+     * \param optval pointer to the buffer containing the option value
+     * \param optlen length of the supplied buffer
+     * \return 0 on success, or a negative number on failure
+     */
+    int setsockopt(int fd, int level, int optname, const void *optval,
+                   socklen_t optlen)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->setsockopt(level,optname,optval,optlen);
+    }
+
+    /**
+     * Get the value of a socket option
+     * \param level protocol level of the option
+     * \param optname option name
+     * \param optval pointer to the buffer where the option value will be 
+     * returned
+     * \param optlen pointer to the length of the supplied buffer
+     * \return 0 on success, or a negative number on failure
+     */
+    int getsockopt(int fd, int level, int optname, void *optval, 
+                   socklen_t *optlen)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->getsockopt(level,optname,optval,optlen);
+    }
+
+    /**
+     * Send a message on a socket, to a specific destination
+     * \param message pointer to an msghdr structure describing the message to
+     * send and the destination address
+     * \param flags send flags
+     * \return the number of bytes sent, or a negative number on failure
+     */
+    ssize_t sendmsg(int fd, const struct msghdr *message, int flags)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->sendmsg(message,flags);
+    }
+
+    /**
+     * Receive a message from a socket, and store the source address and
+     * ancillary data
+     * \param message pointer to an msghdr structure describing the message to
+     * receive, and where to store the source address and ancillary data
+     * \param flags receive flags
+     * \return the number of bytes received, or a negative number on failure
+     */   
+    ssize_t recvmsg(int fd, struct msghdr *message, int flags)
+    {
+        intrusive_ref_ptr<FileBase> file=getFile(fd);
+        if(!file) return -EBADF;
+        return file->recvmsg(message,flags);
+    }
+
+    #endif //WITH_NETWORKING
     
     /**
      * Retrieves an entry in the file descriptor table

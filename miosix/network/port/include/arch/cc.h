@@ -39,6 +39,26 @@ extern "C" {
 /* Use the system provided errno */
 #define LWIP_ERRNO_STDINCLUDE 1
 
+// TODO: implement good source of random to LWIP_RAND()
+
+// TODO: byte order swap functions
+/*
+#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS
+
+// Include the impl header directly to facilitate inlining
+#include <interfaces-impl/endianness_impl.h>
+
+#ifndef lwip_htons
+u16_t lwip_htons(u16_t x);
+#endif
+#define lwip_ntohs(x) lwip_htons(x)
+
+#ifndef lwip_htonl
+u32_t lwip_htonl(u32_t x);
+#endif
+#define lwip_ntohl(x) lwip_htonl(x)
+*/
+
 #ifdef __cplusplus
 }
 #endif

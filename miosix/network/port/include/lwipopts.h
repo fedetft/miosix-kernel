@@ -39,7 +39,7 @@
 #define LWIP_IPV6                  0
 
 #define NO_SYS                     0
-#define LWIP_SOCKET                (NO_SYS==0)
+#define LWIP_SOCKET                0 /* Use Miosix socket implementation */
 #define LWIP_NETCONN               (NO_SYS==0)
 #define LWIP_NETIF_API             (NO_SYS==0)
 #define LWIP_TIMERS                1
@@ -64,10 +64,15 @@
 
 #define TCP_LISTEN_BACKLOG         1
 
-#define LWIP_COMPAT_SOCKETS        1
-#define LWIP_SO_RCVTIMEO           1
-#define LWIP_SO_RCVBUF             1
-#define SO_REUSE                   1
+#define LWIP_SOCKET_EXTERNAL_HEADERS    0
+#define LWIP_SOCKET_EXTERNAL_HEADER_SOCKETS_H <sys/sockets.h>
+#define LWIP_COMPAT_SOCKETS             0
+#define LWIP_POSIX_SOCKETS_IO_NAME      0
+#define LWIP_SOCKET_SELECT              0
+#define LWIP_SOCKET_POLL                0
+#define LWIP_SO_RCVTIMEO                1
+#define LWIP_SO_RCVBUF                  1
+#define SO_REUSE                        1
 
 #define TCPIP_MBOX_SIZE            16
 #define DEFAULT_ACCEPTMBOX_SIZE    16
