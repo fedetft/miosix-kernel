@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "edf_scheduler.h"
+#include "debugger/debugger.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
@@ -312,6 +313,7 @@ void EDFScheduler::IRQrunScheduler()
     //Otherwise, run idle
     if(next==nullptr) next=idle[coreId];
 
+    BreakpointUnit::IRQhandleResched((Thread*) unningThreads[coreId], next);
     runningThreads[coreId]=next;
     #ifdef WITH_PROCESSES
     if(next->flags.isInUserspace()==false)

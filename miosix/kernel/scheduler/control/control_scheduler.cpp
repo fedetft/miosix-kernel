@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "control_scheduler.h"
+#include "debugger/debugger.h"
 #include "kernel/scheduler/scheduler.h"
 #include "kernel/error.h"
 #include "kernel/process.h"
@@ -206,6 +207,7 @@ void ControlScheduler::IRQrunScheduler()
                 //threads from threadList, so it can invalidate iterators
                 //to any element except theadList.end()
                 curInRound=nullptr;
+                BreakpointUnit::IRQhandleResched((Thread*)runningThreads[0], idle);
                 runningThreads[0]=idle;
                 ctxsave[0]=runningThreads[0]->ctxsave;
                 #ifdef WITH_PROCESSES
@@ -228,6 +230,7 @@ void ControlScheduler::IRQrunScheduler()
         if(curInRound->flags.isReady())
         {
             //Found a READY thread, so run this one
+            BreakpointUnit::IRQhandleResched((Thread*)runningThreads[0], curInRound);
             runningThreads[0]=curInRound;
             #ifdef WITH_PROCESSES
             if(const_cast<Thread*>(runningThreads[0])->flags.isInUserspace()==false)
@@ -608,6 +611,7 @@ void ControlScheduler::IRQrunScheduler()
                 //threads from threadList, so it can invalidate iterators
                 //to any element except theadList.end()
                 curInRound=activeThreads.end();
+                BreakpointUnit::IRQhandleResched((Thread*)runningThreads[0], idle);
                 runningThreads[0]=idle;
                 ctxsave[0]=runningThreads[0]->ctxsave;
                 #ifdef WITH_PROCESSES
@@ -629,6 +633,7 @@ void ControlScheduler::IRQrunScheduler()
 
         if((*curInRound)->t->flags.isReady())
         {
+            BreakpointUnit::IRQhandleResched((Thread*)runningThreads[0], (*curInRound)->t);
             //Found a READY thread, so run this one
             runningThreads[0]=(*curInRound)->t;
             #ifdef WITH_PROCESSES

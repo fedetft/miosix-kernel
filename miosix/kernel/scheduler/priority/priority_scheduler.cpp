@@ -260,9 +260,7 @@ void PriorityScheduler::IRQrunScheduler()
         Thread *t=readyThreads[prio].front();
         readyThreads[prio].pop_front(); //Remove selected thread from list
         #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
-        #ifdef PROCESS_DEBUGGER
-        Thread* prevThread = (Thread*)runningThreads[coreId];
-        #endif
+        BreakpointUnit::IRQhandleResched((Thread*)runningThreads[coreId], t);
         runningThreads[coreId]=t;
         #ifdef WITH_PROCESSES
         if(t->flags.isInUserspace()==false)
@@ -277,23 +275,6 @@ void PriorityScheduler::IRQrunScheduler()
         #else //WITH_PROCESSES
         ctxsave[coreId]=t->ctxsave;
         #endif //WITH_PROCESSES
-        #ifdef PROCESS_DEBUGGER
-        if (prevThread->flags.isInUserspace() == true
-        && reinterpret_cast<Process*>(prevThread->getProcess()) == Debugger::attached.process)
-            // Thread switching out of context has a pending exception: must be
-            // restored later
-            if (debugMonitorPendGet()) prevThread->debugStatus = DebugStatus::PEND;
-        if (t->flags.isInUserspace() == true
-        && reinterpret_cast<Process*>(t->getProcess()) == Debugger::attached.process) {
-            // Scheduling attached process in userspace: configure local
-            // breakpoints
-            // breakpointUnit
-            BreakpointUnit::IRQsyncLocal(t);
-        } else {
-            // Some other thread or attached in kernelspace: disable breakpoints
-            BreakpointUnit::IRQdisableLocal();
-        }
-        #endif //PROCESS_DEBUGGER
         #ifndef WITH_CPU_TIME_COUNTER
         Scheduler::IRQcomputePreemption(coreId,MAX_TIME_SLICE);
         #else //WITH_CPU_TIME_COUNTER

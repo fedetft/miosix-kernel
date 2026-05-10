@@ -341,12 +341,7 @@ private:
     friend class Process;
     //Needs attached
     friend class Thread;
-    #ifdef SCHED_TYPE_PRIORITY
-    //Needs attached
-    friend class PriorityScheduler;
-    #else
-    #error Current scheduler is not configured for process debugger
-    #endif
+    friend class BreakpointUnit;
 
     void recvPacket();
     void sendPacket();
@@ -624,7 +619,6 @@ public:
             clearDirtyBit(coreId);
         }
     }
-    #endif
 
     static inline void IRQdisableLocal() {
         // Disable DebugMon_handler, ignores step and dwt
@@ -634,6 +628,43 @@ public:
         // clear pending debugmonitor events
         debugMonitorPendClear();
     }
+
+    static inline void IRQhandleResched(Thread* prev, Thread* next) {
+        if (prev->flags.isInUserspace() == true
+        && reinterpret_cast<Process*>(prev->getProcess()) == Debugger::attached.process)
+            // Thread switching out of context has a pending exception: must be
+            // restored later
+            if (debugMonitorPendGet()) prev->debugStatus = DebugStatus::PEND;
+
+        if (next->flags.isInUserspace() == true
+        && reinterpret_cast<Process*>(next->getProcess()) == Debugger::attached.process) {
+            // Scheduling attached process in userspace: configure local
+            // breakpoints
+            // breakpointUnit
+            BreakpointUnit::IRQsyncLocal(next);
+        } else {
+            // Some other thread or attached in kernelspace: disable breakpoints
+            BreakpointUnit::IRQdisableLocal();
+        }
+    }
+
+    // NOTE: This is a reminder to add BreakpointUnit handler in a user-defined
+    // scheduler
+    // - Call BreakpointUnit::IRQhandleResched(prev, next) inside
+    //   IRQrunScheduler passing pointers to the previously scheduled thread and
+    //   the next scheduled thread
+    // - Add scheduler guard definition below to suppress error message
+
+    #if (defined(SCHED_TYPE_PRIORITY))\
+     || (defined(SCHED_TYPE_CONTROL_BASED) &&  defined(SCHED_CONTROL_MULTIBURST))\
+     || (defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_CONTROL_MULTIBURST))\
+     || (defined(SCHED_TYPE_EDF))
+    #else //Valid sched
+    #error "Debugger is enabled but current scheduler is not configured to handle BreakpointUnit"
+    #endif //Valid sched
+    #else //defined(PROCESS_DEBUGGER)
+    #define IRQhandleResched(prev, next)
+    #endif //defined(PROCESS_DEBUGGER)
 
 private:
 
