@@ -395,10 +395,29 @@ enum class Syscall
     MKFS      = 58, //Moving filesystem creation code to kernel
 
     // Misc syscalls
-    SYSCONF   = 59
+    SYSCONF   = 59,
 
-    // TODO: Networking syscalls
-
+    // Vector I/O syscalls
+    READV = 60,
+    WRITEV = 61,
+    
+    // Networking syscalls
+    SOCKET = 62,
+    BIND = 63,
+    CONNECT = 64,
+    LISTEN = 65,
+    ACCEPT = 66,
+    GETSOCKNAME = 67,
+    GETPEERNAME = 68,
+    SEND = 69,
+    SENDTO = 70,
+    RECV = 71,
+    RECVFROM = 72,
+    SHUTDOWN = 73,
+    SETSOCKOPT = 74,
+    GETSOCKOPT = 75,
+    SENDMSG = 76,
+    RECVMSG = 77,
 };
 
 } //namespace miosix

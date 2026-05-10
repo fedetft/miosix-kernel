@@ -889,7 +889,379 @@ sysconf:
 .L6000:
 	b    syscallfailed32
 
-// TODO: implement networking syscall thunks
+/**
+ * readv
+ * \param iov array of iovec structures describing the buffers where the
+ * received message will be stored
+ * \param iovcnt number of elements in the iov array
+ * \param flags receive flags
+ * \return the number of bytes received, or a negative number on failure
+ */
+.section .text.readv
+.global readv
+.type readv, %function
+readv:
+	push {r7,lr}
+	movs r7, #60
+	svc  0
+	cmp  r0, #0
+	blt  .L6100
+	pop  {r7,pc}
+.L6100:
+	b    syscallfailed32
+
+/**
+ * writev
+ * \param iov array of iovec structures describing the buffers containing
+ * the message to send
+ * \param iovcnt number of elements in the iov array
+ * \param flags send flags
+ * \return the number of bytes sent, or a negative number on failure
+ */
+.section .text.writev
+.global writev
+.type writev, %function
+writev:
+	push {r7,lr}
+	movs r7, #61
+	svc  0
+	cmp  r0, #0
+	blt  .L6200
+	pop  {r7,pc}
+.L6200:
+	b    syscallfailed32
+
+/**
+ * socket
+ * \param domain communication domain
+ * \param type socket type
+ * \param protocol protocol to be used with the socket
+ * \return the new file descriptor of the created socket, or a negative
+ * number on failure
+ */
+.section .text.socket
+.global socket
+.type socket, %function
+socket:
+	push {r7,lr}
+	movs r7, #62
+	svc  0
+	cmp  r0, #0
+	blt  .L6300
+	pop  {r7,pc}
+.L6300:
+	b    syscallfailed32
+
+/**
+ * bind
+ * \param sockfd socket file descriptor
+ * \param addr pointer to the address to bind the socket to
+ * \param addrlen size of the address structure
+ * \return 0 on success, -1 on failure
+ */
+.section .text.bind
+.global bind
+.type bind, %function
+bind:
+	push {r7,lr}
+	movs r7, #63
+	svc  0
+	cmp  r0, #0
+	blt  .L6400
+	pop  {r7,pc}
+.L6400:
+	b    syscallfailed32
+
+/**
+ * connect
+ * \param name pointer to a sockaddr structure containing the address to
+ * connect to
+ * \param namelen length of the supplied sockaddr structure
+ * \return 0 on success, or a negative number on failure
+ */
+.section .text.connect
+.global connect
+.type connect, %function
+connect:
+	push {r7,lr}
+	movs r7, #64
+	svc  0
+	cmp  r0, #0
+	blt  .L6500
+	pop  {r7,pc}
+.L6500:
+	b    syscallfailed32
+
+/**
+ * listen
+ * \param backlog maximum length of the queue of pending connections
+ * \return 0 on success, or a negative number on failure
+ */
+.section .text.listen
+.global listen
+.type listen, %function
+listen:
+	push {r7,lr}
+	movs r7, #65
+	svc  0
+	cmp  r0, #0
+	blt  .L6600
+	pop  {r7,pc}
+.L6600:
+	b    syscallfailed32
+
+/**
+ * accept
+ * \param newsock Socket object for the accepted socket
+ * \param addr pointer to a sockaddr structure where the address of the
+ * connecting socket shall be returned, can be null
+ * \param addrlen pointer to length of supplied sockaddr object on input,
+ * length of the stored address on output, can be null if addr is null
+ * \return 0 on success, or a negative number on failure
+ */
+.section .text.accept
+.global accept
+.type accept, %function
+accept:
+	push {r7,lr}
+	movs r7, #66
+	svc  0
+	cmp  r0, #0
+	blt  .L6700
+	pop  {r7,pc}
+.L6700:
+	b    syscallfailed32
+
+/**
+ * getsockname
+ * \param name pointer to a sockaddr structure where the address of the
+ * socket shall be returned
+ * \param namelen pointer to length of supplied sockaddr object on input,
+ * length of the stored address on output
+ * \return 0 on success, or a negative number on failure
+ */
+.section .text.getsockname
+.global getsockname
+.type getsockname, %function
+getsockname:
+	push {r7,lr}
+	movs r7, #67
+	svc  0
+	cmp  r0, #0
+	blt  .L6800
+	pop  {r7,pc}
+.L6800:
+	b    syscallfailed32
+
+/**
+ * getpeername
+ * \param name pointer to a sockaddr structure where the address of the peer
+ * socket shall be returned
+ * \param namelen pointer to length of supplied sockaddr object on input,
+ * length of the stored address on output
+ * \return 0 on success, or a negative number on failure
+ */
+.section .text.getpeername
+.global getpeername
+.type getpeername, %function
+getpeername:
+	push {r7,lr}
+	movs r7, #68
+	svc  0
+	cmp  r0, #0
+	blt  .L6900
+	pop  {r7,pc}
+.L6900:
+	b    syscallfailed32
+
+/**
+ * send
+ * \param dataptr pointer to the message to send
+ * \param size length of the message to send
+ * \param flags send flags
+ * \return the number of bytes sent, or a negative number on failure
+ */
+.section .text.send
+.global send
+.type send, %function
+send:
+	push {r7,lr}
+	movs r7, #69
+	svc  0
+	cmp  r0, #0
+	blt  .L7000
+	pop  {r7,pc}
+.L7000:
+	b    syscallfailed32
+
+/**
+ * sendto
+ * \param dataptr pointer to the message to send
+ * \param size length of the message to send
+ * \param flags send flags
+ * \param to pointer to a sockaddr structure containing the destination
+ * address
+ * \param tolen length of the supplied sockaddr structure
+ * \return the number of bytes sent, or a negative number on failure
+ */
+.section .text.sendto
+.global sendto
+.type sendto, %function
+sendto:
+	push {r7,lr}
+	movs r7, #70
+	svc  0
+	cmp  r0, #0
+	blt  .L7100
+	pop  {r7,pc}
+.L7100:
+	b    syscallfailed32
+
+/**
+ * recv
+ * \param mem buffer where the received message will be stored
+ * \param len length of the supplied buffer
+ * \param flags receive flags
+ * \return the number of bytes received, or a negative number on failure
+ */
+.section .text.recv
+.global recv
+.type recv, %function
+recv:
+	push {r7,lr}
+	movs r7, #71
+	svc  0
+	cmp  r0, #0
+	blt  .L7200
+	pop  {r7,pc}
+.L7200:
+	b    syscallfailed32
+
+/**
+ * recvfrom
+ * \param mem buffer where the received message will be stored
+ * \param len length of the supplied buffer
+ * \param flags receive flags
+ * \param from pointer to a sockaddr structure where the source address will
+ * be stored, can be null if not interested in the source address
+ * \param fromlen pointer to length of supplied sockaddr object on input,
+ * length of the stored address on output, can be null if from is null
+ * \return the number of bytes received, or a negative number on failure
+ */
+.section .text.recvfrom
+.global recvfrom
+.type recvfrom, %function
+recvfrom:
+	push {r7,lr}
+	movs r7, #72
+	svc  0
+	cmp  r0, #0
+	blt  .L7300
+	pop  {r7,pc}
+.L7300:
+	b    syscallfailed32
+
+/**
+ * shutdown
+ * \param how specifies what to shut down
+ * \return 0 on success, or a negative number on failure
+ */
+.section .text.shutdown
+.global shutdown
+.type shutdown, %function
+shutdown:
+	push {r7,lr}
+	movs r7, #73
+	svc  0
+	cmp  r0, #0
+	blt  .L7400
+	pop  {r7,pc}
+.L7400:
+	b    syscallfailed32
+
+/**
+ * setsockopt
+ * \param level protocol level of the option
+ * \param optname option name
+ * \param optval pointer to the buffer containing the option value
+ * \param optlen length of the supplied buffer
+ * \return 0 on success, or a negative number on failure
+ */
+.section .text.setsockopt
+.global setsockopt
+.type setsockopt, %function
+setsockopt:
+	push {r7,lr}
+	movs r7, #74
+	svc  0
+	cmp  r0, #0
+	blt  .L7500
+	pop  {r7,pc}
+.L7500:
+	b    syscallfailed32
+
+/**
+ * getsockopt
+ * \param level protocol level of the option
+ * \param optname option name
+ * \param optval pointer to the buffer where the option value will be
+ * returned
+ * \param optlen pointer to the length of the supplied buffer
+ * \return 0 on success, or a negative number on failure
+ */
+.section .text.getsockopt
+.global getsockopt
+.type getsockopt, %function
+getsockopt:
+	push {r7,lr}
+	movs r7, #75
+	svc  0
+	cmp  r0, #0
+	blt  .L7600
+	pop  {r7,pc}
+.L7600:
+	b    syscallfailed32
+
+/**
+ * sendmsg
+ * \param message pointer to an msghdr structure describing the message to
+ * send and the destination address
+ * \param flags send flags
+ * \return the number of bytes sent, or a negative number on failure
+ */
+.section .text.sendmsg
+.global sendmsg
+.type sendmsg, %function
+sendmsg:
+	push {r7,lr}
+	movs r7, #76
+	svc  0
+	cmp  r0, #0
+	blt  .L7700
+	pop  {r7,pc}
+.L7700:
+	b    syscallfailed32
+
+/**
+ * Receive a message from a socket, and store the source address and
+ * ancillary data
+ * \param message pointer to an msghdr structure describing the message to
+ * receive, and where to store the source address and ancillary data
+ * \param flags receive flags
+ * \return the number of bytes received, or a negative number on failure
+ */
+.section .text.recvmsg
+.global recvmsg
+.type recvmsg, %function
+recvmsg:
+	push {r7,lr}
+	movs r7, #77
+	svc  0
+	cmp  r0, #0
+	blt  .L7800
+	pop  {r7,pc}
+.L7800:
+	b    syscallfailed32
 
 /* common jump target for all failing syscalls with 32 bit return value */
 .section .text.__seterrno32
