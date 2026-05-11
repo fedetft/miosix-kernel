@@ -235,8 +235,9 @@ ssize_t FileDescriptorTable::readlink(const char *name, char *buf, size_t size)
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
     string target;
-    if(int result=openData.fs->readlink(sp,target)<0) return result;
-    int result=min(size,target.size());
+    int result=openData.fs->readlink(sp,target);
+    if(result<0) return result;
+    result=min(size,target.size());
     memcpy(buf,target.data(),result);
     return result;
 }
@@ -518,7 +519,8 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         struct stat st;
         {
             StringPart sp(path,index-1,indexIntoFs);
-            if(int res=fs->lstat(sp,&st)<0) return res;
+            int res=fs->lstat(sp,&st);
+            if(res<0) return res;
         }
         if(S_ISLNK(st.st_mode)) return followSymlink(path);
         else if(index<=path.length() && !S_ISDIR(st.st_mode)) return -ENOTDIR;
@@ -532,7 +534,8 @@ int PathResolution::followSymlink(string& path)
     string target;
     {
         StringPart sp(path,index-1,indexIntoFs);
-        if(int res=fs->readlink(sp,target)<0) return res;
+        int res=fs->readlink(sp,target);
+        if(res<0) return res;
     }
     if(target.empty()) return -ENOENT; //Should not happen
     if(target[0]=='/')

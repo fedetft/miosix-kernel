@@ -110,7 +110,8 @@ int TerminalDevice::isatty() const { return device->isatty(); }
 
 int TerminalDevice::ioctl(int cmd, void *arg)
 {
-    if(int result=device->ioctl(cmd,arg)!=0) return result;
+    int result=device->ioctl(cmd,arg);
+    if(result!=0) return result;
     termios *t=reinterpret_cast<termios*>(arg);
     switch(cmd)
     {
