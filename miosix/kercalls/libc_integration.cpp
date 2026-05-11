@@ -654,6 +654,7 @@ int fcntl(int fd, int cmd, ...)
             va_start(arg,cmd);
             result=_fcntl_r(r,fd,cmd,va_arg(arg,int));
             va_end(arg);
+            break;
         default:
             result=_fcntl_r(r,fd,cmd,0);
     }
