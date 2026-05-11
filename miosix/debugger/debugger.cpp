@@ -27,6 +27,10 @@ Thread* Debugger::thread = nullptr;
 
 #define format(x, ...) x.setLen(sniprintf(x.getData(), x.size, __VA_ARGS__))
 
+#define layoutMacro(m,p)\
+    extern char __##m##_##p asm("_"#m"_"#p); \
+    const auto _##m##_##p = reinterpret_cast<const unsigned int>(&__##m##_##p)
+
 // Accessory functions only used here
 // Only makes sense with characters 0-9 and a-f
 unsigned char asciiToHex(char character) {
@@ -95,8 +99,8 @@ int GDBBuffer::setBytes(unsigned int* addr, unsigned int size) {
 
 int GDBBuffer::appendHexString(const char string[]) {
     const auto bytes = strlen(string);
-    const auto len = size * 2;
-    if (size <= len) return 0;
+    const auto len = bytes * 2;
+    if (available() <= len) return 0;
     for (unsigned int i = 0; i < bytes; i ++) {
         const char byte = string[i];
         data[head++] = hexToAscii(byte >>   4);
@@ -279,10 +283,13 @@ void Debugger::stopReply() {
         attached.pid = wait(&attached.ec);
         buffer.clear();
         buffer.appendChar('O');
-        buffer.appendHexString("Process terminated due to a fault");
+        buffer.appendHexString("Program fault has occurred: 0x");
+        const char retCode[] = {hexToAscii(attached.code >> 4),
+                                hexToAscii(attached.code & 0xf),
+                                '\0'};
+        buffer.appendHexString(retCode);
         sendPacket();
-        // Fault: report SIGSEGV
-        format(buffer, "X" "%02x", SIGSEGV);
+        format(buffer, "X" "%02x", SIGKILL);
         attached.clear();
         BreakpointUnit::clear();
     } break;
@@ -424,7 +431,24 @@ void Debugger::handleCommand_mM() {
         buffer.clear();
         buffer.setBytes(reinterpret_cast<unsigned int*>(baseAddress), len);
     } else {
-        if (! attached.process->mpu.withinForWriting(baseAddress, len)) {
+        // When running code from RAM: this message is used instead of Z0 to
+        // support software breakpoints:
+        // The memory area to be written must be readable from the process (both
+        // code and data are valid)
+        // In addition the area must be within _process_pool, this prevents
+        // attempts at modifying flash memory addresses
+        // * Cannot simply use
+        // if (! attached.process->mpu.withinForWriting(baseAddress, len)) {
+        // * as it would fail on an attempt to write inside code section
+        layoutMacro(process_pool, start);
+        layoutMacro(process_pool, end);
+        const bool inProcessMem = attached.process->mpu.withinForReading(baseAddress, len);
+        const auto base = reinterpret_cast<unsigned int>(baseAddress);
+        const bool inProcessPool =  base        >= _process_pool_start
+                                 && base + len  <  _process_pool_end
+                                 && base + len  >= base;
+
+        if (! (inProcessMem && inProcessPool)) {
             buffer.setReturnCode(MEMORY_WRITE_FAIL);
             return;
         }
@@ -502,9 +526,6 @@ void Debugger::handleCommand_q() {
         buffer.appendChar(more ? 'm' : 'l');
         buffer.appendString((char*)&targetXMLString[qMessage.offset], qMessage.length);
     } break;
-    #define layoutMacro(m,p)\
-        extern char __##m##_##p asm("_"#m"_"#p); \
-        const auto _##m##_##p = reinterpret_cast<const unsigned int>(&__##m##_##p)
     case QMessage::Type::MEMORY_MAP: {
         layoutMacro(flash,          origin);
         layoutMacro(flash,          length);
@@ -555,11 +576,12 @@ void Debugger::handleCommand_zZ() {
 
     int idx = -1;
     switch(buffer.getData()[1]) {
-    case '0': {
-        if (kind != 2 && kind != 4) break;
-        idx = insert ? BreakpointUnit::addSoftBreakpoint(   baseAddress, kind)
-                     : BreakpointUnit::removeSoftBreakpoint(baseAddress, kind);
-    } break;
+    // FIXME: remove software breakpoints and use 'M' instead
+    // case '0': {
+    //     if (kind != 2 && kind != 4) break;
+    //     idx = insert ? BreakpointUnit::addSoftBreakpoint(   baseAddress, kind)
+    //                  : BreakpointUnit::removeSoftBreakpoint(baseAddress, kind);
+    // } break;
     case '1': {
         if (kind != 2 && kind != 4) break;
         idx = insert ? BreakpointUnit::addBreakpoint(   baseAddress, kind)
@@ -587,7 +609,6 @@ void Debugger::handleCommand_zZ() {
         buffer.setReturnCode(BREAKPOINT_FULL);
         return;
     }
-    printf("added in position %d\n", idx);
     buffer.setReturnCode(OK);
 }
 

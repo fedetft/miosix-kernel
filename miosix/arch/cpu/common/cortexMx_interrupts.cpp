@@ -768,6 +768,8 @@ void DebugMon_Handler()
     // running
     // Set running flag
     Debugger::attached.IRQstop(thread, StopReason::DEBUGEVENT, 0);
+    // Wakeup debugged thread
+    thread->IRQdebugWait();
     // Wakeup debugger thread if waiting
     if (Debugger::thread != nullptr) {
         // Wakeup debugger if waiting
@@ -775,8 +777,6 @@ void DebugMon_Handler()
     }
     // Clear dfsr
     SCB->DFSR = 0b11111;
-    // Wakeup debugged thread
-    thread->IRQdebugWait();
     #else // PROCESS_DEBUGGER
     #ifdef WITH_ERRLOG
     IRQerrorLog("\r\n***Unexpected DebugMon @ ");

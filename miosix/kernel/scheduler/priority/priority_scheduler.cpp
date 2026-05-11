@@ -260,7 +260,9 @@ void PriorityScheduler::IRQrunScheduler()
         Thread *t=readyThreads[prio].front();
         readyThreads[prio].pop_front(); //Remove selected thread from list
         #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
+        #ifdef PROCESS_DEBUGGER
         BreakpointUnit::IRQhandleResched((Thread*)runningThreads[coreId], t);
+        #endif //PROCESS_DEBUGGER
         runningThreads[coreId]=t;
         #ifdef WITH_PROCESSES
         if(t->flags.isInUserspace()==false)

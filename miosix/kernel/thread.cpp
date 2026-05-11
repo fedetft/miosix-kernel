@@ -840,8 +840,8 @@ bool Thread::IRQreportFault(const FaultData& fault)
     #ifdef PROCESS_DEBUGGER
     // Notify debugger that a fault happened
     if (proc == Debugger::attached.process) {
-        // TODO: pass fault reason
-        Debugger::attached.IRQstop(cur, StopReason::FAULT, 0);
+        // NOTE: fault reason reported as -fault reason
+        Debugger::attached.IRQstop(cur, StopReason::FAULT, fault.id);
         if (Debugger::thread) Debugger::thread->IRQwakeup();
     }
     #endif

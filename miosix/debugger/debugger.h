@@ -662,8 +662,6 @@ public:
     #else //Valid sched
     #error "Debugger is enabled but current scheduler is not configured to handle BreakpointUnit"
     #endif //Valid sched
-    #else //defined(PROCESS_DEBUGGER)
-    #define IRQhandleResched(prev, next)
     #endif //defined(PROCESS_DEBUGGER)
 
 private:

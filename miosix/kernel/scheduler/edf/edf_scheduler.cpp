@@ -312,8 +312,9 @@ void EDFScheduler::IRQrunScheduler()
     #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
     //Otherwise, run idle
     if(next==nullptr) next=idle[coreId];
-
+    #ifdef PROCESS_DEBUGGER
     BreakpointUnit::IRQhandleResched((Thread*) unningThreads[coreId], next);
+    #endif //PROCESS_DEBUGGER
     runningThreads[coreId]=next;
     #ifdef WITH_PROCESSES
     if(next->flags.isInUserspace()==false)

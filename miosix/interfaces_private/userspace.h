@@ -206,6 +206,11 @@ private:
     int id; ///< Id of the fault or zero if no faults
     unsigned int pc=0xbadadd; ///< Program counter value at the time of the fault
     unsigned int arg;///< Eventual argument, valid only for some id values
+
+    #ifdef PROCESS_DEBUGGER
+    //Needs access to id
+    friend class Thread;
+    #endif
 };
 
 /**
