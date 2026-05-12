@@ -5,6 +5,7 @@
 
 #include "sys/types.h"
 #include <miosix.h>
+#include <string.h>
 
 namespace miosix {
 
@@ -135,7 +136,7 @@ public:
     int appendRegister64(unsigned long long value);
 
     /**
-     * @brief Clears the buffer and append `bytes` bytes to the output buffer
+     * @brief Append `bytes` bytes to the output buffer
      *
      * Prints the bytes from low to high addresses, each byte is represented as
      * two hex characters, padding with 0 if the byte is shorter than two characters.
@@ -144,9 +145,11 @@ public:
      * @param bytes number of bytes to append
      * @returns the length of the appended string, 0 on fail
      */
-    int setBytes(unsigned int* addr, unsigned int bytes);
+    int appendBytes(const unsigned int* addr, unsigned int size);
 
-    int appendHexString(const char string[]);
+    inline int appendBytes(const char addr[]) {
+        return appendBytes(reinterpret_cast<const unsigned int*>(addr), strlen(addr));
+    }
 
     /**
      * @brief Returns the number of bytes still available
@@ -408,27 +411,7 @@ private:
 
 };
 
-class SoftBreakpoint {
-public:
-
-    SoftBreakpoint() = default;
-    SoftBreakpoint(unsigned int address, unsigned int kind);
-
-private:
-
-    friend class BreakpointUnit;
-    bool enabled() { return address; }
-    bool eq (const SoftBreakpoint& other) const;
-
-    void applyPatch();
-    void removePatch();
-    inline void clear() { address = 0; }
-
-    unsigned int address = 0;
-    unsigned int istr;
-    char kind;
-
-};
+typedef unsigned char BPUFlag;
 
 class BreakpointUnit {
 public:
@@ -516,46 +499,6 @@ public:
     }
     
     /**
-     * @brief Adds a software breakpoint at the specified address
-     *
-     * @param addressk 
-     * @param kind 
-     * @return 
-     */
-    static int addSoftBreakpoint(unsigned int address, unsigned int kind) {
-        if (kind != 2 && kind != 4) return -1;
-        for(int i=0; i<softBreakpointsNum; i++) {
-            if(!softBreakpoints[i].enabled()) {
-                SoftBreakpoint softBreakpoint(address, kind);
-                softBreakpoints[i] = softBreakpoint;
-                softBreakpoint.applyPatch();
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    /**
-     * @brief Remove a software breakpoint from the specified address
-     *
-     * @param addressk 
-     * @param kind 
-     * @return 
-     */
-    static int removeSoftBreakpoint(unsigned int address, unsigned int kind) {
-        if (kind != 2 && kind != 4) return -1;
-        for(int i=0; i<softBreakpointsNum; i++) {
-            if(!softBreakpoints[i].enabled()) {
-                SoftBreakpoint softBreakpoint(address, kind);
-                softBreakpoints[i] = softBreakpoint;
-                softBreakpoint.applyPatch();
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    /**
      * @brief Clear Flashpatch Unit to a new state
      */
     static void clear() {
@@ -563,13 +506,12 @@ public:
             breakpoints[i].remove();
         for (int i = 0; i < watchpointsNum; i++)
             watchpoints[i].remove();
-        for (int i = 0; i < softBreakpointsNum; i++)
-            softBreakpoints[i].clear();
         markDirty();
     }
 
-    // FIXME: #if corenumber > sizeof(unsignedint) * 8 #error
-    static inline unsigned int cpuDirty(unsigned int coreId) {
+    static_assert(CPU_NUM_CORES < sizeof(BPUFlag) * 8,
+            "BreakpointUnit: too many CPUs for dirty flag implementation");
+    static inline BPUFlag cpuDirty(unsigned int coreId) {
         return dirty & (1 << coreId);
     }
 
@@ -578,12 +520,11 @@ public:
     }
 
     static inline void markDirty() {
-        dirty = 0xffffffff;
+        dirty = (BPUFlag)0xff;
     }
 
     static inline int getBreakpointsNum()       { return breakpointsNum; }
     static inline int getWatchpointsNum()       { return watchpointsNum; }
-    static inline int getSoftBreakpointsNum()   { return softBreakpointsNum; }
 
     /**
      * @brief Update FPB of the local cpu
@@ -668,11 +609,9 @@ private:
 
     static int breakpointsNum,
                watchpointsNum;
-    static const int softBreakpointsNum = 8;
 
     static Breakpoint* breakpoints;
     static Watchpoint* watchpoints;
-    static SoftBreakpoint softBreakpoints[softBreakpointsNum];
 
     static unsigned int dirty;
     
