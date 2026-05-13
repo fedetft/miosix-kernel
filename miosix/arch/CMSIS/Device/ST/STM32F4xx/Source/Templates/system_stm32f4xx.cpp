@@ -308,7 +308,7 @@ static void SetSysClock(void)
 /******************************************************************************/
 /*            PLL (clocked by HSE) used as System clock source                */
 /******************************************************************************/
-  uint32_t StartUpCounter = 0, HSEStatus = 0;
+  uint32_t HSEStatus = 0;
 
   // By TFT -- begin
   // this was backported from an older version. Now this code seems to be
@@ -330,92 +330,74 @@ static void SetSysClock(void)
   /* Enable HSE */
   RCC->CR |= ((uint32_t)RCC_CR_HSEON);
  
-  /* Wait till HSE is ready and if Time out is reached exit */
+  /* Wait till HSE is ready */
   do
   {
     HSEStatus = RCC->CR & RCC_CR_HSERDY;
-    StartUpCounter++;
-  } while((HSEStatus == 0) && (StartUpCounter != HSE_STARTUP_TIMEOUT));
+  } while(HSEStatus == 0);
 
-  if ((RCC->CR & RCC_CR_HSERDY) != RESET)
+  /* Select regulator voltage output Scale 1 mode, System frequency up to 168 MHz */
+  RCC->APB1ENR |= RCC_APB1ENR_PWREN;
+  RCC_SYNC();
+  //NOTE: this is a 1-bit field in stm32f405/407, and a 2-bit field in stm32f42x
+  //but in both cases the PWR_CR_VOS mask sets both bits to get the highest scaling
+  PWR->CR |= PWR_CR_VOS;
+
+  #if defined(STM32F401xC) || defined(STM32F401xE) || defined(STM32F411xE)
+  //STM32F401/411 run up to 84/100Mhz but busses require less prescaling
+  RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  /* HCLK = SYSCLK / 1*/
+  RCC->CFGR |= RCC_CFGR_PPRE2_DIV1; /* PCLK2 = HCLK  / 1*/
+  RCC->CFGR |= RCC_CFGR_PPRE1_DIV2; /* PCLK1 = HCLK  / 2*/
+  #else
+  //STM32F07/415/429/469 run up to 168/180MHz and busses require more prescaling
+  RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  /* HCLK = SYSCLK / 1*/
+  RCC->CFGR |= RCC_CFGR_PPRE2_DIV2; /* PCLK2 = HCLK  / 2*/
+  RCC->CFGR |= RCC_CFGR_PPRE1_DIV4; /* PCLK1 = HCLK  / 4*/
+  #endif
+
+  /* Configure the main PLL */
+  RCC->PLLCFGR = PLL_M | (PLL_N << 6) | (((PLL_P >> 1) -1) << 16) |
+                 (RCC_PLLCFGR_PLLSRC_HSE) | (PLL_Q << 24);
+
+  /* Enable the main PLL */
+  RCC->CR |= RCC_CR_PLLON;
+
+  #ifdef PWR_CR_ODEN
+  if constexpr(sysclkMhz>168)
   {
-    HSEStatus = (uint32_t)0x01;
+    //NOTE: stm32f42x can run up to 180MHz but require the regulator to switch
+    //to "overdrive mode". Stm32f405/7 don't have these registers but can't run
+    //at 180MHz anyway
+    PWR->CR |= PWR_CR_ODEN;
+    while((PWR->CSR & PWR_CSR_ODRDY)==0) ;
+    PWR->CR |= PWR_CR_ODSWEN;
+    while((PWR->CSR & PWR_CSR_ODSWRDY)==0) ;
   }
-  else
+  #endif
+
+  /* Wait till the main PLL is ready */
+  while((RCC->CR & RCC_CR_PLLRDY) == 0)
   {
-    HSEStatus = (uint32_t)0x00;
   }
+  
+  /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
+  /* NOTE: this mapping is valid for VDD from 2.7 to 3.6V, see RM0090 */
+  unsigned int flashLatency;
+  if constexpr(sysclkMhz>150) flashLatency = FLASH_ACR_LATENCY_5WS;
+  else if constexpr(sysclkMhz>120) flashLatency = FLASH_ACR_LATENCY_4WS;
+  else if constexpr(sysclkMhz>90) flashLatency = FLASH_ACR_LATENCY_3WS;
+  else if constexpr(sysclkMhz>60) flashLatency = FLASH_ACR_LATENCY_2WS;
+  else if constexpr(sysclkMhz>30) flashLatency = FLASH_ACR_LATENCY_1WS;
+  else flashLatency = FLASH_ACR_LATENCY_0WS;
+  FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | flashLatency;
 
-  if (HSEStatus == (uint32_t)0x01)
+  /* Select the main PLL as system clock source */
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
+
+  /* Wait till the main PLL is used as system clock source */
+  while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS ) != RCC_CFGR_SWS_PLL)
   {
-    /* Select regulator voltage output Scale 1 mode, System frequency up to 168 MHz */
-    RCC->APB1ENR |= RCC_APB1ENR_PWREN;
-    RCC_SYNC();
-    //NOTE: this is a 1-bit field in stm32f405/407, and a 2-bit field in stm32f42x
-    //but in both cases the PWR_CR_VOS mask sets both bits to get the highest scaling
-    PWR->CR |= PWR_CR_VOS;
-
-    #if defined(STM32F401xC) || defined(STM32F401xE) || defined(STM32F411xE)
-    //STM32F401/411 run up to 84/100Mhz but busses require less prescaling
-    RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  /* HCLK = SYSCLK / 1*/
-    RCC->CFGR |= RCC_CFGR_PPRE2_DIV1; /* PCLK2 = HCLK  / 1*/
-    RCC->CFGR |= RCC_CFGR_PPRE1_DIV2; /* PCLK1 = HCLK  / 2*/
-    #else
-    //STM32F07/415/429/469 run up to 168/180MHz and busses require more prescaling
-    RCC->CFGR |= RCC_CFGR_HPRE_DIV1;  /* HCLK = SYSCLK / 1*/
-    RCC->CFGR |= RCC_CFGR_PPRE2_DIV2; /* PCLK2 = HCLK  / 2*/
-    RCC->CFGR |= RCC_CFGR_PPRE1_DIV4; /* PCLK1 = HCLK  / 4*/
-    #endif
-
-    /* Configure the main PLL */
-    RCC->PLLCFGR = PLL_M | (PLL_N << 6) | (((PLL_P >> 1) -1) << 16) |
-                   (RCC_PLLCFGR_PLLSRC_HSE) | (PLL_Q << 24);
-
-    /* Enable the main PLL */
-    RCC->CR |= RCC_CR_PLLON;
-
-    #ifdef PWR_CR_ODEN
-    if constexpr(sysclkMhz>168)
-    {
-      //NOTE: stm32f42x can run up to 180MHz but require the regulator to switch
-      //to "overdrive mode". Stm32f405/7 don't have these registers but can't run
-      //at 180MHz anyway
-      PWR->CR |= PWR_CR_ODEN;
-      while((PWR->CSR & PWR_CSR_ODRDY)==0) ;
-      PWR->CR |= PWR_CR_ODSWEN;
-      while((PWR->CSR & PWR_CSR_ODSWRDY)==0) ;
-    }
-    #endif
-
-    /* Wait till the main PLL is ready */
-    while((RCC->CR & RCC_CR_PLLRDY) == 0)
-    {
-    }
-   
-    /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
-    /* NOTE: this mapping is valid for VDD from 2.7 to 3.6V, see RM0090 */
-    unsigned int flashLatency;
-    if constexpr(sysclkMhz>150) flashLatency = FLASH_ACR_LATENCY_5WS;
-    else if constexpr(sysclkMhz>120) flashLatency = FLASH_ACR_LATENCY_4WS;
-    else if constexpr(sysclkMhz>90) flashLatency = FLASH_ACR_LATENCY_3WS;
-    else if constexpr(sysclkMhz>60) flashLatency = FLASH_ACR_LATENCY_2WS;
-    else if constexpr(sysclkMhz>30) flashLatency = FLASH_ACR_LATENCY_1WS;
-    else flashLatency = FLASH_ACR_LATENCY_0WS;
-    FLASH->ACR = FLASH_ACR_ICEN | FLASH_ACR_DCEN | flashLatency;
-
-    /* Select the main PLL as system clock source */
-    RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_PLL;
-
-    /* Wait till the main PLL is used as system clock source */
-    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS ) != RCC_CFGR_SWS_PLL)
-    {
-    }
   }
-  else
-  { /* If HSE fails to start-up, the application will have wrong clock
-         configuration. User can add here some code to deal with this error */
-  }
-
 }
 // By TFT -- end
 
