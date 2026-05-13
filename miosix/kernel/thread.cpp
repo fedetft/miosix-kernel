@@ -840,8 +840,17 @@ bool Thread::IRQreportFault(const FaultData& fault)
     #ifdef PROCESS_DEBUGGER
     // Notify debugger that a fault happened
     if (proc == Debugger::attached.process) {
-        // NOTE: fault reason reported as -fault reason
+        // Report fault reason to the debugger, hex code meaning is encoded in
+        // enum FaultType
         Debugger::attached.IRQstop(cur, StopReason::FAULT, fault.id);
+        // Need to disable debug hardware, otherwise stepping on a faulty
+        // instruction would cause a debugevent in kernelspace, which is not
+        // allowed.
+        // This is only needed explicitly here, as proc->ker context switch and
+        // resched are handled already
+        BreakpointUnit::IRQdisableLocal();
+        // There is no need to pause this thread, it's being destroyed, just
+        // wakeup debugger
         if (Debugger::thread) Debugger::thread->IRQwakeup();
     }
     #endif

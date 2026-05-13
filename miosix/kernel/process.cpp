@@ -844,6 +844,9 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                         // TODO: determine current thread
                         Debugger::attached.IRQstop(Thread::IRQgetCurrentThread(),
                                 StopReason::EXIT, exitCode >> 0);
+                        // No need to disable debug hardware: the process left
+                        // kernelspace a while ago, context switch disabled
+                        // debug hardware already
                         if (Debugger::thread) Debugger::thread->IRQwakeup();
                     }
                 }
@@ -872,7 +875,7 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                                     Debugger::attached.name = path;
                                     // TODO: determine current thread
                                     Debugger::attached.IRQstop(Thread::IRQgetCurrentThread(),
-                                        StopReason::EXIT, exitCode >> 8);
+                                        StopReason::EXECVE, 0);
                                     if (Debugger::thread) Debugger::thread->IRQwakeup();
                             }
                             #endif

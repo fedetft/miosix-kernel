@@ -49,7 +49,7 @@ int GDBBuffer::appendChar(char character) {
     return 1;
 }
 
-int GDBBuffer::appendString(char* str, unsigned int len) {
+int GDBBuffer::appendString(const char* str, unsigned int len) {
     if (available() <= static_cast<int>(len)) return 0;
     memcpy(&data[head], str, len);
     head += len;
@@ -311,8 +311,12 @@ void Debugger::handleCommand_gG() {
         for (int i = 0; i < registerFile.entries; i++) {
             const auto size = registerFile.getSize(i);
             if(! registerFile.read(attached.thread, i, valPtr)) {
-                for(int i=0; i < (size * 2); i++)
-                    buffer.appendChar('x');
+                #if FPU_REGISTERS == 1
+                if (size == 8)
+                    buffer.appendString("xxxxxxxxxxxxxxxx", 16);
+                else
+                    buffer.appendString("xxxxxxxx", 8);
+                #endif
                 continue;
             }
             #if FPU_REGISTERS == 1

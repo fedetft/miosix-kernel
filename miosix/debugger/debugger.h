@@ -109,7 +109,7 @@ public:
      * @param len 
      * @returns the nubmer of charactesrs written on success, 0 on fail
      */
-    int appendString(char* str, unsigned int len);
+    int appendString(const char* str, unsigned int len);
 
     /**
      * @brief Set the output buffer as one of the GDBReturnCode messages
@@ -536,7 +536,6 @@ public:
     static inline void IRQsyncLocal(Thread* t) {
         switch(t->debugStatus) {
         case DebugStatus::PEND: {
-            // Triggers debugmonitor even if disabled
             debugMonitorPendSet();
         } break;
         case DebugStatus::STEP: {
@@ -568,6 +567,7 @@ public:
         flashPatchDisable();
         // clear pending debugmonitor events
         debugMonitorPendClear();
+        debugMonitorSteppingDisable();
     }
 
     static inline void IRQhandleResched(Thread* prev, Thread* next) {
