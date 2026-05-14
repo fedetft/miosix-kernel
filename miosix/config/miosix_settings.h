@@ -147,16 +147,16 @@ const unsigned char MAX_OPEN_FILES=8;
 #define WITH_ROMFS
 #endif
 
+/// \def WITH_NETWORKING
+/// Allows to enable/disable networking support to save code size
+/// By default it is not defined (networking support is disabled)
+//#define WITH_NETWORKING
+
 #endif // WITH_FILESYSTEM
 
 //
 // Networking options
 //
-
-/// \def WITH_NETWORKING
-/// Allows to enable/disable networking support to save code size
-/// By default it is not defined (networking support is disabled)
-//#define WITH_NETWORKING
 
 // The following options make sense only when networking is enabled, so they are
 // always left undefined otherwise
