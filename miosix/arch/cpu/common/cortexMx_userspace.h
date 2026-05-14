@@ -62,6 +62,8 @@ namespace {
  * validation.
  */
 constexpr unsigned int SYSCALL_ID_OFFSET_IN_CTXSAVE=4;
+constexpr unsigned int UPPER_PARAMETERS_OFFSET_IN_CTXSAVE=1;
+constexpr unsigned int UPPER_PARAMETERS_START=4;
 }
 
 //
@@ -78,20 +80,36 @@ inline unsigned int SyscallParameters::getSyscallId() const
     return archPtr[SYSCALL_ID_OFFSET_IN_CTXSAVE];
 }
 
-inline unsigned int SyscallParameters::getParameter(unsigned int index) const
+template<unsigned int index>
+inline unsigned int SyscallParameters::getParameter() const
 {
     if(extraChecks==ExtraChecks::Kernel)
         if(index>=MAX_NUM_SYSCALL_PARAMETERS) errorHandler(Error::UNEXPECTED);
-    auto *psp=reinterpret_cast<unsigned int*>(archPtr[STACK_OFFSET_IN_CTXSAVE]);
-    return psp[index];
+    if constexpr(index<UPPER_PARAMETERS_START)
+    {
+        auto *psp=reinterpret_cast<unsigned int*>(archPtr[STACK_OFFSET_IN_CTXSAVE]);
+        return psp[index];
+    }
+    else
+    {
+        return archPtr[UPPER_PARAMETERS_OFFSET_IN_CTXSAVE+index];
+    }
 }
 
-inline void SyscallParameters::setParameter(unsigned int index, unsigned int value)
+template<unsigned int index>
+inline void SyscallParameters::setParameter(unsigned int value)
 {
     if(extraChecks==ExtraChecks::Kernel)
         if(index>=MAX_NUM_SYSCALL_PARAMETERS) errorHandler(Error::UNEXPECTED);
-    auto *psp=reinterpret_cast<unsigned int*>(archPtr[STACK_OFFSET_IN_CTXSAVE]);
-    psp[index]=value;
+    if constexpr(index<UPPER_PARAMETERS_START)
+    {
+        auto *psp=reinterpret_cast<unsigned int*>(archPtr[STACK_OFFSET_IN_CTXSAVE]);
+        psp[index]=value;
+    }
+    else
+    {
+        archPtr[UPPER_PARAMETERS_OFFSET_IN_CTXSAVE+index]=value;
+    }
 }
 
 inline unsigned int peekSyscallId(unsigned int *context)

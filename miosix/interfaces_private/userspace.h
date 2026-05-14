@@ -110,31 +110,33 @@ public:
     unsigned int getSyscallId() const;
 
     /**
-     * \param index 0=first syscall parameter, 1=second syscall parameter, ...
+     * \tparam index 0=first syscall parameter, 1=second syscall parameter, ...
      * The maximum number of syscall parameters is MAX_NUM_SYSCALL_PARAMETERS
      * \return the syscall parameter. The returned result is meaningful
      * only if the syscall (identified through its id) has the requested parameter
      */
-    unsigned int getParameter(unsigned int index) const;
+    template<unsigned int index>
+    unsigned int getParameter() const;
 
     /**
      * Set the value that will be returned by the syscall.
      * May invalidate the corresponding parameter so must be called only after
      * the syscall parameteres have been read.
-     * \param index 0=first syscall parameter, 1=second syscall parameter, ...
+     * \tparam index 0=first syscall parameter, 1=second syscall parameter, ...
      * The maximum number of syscall parameters is MAX_NUM_SYSCALL_PARAMETERS
      * \param value value that will be returned by the syscall.
      */
-    void setParameter(unsigned int index, unsigned int value);
+    template<unsigned int index>
+    void setParameter(unsigned int value);
 
     /**
-     * Currently Miosix requires room for 4 32bit values for syscall parameters.
+     * Currently Miosix requires room for 7 32bit values for syscall parameters.
      * These parameters are treated as in/out parameters, as they can also be
      * modified by the kernel and thus used as return values.
      * All architectures must provide support for this number of parameters to
      * make the architecture-independent syscall handling code work
      */
-    static constexpr int MAX_NUM_SYSCALL_PARAMETERS=4;
+    static constexpr int MAX_NUM_SYSCALL_PARAMETERS=7;
 
 private:
     unsigned int *archPtr; ///< Architecture-specific pointer
