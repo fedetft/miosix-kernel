@@ -30,7 +30,7 @@
 #include "miosix_settings.h"
 #include "interfaces/arch_registers.h"
 #include "interfaces/cpu_const.h"
-#include <cassert>
+#include "kernel/error.h"
 
 namespace miosix {
 
@@ -80,14 +80,16 @@ inline unsigned int SyscallParameters::getSyscallId() const
 
 inline unsigned int SyscallParameters::getParameter(unsigned int index) const
 {
-    assert(index<MAX_NUM_SYSCALL_PARAMETERS);
+    if(extraChecks==ExtraChecks::Kernel)
+        if(index>=MAX_NUM_SYSCALL_PARAMETERS) errorHandler(Error::UNEXPECTED);
     auto *psp=reinterpret_cast<unsigned int*>(archPtr[STACK_OFFSET_IN_CTXSAVE]);
     return psp[index];
 }
 
 inline void SyscallParameters::setParameter(unsigned int index, unsigned int value)
 {
-    assert(index<MAX_NUM_SYSCALL_PARAMETERS);
+    if(extraChecks==ExtraChecks::Kernel)
+        if(index>=MAX_NUM_SYSCALL_PARAMETERS) errorHandler(Error::UNEXPECTED);
     auto *psp=reinterpret_cast<unsigned int*>(archPtr[STACK_OFFSET_IN_CTXSAVE]);
     psp[index]=value;
 }
