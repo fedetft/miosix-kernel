@@ -32,7 +32,6 @@
 #else //TEST_ALGORITHM
 
 #include <iostream>
-#include <cassert>
 
 // Unused stubs as the test code only tests IntrusiveList
 inline int atomicSwap(volatile int*, int) { return 0; }

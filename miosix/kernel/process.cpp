@@ -29,7 +29,6 @@
 #include <memory>
 #include <cstdio>
 #include <cstring>
-#include <cassert>
 #include <algorithm>
 #include <sys/wait.h>
 #include <sys/types.h>
@@ -132,7 +131,7 @@ private:
     ProcessTable()
     {
         ProcessBase *kernel=Thread::getCurrentThread()->getProcess();
-        assert(kernel->getPid()==0);
+        if(kernel->getPid()!=0) errorHandler(Error::UNEXPECTED);
         processes[0]=kernel;
     }
     ProcessTable(const ProcessTable&)=delete;
