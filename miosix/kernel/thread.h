@@ -835,8 +835,6 @@ private:
          * \param self thread whose status changed
          */
         void IRQsetDebugWait(Thread *self);
-        // TODO: doc
-        void unsafe_setDebugWait();
 
         /**
          * Set the waitDebug flag of the thread.

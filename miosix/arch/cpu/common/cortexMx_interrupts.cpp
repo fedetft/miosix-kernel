@@ -764,12 +764,22 @@ void DebugMon_Handler()
         IRQerrorLog("\r\n*** Corrupted user stack pointer");
         IRQdebugMonFail();
     }
+    // Wakeup debugged thread
+    thread->IRQdebugWait();
     // For multithreading: do this only when no more threads of the process are
     // running
     // Set running flag
-    Debugger::attached.IRQstop(thread, StopReason::DEBUGEVENT, 0);
-    // Wakeup debugged thread
-    thread->IRQdebugWait();
+    // TODO: with the assumption of single-thread, the first thread hitting a
+    // breakpoint is the only one reporting the haltint reason, all other
+    // threads stop without reporting their halting reason
+    if (Debugger::attached.reason == StopReason::NONE) {
+        Debugger::attached.IRQset(thread, StopReason::DEBUGEVENT, 0);
+    }
+    // TODO: with the assumption of single-thread, process running is immediately
+    // set to false, With the support of multithread this must be set only by
+    // the last trhead which happens to stop, by either performing a context
+    // switch, a resched, or hitting another breakpoint
+    Debugger::attached.running = false;
     // Wakeup debugger thread if waiting
     if (Debugger::thread != nullptr) {
         // Wakeup debugger if waiting

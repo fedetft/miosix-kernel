@@ -239,6 +239,13 @@ private:
     friend class EDFScheduler;
     #ifdef PROCESS_DEBUGGER
     friend class Debugger;
+
+    // Returns the process pointer by pid, nullptr if it does not exist
+    //
+    // This function is necessary to attach to a process using its pid rather
+    // than its structure pointer inside the kernel (which the kernel should
+    // ideally not expose)
+    Process* debugGetByPid (pid_t pid) const;
     #endif
 };
 

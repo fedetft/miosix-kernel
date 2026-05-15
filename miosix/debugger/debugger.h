@@ -55,13 +55,14 @@ public:
 typedef enum {
     OK = 0,
     SPAWN_FAIL,
+    ATTACH_FAIL,
     MEMORY_WRITE_FAIL,
     MEMORY_READ_FAIL,
     REGISTER_READ_FAIL,
     REGISTER_WRITE_FAIL,
     BREAKPOINT_SET_FAIL,
     BREAKPOINT_FULL,
-    BREAKPOINT_TYPE_NOT_SUPPORTED,
+    BREAKPOINT_NOT_SUPPORTED,
 } GDBReturnCode;
 
 class GDBBuffer {
@@ -214,22 +215,18 @@ public:
     int             ec;
 
     void clear() {
-        name        = nullptr;
         process     = nullptr;
+        name        = nullptr;
         thread      = nullptr;
         code        = 0;
         running     = false;
         reason      = StopReason::NONE;
     }
 
-    inline void IRQstop(Thread* thread, StopReason reason, unsigned int code) {
-        running = false;
-        if (this->reason == StopReason::NONE) {
-            // only update stop status if no other thread did so previously
-            this->thread = thread;
-            this->reason = reason;
-            this->code = code;
-        }
+    inline void IRQset(Thread* thread, StopReason reason, unsigned int code) {
+        this->thread = thread;
+        this->reason = reason;
+        this->code = code;
     }
 };
 
@@ -240,8 +237,9 @@ public:
  */
 class VMessage {
 public:
-    enum Type {
+    enum {
         VRUN,
+        VATTACH,
         NONE,
     } type = NONE;
     char* args;
@@ -254,7 +252,7 @@ public:
  */
 struct QMessage {
 public:
-    enum Type {
+    enum {
         SUPPORTED,
         OFFSETS,
         MEMORY_MAP,
@@ -345,23 +343,26 @@ private:
     //Needs attached
     friend class Thread;
     friend class BreakpointUnit;
+    friend class ProgramCache;
 
     void recvPacket();
     void sendPacket();
 
     // Handle specific commands
     void handleCommand();
+    void handleCommand_cs();
+    void handleCommand_D();
     void handleCommand_gG();
     void handleCommand_mM();
-    void handleCommand_cs();
     void handleCommand_pP();
-    void handleCommand_v();
     void handleCommand_q();
+    void handleCommand_v();
     void handleCommand_zZ();
 
     void stopReply();
 
     void vrun();
+    void vattach();
     void parsePacket_v(VMessage* vMessage);
     void parsePacket_q(QMessage* qMessage);
     

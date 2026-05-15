@@ -113,11 +113,17 @@ void Debugger::listen(char serialName[]) {
     // Disable output processing (newline etc.)
     tio.c_oflag &= ~OPOST;
     tcsetattr(serial, TCSANOW, &tio);
+
+    thread = Thread::getCurrentThread();
+
     while (!failed) {
         recvPacket();
         handleCommand();
         sendPacket();
     }
+
+    thread = nullptr;
+
     fiprintf(stderr, "Debugger terminated\n");
     close(serial);
 }
@@ -206,6 +212,7 @@ void Debugger::handleCommand() {
     case '?':   stopReply();                break;
     case 'c':
     case 's':   handleCommand_cs();         break;
+    case 'D':   handleCommand_D();          break;
     case 'g':
     case 'G':   handleCommand_gG();         break;
     case 'm':
@@ -224,17 +231,17 @@ void Debugger::stopReply() {
 
     {
         FastGlobalIrqLock dLock;
-        thread = Thread::IRQgetCurrentThread();
         // While process is running
         while(attached.running) {
             // Set thread to notify
             Thread::IRQglobalIrqUnlockAndWait(dLock);
         }
-        thread = nullptr;
     }
     // When code is here the attached process must already be stopped, not
     // checking again
 
+    // NOTE: on all exit condition (fault, execve, fault) set attached.process
+    // before the wait, to prevent it triggering with reclaimed memory on clear
     switch (attached.reason) {
     case StopReason::NONE: {
         BUF_FORMAT(buffer, "W" "00");
@@ -244,12 +251,14 @@ void Debugger::stopReply() {
         BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
     } break;
     case StopReason::EXIT: {
+        attached.process = nullptr;
         attached.pid = wait(&attached.ec);
         BUF_FORMAT(buffer, "W" "%02x", attached.code & 0xff);
         attached.clear();
         BreakpointUnit::clear();
     } break;
     case StopReason::FAULT: {
+        attached.process = nullptr;
         attached.pid = wait(&attached.ec);
         buffer.clear();
         buffer.appendChar('O');
@@ -258,10 +267,10 @@ void Debugger::stopReply() {
                                 hexToAscii(attached.code & 0xf),
                                 '\0'};
         buffer.appendBytes(retCode);
-        sendPacket();
-        BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
         attached.clear();
         BreakpointUnit::clear();
+        sendPacket();
+        BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
     } break;
     case StopReason::EXECVE:
         BreakpointUnit::clear();
@@ -270,9 +279,10 @@ void Debugger::stopReply() {
             buffer.appendBytes(Debugger::attached.name);
             Debugger::attached.name = nullptr;
         } else {
+            attached.process = nullptr;
             attached.pid = wait(&attached.ec);
-            BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
             attached.clear();
+            BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
         }
     };
 }
@@ -455,14 +465,26 @@ void Debugger::handleCommand_cs() {
     stopReply();
 }
 
+void Debugger::handleCommand_D() {
+    // Stop debugging process and wake up its only (assuming single thread
+    // execution)
+    {
+        FastGlobalIrqLock dLock;
+        attached.process = nullptr;
+        attached.thread->IRQdebugWakeup();
+    }
+    attached.clear();
+    BreakpointUnit::clear();
+    buffer.setReturnCode(OK);
+}
+
 void Debugger::handleCommand_v() {
 
     VMessage vMessage;
     parsePacket_v(&vMessage);
     switch(vMessage.type) {
-    case VMessage::Type::VRUN: {
-        vrun();
-    } break;
+    case VMessage::VRUN:    vrun();     break;
+    case VMessage::VATTACH: vattach();  break;
     default:
         buffer.clear();
     }
@@ -474,7 +496,7 @@ void Debugger::handleCommand_q() {
     parsePacket_q(&qMessage);
 
     switch (qMessage.type) {
-    case QMessage::Type::SUPPORTED: {
+    case QMessage::SUPPORTED: {
         if (strstr(buffer.getData(), "exec-events+")) features.set(GDBFeatures::EXEC_EVENTS);
         BUF_FORMAT(buffer,
             "PacketSize=%x"
@@ -483,14 +505,14 @@ void Debugger::handleCommand_q() {
             ";qXfer:memory-map:read+"
             , buffer.size -1);
     } break;
-    case QMessage::Type::OFFSETS: {
+    case QMessage::OFFSETS: {
         const auto textSegment = attached.process->program.getElfBase();
         const auto dataSegment = reinterpret_cast<unsigned int>(
                 attached.process->image.getProcessBasePointer());
         BUF_FORMAT(buffer,
             "Text=%x;Data=%x;Bss=%x", textSegment, dataSegment, dataSegment);
     } break;
-    case QMessage::Type::FEATURES: {
+    case QMessage::FEATURES: {
         const bool more = qMessage.xmlView(targetXMLStringLen);
         if (buffer.size <= qMessage.length + 1) {
             buffer.setReturnCode(MEMORY_READ_FAIL);
@@ -500,7 +522,7 @@ void Debugger::handleCommand_q() {
         buffer.appendChar(more ? 'm' : 'l');
         buffer.appendString((char*)&targetXMLString[qMessage.offset], qMessage.length);
     } break;
-    case QMessage::Type::MEMORY_MAP: {
+    case QMessage::MEMORY_MAP: {
         layoutMacro(flash,          origin);
         layoutMacro(flash,          length);
         layoutMacro(flash,          erasesize);
@@ -582,6 +604,7 @@ void Debugger::handleCommand_zZ() {
 
 void Debugger::vrun() {
     // This code is cursed, it works, I won't touch it further
+    // TODO: I should, and then I can inline it in handleV
 
     char* const str = strchr(buffer.getData(), ';');
 
@@ -591,7 +614,7 @@ void Debugger::vrun() {
     // Transform hex pairs into characters 2f62696e -> "/bin"
     // TODO: make use of the whole buffer
     int argsNum = 0;
-    char* str_end = (char*)buffer.getData()+buffer.len();
+    const char* str_end = buffer.getData() + buffer.len();
     char* w_ptr = str;
     for(char* r_ptr = str; r_ptr < str_end - 1 && *r_ptr; w_ptr ++) {
         if (*r_ptr == ';') {
@@ -614,7 +637,12 @@ void Debugger::vrun() {
         ptr += strlen(ptr) + 1;
     }
 
-    attached.name = str + 1;
+    // posix_spawn must remain unix compliant, it's interface cannot be
+    // modified, this is not the proper way to communicate with process
+    // creation, A fork() should be performed and the child process should be
+    // set traceable before execve, but since this mechanism is not present in
+    // miosix due to lack of a fork syscall, which is way more expensive than a
+    // direct process spawn
 
     attached.ec=posix_spawn(&(attached.pid),args[0],nullptr,nullptr,args, nullptr);
     if (attached.ec != 0) {
@@ -623,7 +651,6 @@ void Debugger::vrun() {
     }
 
     // If process creation comletes successfully: attached.process is set
-    attached.name = nullptr;
     delete[] args;
 
     // once thread is no longer running (can be as soon as created (skip right
@@ -632,16 +659,70 @@ void Debugger::vrun() {
     stopReply();
 }
 
+// TODO: check if logic to determine live threads is correct
+void Debugger::vattach() {
+    char* const str = strchr(buffer.getData(), ';');
+    const auto pid = strtoul(str + 1, nullptr, 16);
+
+    buffer.clear();
+
+    Process* proc = attached.process->debugGetByPid(pid);
+    // Provided pid is not valid
+    if (proc == nullptr) {
+        buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
+        return;
+    }
+
+    // Check that selected process has its code inside the flash memory.
+    // TODO:
+    // If the code section is inside RAM, the debugger will attempt to use
+    // software breakpoints, but the code might be shared among other proceses,
+    // resulting in a process kill when they trigger any debug event
+    if (proc->program.isCopiedInRam()) {
+        // Fail with a more explicative error, as this is not a limitation a
+        // user would usually expect, while "the PID specified is invalid" is a
+        // more reasonable error
+        BUF_FORMAT(buffer,
+                "E.Cannot attach to a process with code section inside RAM");
+        return;
+    }
+
+    {
+        FastGlobalIrqLock dLock;
+        Thread* th;
+        for (const auto& thread : proc->threads) {
+            if (thread->flags.isDeleted() == false
+            && thread->flags.isDeleting() == false) {
+                th = thread;
+                break;
+            }
+        }
+        // If it's not waiting due to a debug event, wake it up, otherwise keep
+        // it in debug wait and continue (preserving attached info)
+        if (! th->flags.isWaitingDebug()) {
+            attached.process                = proc;
+            attached.running                = true;
+            attached.pid                    = pid;
+            th->debugStatus                 = DebugStatus::PEND;
+            th->IRQwakeup();
+        }
+    }
+    stopReply();
+}
+
 #define strEq(ptr, str)         (!strcmp(ptr, str))
 #define strParEq(ptr, str)      (!strncmp(ptr, str, sizeof(str) - 1))
 
 void Debugger::parsePacket_v(VMessage* vMessage) {
     static const char vrun[]    = "vRun";
+    static const char vattach[]    = "vAttach";
 
     const auto ptr = buffer.getData();
 
     if (strParEq(ptr, vrun)) {
-        vMessage->type = VMessage::Type::VRUN;
+        vMessage->type = VMessage::VRUN;
+    } else if (strParEq(ptr, vattach)) {
+        vMessage->type = VMessage::VATTACH;
     }
 }
 
@@ -658,17 +739,17 @@ void Debugger::parsePacket_q(QMessage* qMessage) {
 
     // Simple packets
     if (strParEq(ptr, qsupported))
-        { qMessage->type = QMessage::Type::SUPPORTED; return; }
+        { qMessage->type = QMessage::SUPPORTED; return; }
     if (strEq(ptr, qoffsets))
-        { qMessage->type = QMessage::Type::OFFSETS; return; }
+        { qMessage->type = QMessage::OFFSETS; return; }
     
     // Packets with additional data
     if (strParEq(ptr, q_mem_map)) {
         if ((ptr += sizeof(q_mem_map)) >= limit) return;
-        qMessage->type = QMessage::Type::MEMORY_MAP;
+        qMessage->type = QMessage::MEMORY_MAP;
     } else if (strParEq(ptr, q_feats)) {
         if ((ptr += sizeof(q_feats)) >= limit) return;
-        qMessage->type = QMessage::Type::FEATURES;
+        qMessage->type = QMessage::FEATURES;
     }
 
     char* separator;

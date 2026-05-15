@@ -26,6 +26,7 @@
  ***************************************************************************/
 
 #include "elf_program.h"
+#include "debugger/debugger.h"
 #include "process.h"
 #include "process_pool.h"
 #include "filesystem/file_access.h"
@@ -34,6 +35,7 @@
 #include <cstring>
 #include <cstdio>
 #include <memory>
+#include <sys/types.h>
 
 using namespace std;
 
@@ -106,6 +108,11 @@ private:
     static list<Entry> programs; ///< Cache entries
 };
 
+#ifdef PROCESS_DEBUGGER
+//   TODO: consider moving in Debugger::attached
+unsigned int* attachedElf = 0; // TODO: initialize
+#endif //PROCESS_DEBUGGER
+
 //
 // class ProgramCache
 //
@@ -139,22 +146,48 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     struct stat s;
     if(file->fstat(&s)) return -EFAULT;
     Lock<KernelMutex> l(m);
-    //I know, lookup is O(n), but we need to index the cache by <inode,dev>
-    //when loading, and index it by pointer when unloading, while also caring
-    //about code size. On top of that, we don't expect many loaded programs
-    //and spawning a process is already a heavy operation so this won't be
-    //the bottleneck anyway
-    for(auto& p : programs)
+    #ifdef PROCESS_DEBUGGER
+    // If the program load is being done by the debugger thread (if the debugger
+    // is attempting a process_spawn) do not use cache, since the debugger might
+    // be using software breakpoints and they would be shared across all
+    // programs sharing the same text section, two checks must be performed:
+    // - If the process being spawned is the attaced one, skip the cache
+    //   checking phase, forcing it to have its own text section
+    // - Prevent attempts at copying this section in the future
+    // - Additonally: restore normal functioning once the debugged thread stops
+    //   execution
+    //
+    //   KernelMutex m:
+    const auto isAttached (Thread::getCurrentThread() == Debugger::thread);
+    if (!isAttached) {
+    #else //PROCESS_DEBUGGER
+    // To avoid repeated ifdef guards
     {
-        if(p.inode!=s.st_ino || p.device!=s.st_dev) continue;
-        //Found, increment use count and return
-        p.useCount++;
-        elf=p.elf;
-        size=p.size;
-        needUnload=true;
-        DBG("ProgramCache::load(%s): found %p in cache use count %d\n",
-            name,elf,p.useCount);
-        return 0;
+    #endif //PROCESS_DEBUGGER
+        //I know, lookup is O(n), but we need to index the cache by <inode,dev>
+        //when loading, and index it by pointer when unloading, while also caring
+        //about code size. On top of that, we don't expect many loaded programs
+        //and spawning a process is already a heavy operation so this won't be
+        //the bottleneck anyway
+        for(auto& p : programs)
+        {
+            if(p.inode!=s.st_ino || p.device!=s.st_dev) continue;
+            #ifdef PROCESS_DEBUGGER
+            // If the inode and device are the same as the process, but elf (mem
+            // ptr) is the same as the debugged process, skip this entry, as
+            // this is the page for the attached process, which almost certainly
+            // contains software breakpoints
+            if(p.elf == attachedElf) continue;
+            #endif //PROCESS_DEBUGGER
+            //Found, increment use count and return
+            p.useCount++;
+            elf=p.elf;
+            size=p.size;
+            needUnload=true;
+            DBG("ProgramCache::load(%s): found %p in cache use count %d\n",
+                name,elf,p.useCount);
+            return 0;
+        }
     }
     //Not found, load program in cache
     off_t fileSize=s.st_size;
@@ -175,6 +208,11 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     //Success
     programs.push_front(Entry(s.st_ino,s.st_dev,ramPointer,ramSize));
     elf=ramPointer;
+    #ifdef PROCESS_DEBUGGER
+    // If this is the attached process, save it's ramPointer for later check and
+    // deallocation check
+    if (isAttached) attachedElf = ramPointer;
+    #endif //PROCESS_DEBUGGER
     size=ramSize;
     needUnload=true;
     finalizer.release();
@@ -188,6 +226,16 @@ void ProgramCache::unload(const unsigned int *elf)
     for(auto it=begin(programs);it!=end(programs);++it)
     {
         if(it->elf!=elf) continue;
+
+        // Debugger: when unloading the attaced process it should be unique,
+        // otherwise software breakpoints are shared among processes,
+        // There is no difference in doing this before or after actual
+        // deallocation, since it's used only in sequent load
+        #ifdef PROCESS_DEBUGGER
+        // Clean attachedElf
+        if(it->elf == attachedElf) attachedElf = nullptr;
+        #endif //PROCESS_DEBUGGER
+
         DBG("ProgramCache::unload(%p): use count %d\n",elf,it->useCount);
         if(--it->useCount<=0)
         {
