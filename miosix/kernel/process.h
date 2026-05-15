@@ -246,6 +246,9 @@ private:
     // than its structure pointer inside the kernel (which the kernel should
     // ideally not expose)
     Process* debugGetByPid (pid_t pid) const;
+
+    // Mirrors the priv flag in program cache
+    bool priv;
     #endif
 };
 

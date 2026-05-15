@@ -196,6 +196,7 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
         // The process is now running, it needs to step into debugmonitor as
         // soon as it enters userspace
         thr->debugStatus = DebugStatus::STEP;
+        proc->priv = true;
     }
     #endif
 
@@ -860,7 +861,7 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                         ElfProgram program(path);
                         if(program.errorCode()==0)
                         {
-                            try {
+                           try {
                                 //TODO: when threads within processes are
                                 //implemented, kill all other threads
                                 load(std::move(program),std::move(args));

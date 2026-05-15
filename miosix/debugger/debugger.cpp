@@ -673,17 +673,10 @@ void Debugger::vattach() {
         return;
     }
 
-    // Check that selected process has its code inside the flash memory.
-    // TODO:
-    // If the code section is inside RAM, the debugger will attempt to use
-    // software breakpoints, but the code might be shared among other proceses,
-    // resulting in a process kill when they trigger any debug event
-    if (proc->program.isCopiedInRam()) {
-        // Fail with a more explicative error, as this is not a limitation a
-        // user would usually expect, while "the PID specified is invalid" is a
-        // more reasonable error
+    if (proc->program.isCopiedInRam() &&
+            (!proc->priv)) {
         BUF_FORMAT(buffer,
-                "E.Cannot attach to a process with code section inside RAM");
+                "E.Cannot attach to process with code inside RAM unless the debugger spawned it");
         return;
     }
 
