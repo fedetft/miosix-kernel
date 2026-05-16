@@ -460,7 +460,7 @@ void Debugger::handleCommand_cs() {
                                  ? DebugStatus::RUN
                                  : DebugStatus::STEP
                                  ;
-    attached.thread->debugWakeup();
+    if(attached.thread) attached.thread->debugWakeup();
 
     stopReply();
 }
@@ -471,7 +471,7 @@ void Debugger::handleCommand_D() {
     {
         FastGlobalIrqLock dLock;
         attached.process = nullptr;
-        attached.thread->IRQdebugWakeup();
+        if(attached.thread) attached.thread->IRQdebugWakeup();
     }
     attached.clear();
     BreakpointUnit::clear();
