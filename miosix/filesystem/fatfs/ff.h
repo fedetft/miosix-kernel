@@ -298,7 +298,7 @@ typedef struct {
 #else
 	TCHAR	fname[12 + 1];	/* File name */
 #endif
-    unsigned int inode; //By TFT: support inodes
+    ino_t inode; //By TFT: support inodes
 } FILINFO;
 
 

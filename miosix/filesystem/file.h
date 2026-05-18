@@ -266,7 +266,7 @@ protected:
      * \param name file name to append after the DirentHeader
      * \return the number of bytes written or -1 on failure (no space in buffer)
      */
-    static int addEntry(char **pos, char *end, int ino, char type, const char *n);
+    static int addEntry(char **pos, char *end, ino_t ino, char type, const char *n);
     
     /**
      * Helper function to add the default directory entries . and .. to a buffer
@@ -277,7 +277,7 @@ protected:
      * \param upInode inode number of ..
      * \return the number of bytes written
      */
-    static int addDefaultEntries(char **pos, int thisIno, int upIno);
+    static int addDefaultEntries(char **pos, ino_t thisIno, ino_t upIno);
     
     /**
      * Add an entry with d_reclen=0 which is used to terminate directory listing
@@ -427,12 +427,12 @@ public:
      * resolve the inode of the .. entry of the filesystem's root directory
      * \param inode inode of the directory where the fs is mounted
      */
-    void setParentFsMountpointInode(int inode) { parentFsMountpointInode=inode; }
+    void setParentFsMountpointInode(ino_t inode) { parentFsMountpointInode=inode; }
     
     /**
      * \return the inode of the directory in the parent fs
      */
-    int getParentFsMountpointInode() const { return parentFsMountpointInode; }
+    ino_t getParentFsMountpointInode() const { return parentFsMountpointInode; }
 
     /**
      * \return filesystem id
@@ -447,7 +447,7 @@ public:
 protected:
     
     const short int filesystemId; ///< The unique filesystem id, used by lstat
-    int parentFsMountpointInode; ///< The inode of the directory in the parent fs
+    ino_t parentFsMountpointInode; ///< The inode of the directory in the parent fs
     
 private:
     FilesystemBase(const FilesystemBase&);

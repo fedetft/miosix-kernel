@@ -39,7 +39,7 @@ namespace miosix {
 
 static const int _NOSEEK=0x20000; //Special flag used only here to disallow seek
 
-static void fillStatHelper(struct stat* pstat, unsigned int st_ino,
+static void fillStatHelper(struct stat* pstat, ino_t st_ino,
         short st_dev, mode_t mode)
 {
     memset(pstat,0,sizeof(struct stat));
@@ -251,7 +251,7 @@ public:
     DevFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
             KernelMutex& mutex,
             map<StringPart,intrusive_ref_ptr<Device> >& files,
-            int currentInode, int parentInode)
+            ino_t currentInode, ino_t parentInode)
             : DirectoryBase(parent), mutex(mutex), files(files),
               currentInode(currentInode), parentInode(parentInode),
               first(true), last(false)
@@ -275,7 +275,7 @@ private:
     KernelMutex& mutex;                 ///< Mutex of parent class
     map<StringPart,intrusive_ref_ptr<Device> >& files; ///< Directory entries
     string currentItem;               ///< First unhandled item in directory
-    int currentInode,parentInode;     ///< Inodes of . and ..
+    ino_t currentInode,parentInode;     ///< Inodes of . and ..
 
     bool first; ///< True if first time getdents is called
     bool last;  ///< True if directory has ended

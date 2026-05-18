@@ -106,7 +106,7 @@ public:
      * \internal
      * Called be DevFs to assign a device and inode to the Device
      */
-    void setFileInfo(unsigned int st_ino, short st_dev)
+    void setFileInfo(ino_t st_ino, short st_dev)
     {
         this->st_ino=st_ino;
         this->st_dev=st_dev;
@@ -157,7 +157,7 @@ public:
     virtual ~Device();
 
 protected:
-    unsigned int st_ino; ///< inode of device file
+    ino_t st_ino; ///< inode of device file
     short st_dev;        ///< device (unique id of the filesystem) of device file
     const bool seekable; ///< If true, device is seekable
     const bool block;    ///< If true, it is a block device
@@ -270,8 +270,8 @@ private:
     
     KernelMutex mutex;
     std::map<StringPart,intrusive_ref_ptr<Device> > files;
-    int inodeCount;
-    static const int rootDirInode=1;
+    int inodeCount; // Altough ino_t is 64 bit this field needs to be 32 bit to be atomically accessed 
+    static const ino_t rootDirInode=1;
 };
 
 #endif //WITH_DEVFS

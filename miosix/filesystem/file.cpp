@@ -116,7 +116,7 @@ int DirectoryBase::fstat(struct stat *pstat) const
     return -EBADF;
 }
 
-int DirectoryBase::addEntry(char **pos, char *end, int ino, char type, const char *n)
+int DirectoryBase::addEntry(char **pos, char *end, ino_t ino, char type, const char *n)
 {
     int reclen=direntHeaderSizeNoPadding+strlen(n)+1;
     reclen=(reclen+3) & ~0x3; //Align to 4 bytes
@@ -133,7 +133,7 @@ int DirectoryBase::addEntry(char **pos, char *end, int ino, char type, const cha
     return reclen;
 }
 
-int DirectoryBase::addDefaultEntries(char **pos, int thisIno, int upIno)
+int DirectoryBase::addDefaultEntries(char **pos, ino_t thisIno, ino_t upIno)
 {
     struct dirent *data=reinterpret_cast<struct dirent*>(*pos);
     data->d_ino=thisIno;

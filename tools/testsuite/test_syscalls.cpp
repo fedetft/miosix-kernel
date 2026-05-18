@@ -528,7 +528,7 @@ getcwd
 stat/fstat
 */
 
-unsigned int checkInodes(const char *dir, unsigned int curInode,
+ino_t checkInodes(const char *dir, ino_t curInode,
         unsigned int parentInode, short curDev, short parentDev)
 {
     size_t getcwdBufSz=256;//strlen(dir)+1;
@@ -548,7 +548,7 @@ unsigned int checkInodes(const char *dir, unsigned int curInode,
     DIR *d=opendir(".");
     if(d==NULL) fail("opendir");
     puts(dir);
-    std::set<unsigned int> inodes;
+    std::set<ino_t> inodes;
     unsigned int result=0;
     for(;;)
     {
@@ -610,10 +610,10 @@ unsigned int checkInodes(const char *dir, unsigned int curInode,
 static void fs_test_4()
 {
     test_name("Directory listing");
-    unsigned int curInode=0, parentInode=0, binFsInode=0, sdInode=0;
+    ino_t curInode=0, parentInode=0, binFsInode=0, sdInode=0;
     short curDevice=0, binDevice=0, sdDevice=0;
     #ifdef WITH_DEVFS
-    unsigned int devFsInode=0;
+    ino_t devFsInode=0;
     short devDevice=0;
     #endif
     DIR *d=opendir("/");
@@ -677,7 +677,7 @@ static void fs_test_4()
     if((binFsInode==0) ^ (binDevice==0)) fail("bin");
     if(binFsInode!=0) checkInodes("/bin",binFsInode,curInode,binDevice,curDevice);
     if(sdInode==0 || sdDevice==0) fail("sd");
-    int testdirIno=checkInodes("/sd",sdInode,curInode,sdDevice,curDevice);
+    ino_t testdirIno=checkInodes("/sd",sdInode,curInode,sdDevice,curDevice);
     if(testdirIno==0) fail("no testdir");
     checkInodes("/sd/testdir",testdirIno,sdInode,sdDevice,sdDevice);
     pass();

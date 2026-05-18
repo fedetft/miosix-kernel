@@ -111,8 +111,8 @@ public:
 private:
     KernelMutex mutex;
     std::map<StringPart,int> dirs;
-    int inodeCount;
-    static const int rootDirInode=1;
+    ino_t inodeCount;
+    static const ino_t rootDirInode=1;
 };
 
 #endif //WITH_FILESYSTEM

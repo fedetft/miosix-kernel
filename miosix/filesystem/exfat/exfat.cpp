@@ -92,7 +92,7 @@ namespace miosix
          * \param parentInode inode value for '..' entry
          */
         ExFatDirectory(intrusive_ref_ptr<FilesystemBase> parent, KernelMutex &mutex,
-                       int currentInode, int parentInode) : DirectoryBase(parent),
+                       ino_t currentInode, ino_t parentInode) : DirectoryBase(parent),
                                                             mutex(mutex), currentInode(currentInode), parentInode(parentInode),
                                                             first(true), unfinished(false)
         {
@@ -125,12 +125,12 @@ namespace miosix
 
     private:
         KernelMutex &mutex;             ///< Parent filesystem's mutex
-        DIR_ dir;                     ///< Directory object
-        FILINFO fi;                   ///< Information on a file
-        int currentInode;             ///< Inode of '.'
-        int parentInode;              ///< Inode of '..'
-        bool first;                   ///< To display '.' and '..' entries
-        bool unfinished;              ///< True if fi contains unread data
+        DIR_ dir;                       ///< Directory object
+        FILINFO fi;                     ///< Information on a file
+        ino_t currentInode;             ///< Inode of '.'
+        ino_t parentInode;              ///< Inode of '..'
+        bool first;                     ///< To display '.' and '..' entries
+        bool unfinished;                ///< True if fi contains unread data
         char lfn[(FF_MAX_LFN + 1) * 2]; ///< Long file name
     };
 
@@ -255,7 +255,7 @@ namespace miosix
         /**
          * \param inode file inode
          */
-        void setInode(int inode) { this->inode = inode; }
+        void setInode(ino_t inode) { this->inode = inode; }
 
         /**
          * Destructor
@@ -265,7 +265,7 @@ namespace miosix
     private:
         FIL file;
         KernelMutex &mutex;
-        int inode = 0;
+        ino_t inode = 0;
         /// Used to map FatFs behavior into POSIX. Variable is 0 as long as we seek
         /// within, contains by how many bytes we seeked past the end otherwise
         FSIZE_t seekPastEnd = 0;
@@ -519,7 +519,7 @@ namespace miosix
             if (flags & (_FWRITE | _FAPPEND | _FCREAT | _FTRUNC))
                 return -EISDIR;
 
-            int parentInode;
+            ino_t parentInode;
             if (name.empty() == false)
             {
                 unsigned int lastSlash = name.findLastOf('/');

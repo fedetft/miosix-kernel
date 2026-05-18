@@ -53,7 +53,7 @@ public:
      */
     MountpointFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
             KernelMutex& mutex, map<StringPart,int>& dirs, bool root,
-            int currentInode, int parentInode)
+            ino_t currentInode, ino_t parentInode)
             : DirectoryBase(parent), mutex(mutex), dirs(dirs),
               currentInode(currentInode), parentInode(parentInode),
               first(true), last(false)
@@ -77,7 +77,7 @@ private:
     KernelMutex& mutex;                 ///< Mutex of parent class
     std::map<StringPart,int>& dirs;   ///< Directory entries of parent class
     string currentItem;               ///< First unhandled item in directory
-    int currentInode,parentInode;     ///< Inodes of . and ..
+    ino_t currentInode,parentInode;     ///< Inodes of . and ..
 
     bool first; ///< True if first time getdents is called
     bool last;  ///< True if directory has ended
@@ -130,8 +130,8 @@ int MountpointFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         return -EACCES;
     
     Lock<KernelMutex> l(mutex);
-    int currentInode=rootDirInode;
-    int parentInode=parentFsMountpointInode;
+    ino_t currentInode=rootDirInode;
+    ino_t parentInode=parentFsMountpointInode;
     if(name.empty()==false)
     {
         map<StringPart,int>::iterator it=dirs.find(name);
