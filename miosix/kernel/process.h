@@ -239,7 +239,6 @@ private:
     friend class EDFScheduler;
     #ifdef PROCESS_DEBUGGER
     friend class Debugger;
-    friend class RegisterFile;
 
     // Returns the process pointer by pid, nullptr if it does not exist
     //

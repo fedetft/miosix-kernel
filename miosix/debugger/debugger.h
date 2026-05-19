@@ -50,9 +50,6 @@ public:
 
     // Maximum size of a register in bytes
     const static int maxRegSizeBytes    = MAX_REGISTER_SIZE_BYTES;
-private:
-
-    bool validStackPtr(Thread *t, unsigned int *ptr, unsigned int offset);
 };
 
 typedef enum {

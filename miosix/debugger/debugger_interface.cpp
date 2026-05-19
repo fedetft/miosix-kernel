@@ -1,7 +1,6 @@
 #include "debug_registers.h"
 #include "debugger_interface.h"
 #include "debugger.h"
-#include "kernel/process.h"
 #include "kernel/thread.h"
 
 #ifdef PROCESS_DEBUGGER
@@ -84,7 +83,6 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
 
     const auto dest = reinterpret_cast<unsigned int*>(ref);
 
-    // TODO: Maybe is there a better way than exposing class
     unsigned int* const ctx = t->userCtxsave;
     // Already validated in debugmon excepiton
     unsigned int* const stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
@@ -162,23 +160,10 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
 
     return true;
 
+#else //FPU_REGISTERS == 1
+    return false;
 #endif
 
-    return false;
-
-}
-
-// Check that stack pointer lies inside the process memory
-bool RegisterFile::validStackPtr(Thread *t, unsigned int *ptr, unsigned int offset) {
-    const Process *proc = static_cast<Process*>(t->getProcess());
-    const auto base = reinterpret_cast<unsigned int>(ptr);
-    const auto start = reinterpret_cast<unsigned int>(
-            proc->image.getProcessBasePointer());
-    const auto end = start + reinterpret_cast<unsigned int>(
-            proc->image.getProcessImageSize());
-    return (base >= start)
-        && (base <= end)
-        && (base + offset <= end);
 }
 
 bool RegisterFile::write(Thread* t, int regNum, char* ref) {
@@ -195,14 +180,17 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
     unsigned int* const stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
 
     bool fpuPresent = true;
-    static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK;
-    #if ctxSaveOnStackAligned % 8
-        #error "CTXSAVE_ON_STACK does not respect stack alignment");
-    #endif
-    auto offset = ctxSaveOnStackAligned;
+
+    // NOTE: As the stackpointer is now never written, there is no point in
+    // computing offset here
+    // static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK;
+    // #if ctxSaveOnStackAligned % 8
+    //     #error "CTXSAVE_ON_STACK does not respect stack alignment");
+    // #endif
+    // auto offset = ctxSaveOnStackAligned;
     if (ctx[9] & (1 << 4)) {
-        fpuPresent = false;
-        offset = 32;
+         fpuPresent = false;
+    //     offset = 32;
     }
 
     // The stack pointer has already been validated in debugmon handler, however
@@ -214,7 +202,12 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
     // Write 0xdead   in r0 -> *badStackPtr
     // So before attempting to dereference the stack pointer, make sure it's a
     // valid process address
-    if (!validStackPtr(t, stackPtr, offset)) return false;
+    //
+    // NOTE: Instead of validating stack pointer before writing, just
+    // forbid to change this value alltogether, as it's later used to
+    // resotre context and any attempt at modifying it WILL result in a
+    // process crash
+    // if (!validStackPtr(t, stackPtr, offset)) return false;
     
     if (regNum <= r3) {
         // r0-r3
@@ -241,8 +234,9 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
         // Write proper stack pointer (before it gets moved by context switch,
         // position depends on size of context, which is different when float
         // registers are saved/omitted
-        ctx[STACK_OFFSET_IN_CTXSAVE] = value - offset;
-        return true;
+        // ctx[STACK_OFFSET_IN_CTXSAVE] = value - offset;
+        // return true;
+        return false;
     }
     // lr,pc
     if (regNum <= pc) {
@@ -278,9 +272,9 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
     }
     return true;
 
-#endif
-
+#else //FPU_REGISTERS == 1
     return false;
+#endif
 
 }
 
