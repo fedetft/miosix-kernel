@@ -2,8 +2,6 @@
 
 #ifdef PROCESS_DEBUGGER
 
-#include <cstring>
-#include <fcntl.h>
 #include <kernel/process.h>
 #include <kernel/thread.h>
 #include <spawn.h>
@@ -83,7 +81,7 @@ int GDBBuffer::appendRegister64(unsigned long long value) {
 
 int GDBBuffer::appendBytes(const unsigned int* addr, unsigned int size) {
     const auto len = size * 2;
-    if (available() <= len) return 0;
+    if (available() <= static_cast<int>(len)) return 0;
     for(unsigned int i = 0; i < size; i++) {
         const char byte = reinterpret_cast<const char*>(addr)[i];
         data[head++] = hexToAscii(byte >>   4);
@@ -93,15 +91,12 @@ int GDBBuffer::appendBytes(const unsigned int* addr, unsigned int size) {
     return len;
 }
 
-void Debugger::listen(char serialName[]) {
+void Debugger::listen(int serial) {
     failed = false;
-    serial = open(serialName, O_RDWR | O_NOCTTY);
-    if(serial < 0) {
-        perror("open");
-        fail();
-        return;
-    }
-    fiprintf(stderr, "Debugger listening on %s\n", serialName);
+    this->serial = serial;
+
+    fiprintf(stderr, "[DBG]: listening on serial#%x\n", serial);
+
     struct termios tio;
     tcgetattr(serial, &tio);
     // Both input and local modes:
@@ -114,6 +109,7 @@ void Debugger::listen(char serialName[]) {
     tio.c_oflag &= ~OPOST;
     tcsetattr(serial, TCSANOW, &tio);
 
+    // Set debugger thread when handling messages
     thread = Thread::getCurrentThread();
 
     while (!failed) {
@@ -122,9 +118,25 @@ void Debugger::listen(char serialName[]) {
         sendPacket();
     }
 
+    // Unset debugger thread
     thread = nullptr;
 
-    fiprintf(stderr, "Debugger terminated\n");
+    fiprintf(stderr, "[DBG]: failes\n");
+}
+
+void Debugger::listen(char serialName[]) {
+    fiprintf(stderr, "[DBG]: open %s\n", serialName);
+    const auto serial = open(serialName, O_RDWR | O_NOCTTY);
+
+    if(serial < 0) {
+        perror("open");
+        fail();
+        return;
+    }
+
+    listen(serial);
+
+    fiprintf(stderr, "[DBG]: close %s\n", serialName);
     close(serial);
 }
 
@@ -322,10 +334,8 @@ void Debugger::handleCommand_gG() {
             const auto size = registerFile.getSize(i);
             if(! registerFile.read(attached.thread, i, valPtr)) {
                 #if FPU_REGISTERS == 1
-                if (size == 8)
-                    buffer.appendString("xxxxxxxxxxxxxxxx", 16);
-                else
-                    buffer.appendString("xxxxxxxx", 8);
+                for(int i=0; i < (size * 2); i++)
+                    buffer.appendChar('x');
                 #endif
                 continue;
             }
@@ -523,12 +533,23 @@ void Debugger::handleCommand_q() {
         buffer.appendString((char*)&targetXMLString[qMessage.offset], qMessage.length);
     } break;
     case QMessage::MEMORY_MAP: {
-        layoutMacro(flash,          origin);
-        layoutMacro(flash,          length);
-        layoutMacro(flash,          erasesize);
+        // layoutMacro(flash,          origin);
+        // layoutMacro(flash,          length);
+        // layoutMacro(flash,          erasesize);
         layoutMacro(process_pool,   start);
         layoutMacro(process_pool,   end);
         const auto _process_pool_length = _process_pool_end - _process_pool_start;
+        // FIXME: Flagging whole sectoin as flash (gdb is not intended to access
+        // this memory area anyway)
+        const unsigned int _hwbp_valid_start  = 0x00000000;
+        // FIXME: End of flash ~~ Any address above 0x1fffffff is not
+        // communicated as being part of flash, since rev.1 hw breakpoints
+        // cannot address it anyway (mask is 0x1ffffff4) rev.2 bp can address
+        // outside of this space, in which case  it's possible to tell gdb to
+        // use hardware breakpoints, the stub will prevent insertion attempts
+        // outside of addressable space
+        const unsigned int _hwbp_valid_length    = 0x20000000 - _hwbp_valid_start;
+        const unsigned int _hwbp_dummy_blocksize = 0x00020000 - _hwbp_valid_start;
         // TODO: This is not the proper way to communicate memory layout, it
         // will break if the length requested by GDB is smaller than the message
         // provided, gdb requests a length appropriate for the advertised
@@ -547,7 +568,9 @@ void Debugger::handleCommand_q() {
                     "<property name=\"blocksize\">0x%x</property>"
                 "</memory>"
             "</memory-map>",
-            _process_pool_start, _process_pool_length, _flash_origin, _flash_length, _flash_erasesize);
+            _process_pool_start, _process_pool_length,
+            _hwbp_valid_start, _hwbp_valid_length, _hwbp_dummy_blocksize);
+            // _flash_origin, _flash_length, _flash_erasesize);
     } break;
     default:
         buffer.clear();
@@ -682,7 +705,7 @@ void Debugger::vattach() {
 
     {
         FastGlobalIrqLock dLock;
-        Thread* th;
+        Thread* th = nullptr;
         for (const auto& thread : proc->threads) {
             if (thread->flags.isDeleted() == false
             && thread->flags.isDeleting() == false) {
@@ -690,6 +713,13 @@ void Debugger::vattach() {
                 break;
             }
         }
+
+        if(th == nullptr) {
+            // Fail if no thread is alive in the selected process
+            buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
+            return;
+        }
+
         // If it's not waiting due to a debug event, wake it up, otherwise keep
         // it in debug wait and continue (preserving attached info)
         if (! th->flags.isWaitingDebug()) {

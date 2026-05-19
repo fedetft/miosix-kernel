@@ -1,19 +1,24 @@
 #include "debug_registers.h"
 #include "debugger_interface.h"
 #include "debugger.h"
+#include "kernel/process.h"
+#include "kernel/thread.h"
 
 #ifdef PROCESS_DEBUGGER
 
 namespace miosix {
 
-bool isCodeBreakpoint(unsigned int* pc) {
-#if defined (__arm__) || defined (__thumb__)
-    const auto instruction = *reinterpret_cast<unsigned short*>(pc);
-    return (instruction & 0xff00) == 0xbe00;
-#else
-    #error "Debugger: cannot determine structure of code breakpoints for the current architecture"
-#endif
-}
+// NOTE: Kept here but commented, used when handling 'c' and 's' programs to
+// step over hardcoded breakpoint instructions
+//
+// bool isCodeBreakpoint(unsigned int* pc) {
+// #if defined (__arm__) || defined (__thumb__)
+//     const auto instruction = *reinterpret_cast<unsigned short*>(pc);
+//     return (instruction & 0xff00) == 0xbe00;
+// #else
+//     #error "Debugger: cannot determine structure of code breakpoints for the current architecture"
+// #endif
+// }
 
 Breakpoint::Breakpoint(unsigned int address, unsigned int kind) {
     // Revision 2: Simply set address and enable
@@ -163,6 +168,19 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
 
 }
 
+// Check that stack pointer lies inside the process memory
+bool RegisterFile::validStackPtr(Thread *t, unsigned int *ptr, unsigned int offset) {
+    const Process *proc = static_cast<Process*>(t->getProcess());
+    const auto base = reinterpret_cast<unsigned int>(ptr);
+    const auto start = reinterpret_cast<unsigned int>(
+            proc->image.getProcessBasePointer());
+    const auto end = start + reinterpret_cast<unsigned int>(
+            proc->image.getProcessImageSize());
+    return (base >= start)
+        && (base <= end)
+        && (base + offset <= end);
+}
+
 bool RegisterFile::write(Thread* t, int regNum, char* ref) {
 
     if (t == nullptr) return false;
@@ -186,6 +204,17 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
         fpuPresent = false;
         offset = 32;
     }
+
+    // The stack pointer has already been validated in debugmon handler, however
+    // subsequent write could avoid this check. User is allowed to write
+    // anything on the stack pointer (they might crash the process), but since
+    // the pointer is dereferenced to write on registers on stack, validate that
+    // the current stack pointer is valid, otherwise malicious code could:
+    // Write 0xbadadd in sp -> stackPtr
+    // Write 0xdead   in r0 -> *badStackPtr
+    // So before attempting to dereference the stack pointer, make sure it's a
+    // valid process address
+    if (!validStackPtr(t, stackPtr, offset)) return false;
     
     if (regNum <= r3) {
         // r0-r3

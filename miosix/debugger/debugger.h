@@ -50,6 +50,9 @@ public:
 
     // Maximum size of a register in bytes
     const static int maxRegSizeBytes    = MAX_REGISTER_SIZE_BYTES;
+private:
+
+    bool validStackPtr(Thread *t, unsigned int *ptr, unsigned int offset);
 };
 
 typedef enum {
@@ -316,6 +319,7 @@ private:
 class Debugger {
 public:
 
+    void listen(int serial);
     void listen(char* serialName);
 
     static inline void fail() { failed = true; }
@@ -429,6 +433,9 @@ public:
      * @return the address of the comparator holding the breakpoint, -1 if no comparator are available
      */
     static int addBreakpoint(unsigned int address, unsigned int kind) {
+        // If the address lays outside the space addressable by the comparator,
+        // do not attempt breakpoint insertion
+        if((address & fpbGetWriteMask()) != address) return -1;
         for(int i=0; i<breakpointsNum; i++) {
             if(!breakpoints[i].enabled()) {
                 breakpoints[i] = Breakpoint(address, kind);
