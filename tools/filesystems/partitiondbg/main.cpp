@@ -4,7 +4,7 @@
 #include "miosix.h"
 #include "drivers/sdmmc/stm32f2_f4_f7_sd.h"
 #include "MBR/mbr.h"
-
+#include "GPT/gpt.h"
 
 using namespace miosix;
 
