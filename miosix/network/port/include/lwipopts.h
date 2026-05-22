@@ -64,8 +64,9 @@
 
 #define TCP_LISTEN_BACKLOG         1
 
-#define LWIP_SOCKET_EXTERNAL_HEADERS    0
-#define LWIP_SOCKET_EXTERNAL_HEADER_SOCKETS_H <sys/sockets.h>
+#define LWIP_SOCKET_EXTERNAL_HEADERS    1
+#define LWIP_SOCKET_EXTERNAL_HEADER_SOCKETS_H   <sys/sockets.h>
+#define LWIP_SOCKET_EXTERNAL_HEADER_INET_H      <arpa/inet.h>
 #define LWIP_COMPAT_SOCKETS             0
 #define LWIP_POSIX_SOCKETS_IO_NAME      0
 #define LWIP_SOCKET_SELECT              0
@@ -73,6 +74,7 @@
 #define LWIP_SO_RCVTIMEO                1
 #define LWIP_SO_RCVBUF                  1
 #define SO_REUSE                        1
+#define LWIP_DONT_PROVIDE_BYTEORDER_FUNCTIONS 1
 
 #define TCPIP_MBOX_SIZE            16
 #define DEFAULT_ACCEPTMBOX_SIZE    16

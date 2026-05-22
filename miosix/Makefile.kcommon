@@ -28,6 +28,7 @@ CFLAGS    = -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"               \
             -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)                          \
             -I$(KPATH)/network/lwip/src/include                              \
             -I$(KPATH)/network/port/include                                  \
+            -I$(KPATH)/filesystem/socket/                                    \
             -MMD -MP -c
 CXXFLAGS  = -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"                 \
             -D_DEFAULT_SOURCE=1 $(BOARD_CXXFLAGS) $(CHIP_CXXFLAGS) $(CPU_FLAGS)\
@@ -39,6 +40,7 @@ CXXFLAGS  = -qkernelspace -D_MIOSIX_BOARDNAME=\"$(OPT_BOARD)\"                 \
             -I$(KPATH)/$(BOARD_INC) $(INCLUDE_DIRS)                            \
             -I$(KPATH)/network/lwip/src/include                                \
             -I$(KPATH)/network/port/include                                    \
+            -I$(KPATH)/filesystem/socket/                                      \
             -MMD -MP -c
 LFLAGS    = -qkernelspace $(BOARD_LFLAGS) $(CPU_FLAGS) $(CHIP_LFLAGS)      \
             -Wl,-Map,main.map -Wl,-T$(KPATH)/$(BOARD_INC)/$(LINKER_SCRIPT) \

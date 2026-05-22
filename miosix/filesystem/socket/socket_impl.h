@@ -30,8 +30,8 @@
 
 #include "lwip/opt.h"
 
+#include <sys/socket.h>
 #include "lwip/err.h"
-#include "sys/socket.h"
 #include "lwip/sys.h"
 
 #ifdef __cplusplus

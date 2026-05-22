@@ -1,97 +1,77 @@
-// TODO: replace with sys/socket.h in newlib
+/***************************************************************************
+ *   Copyright (C) 2026 by Niccolò Betto                                   *
+ *   Copyright (C) 2001-2004 by Swedish Institute of Computer Science      *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
 
-#pragma once
+#ifndef _SYS_SOCKET_H_
+#define _SYS_SOCKET_H_
 
-#include "lwip/ip_addr.h"
-#include "lwip/netif.h"
-#include "lwip/err.h"
-#include "lwip/inet.h"
-#include "lwip/errno.h"
+#include <sys/types.h>
 
-#include <cstring>
-
-/* sockaddr and pals include length fields */
-#define LWIP_SOCKET_HAVE_SA_LEN  1
-
-/* If your port already typedef's sa_family_t, define SA_FAMILY_T_DEFINED
-   to prevent this code from redefining it. */
-#if !defined(sa_family_t) && !defined(SA_FAMILY_T_DEFINED)
-typedef u8_t sa_family_t;
+#ifndef __socklen_t_defined
+typedef uint32_t socklen_t;
+#define __socklen_t_defined
 #endif
-/* If your port already typedef's in_port_t, define IN_PORT_T_DEFINED
-   to prevent this code from redefining it. */
-#if !defined(in_port_t) && !defined(IN_PORT_T_DEFINED)
-typedef u16_t in_port_t;
-#endif
 
-#if LWIP_IPV4
-/* members are in network byte order */
-struct sockaddr_in {
-  u8_t            sin_len;
-  sa_family_t     sin_family;
-  in_port_t       sin_port;
-  struct in_addr  sin_addr;
-#define SIN_ZERO_LEN 8
-  char            sin_zero[SIN_ZERO_LEN];
-};
-#endif /* LWIP_IPV4 */
-
-#if LWIP_IPV6
-struct sockaddr_in6 {
-  u8_t            sin6_len;      /* length of this structure    */
-  sa_family_t     sin6_family;   /* AF_INET6                    */
-  in_port_t       sin6_port;     /* Transport layer port #      */
-  u32_t           sin6_flowinfo; /* IPv6 flow information       */
-  struct in6_addr sin6_addr;     /* IPv6 address                */
-  u32_t           sin6_scope_id; /* Set of interfaces for scope */
-};
-#endif /* LWIP_IPV6 */
+typedef uint8_t sa_family_t;
 
 struct sockaddr {
-  u8_t        sa_len;
-  sa_family_t sa_family;
-  char        sa_data[14];
+    uint8_t     sa_len;
+    sa_family_t sa_family;
+    char        sa_data[14];
 };
 
 struct sockaddr_storage {
-  u8_t        s2_len;
-  sa_family_t ss_family;
-  char        s2_data1[2];
-  u32_t       s2_data2[3];
-#if LWIP_IPV6
-  u32_t       s2_data3[3];
-#endif /* LWIP_IPV6 */
+    uint8_t     s2_len;
+    sa_family_t ss_family;
+    char        s2_data1[2];
+    uint32_t    s2_data2[3];
 };
-
-/* If your port already typedef's socklen_t, define SOCKLEN_T_DEFINED
-   to prevent this code from redefining it. */
-#if !defined(socklen_t) && !defined(SOCKLEN_T_DEFINED)
-typedef u32_t socklen_t;
-#endif
 
 #if !defined IOV_MAX
 #define IOV_MAX 0xFFFF
 #elif IOV_MAX > 0xFFFF
-#error "IOV_MAX larger than supported by LwIP"
+#error "IOV_MAX larger than supported by Miosix"
 #endif /* IOV_MAX */
 
-#if !defined(iovec)
 struct iovec {
-  void  *iov_base;
-  size_t iov_len;
+    void  *iov_base;
+    size_t iov_len;
 };
-#endif
 
 typedef int msg_iovlen_t;
 
 struct msghdr {
-  void         *msg_name;
-  socklen_t     msg_namelen;
-  struct iovec *msg_iov;
-  msg_iovlen_t  msg_iovlen;
-  void         *msg_control;
-  socklen_t     msg_controllen;
-  int           msg_flags;
+    void         *msg_name;
+    socklen_t     msg_namelen;
+    struct iovec *msg_iov;
+    msg_iovlen_t  msg_iovlen;
+    void         *msg_control;
+    socklen_t     msg_controllen;
+    int           msg_flags;
 };
 
 /* struct msghdr->msg_flags bit field values */
@@ -100,9 +80,9 @@ struct msghdr {
 
 /* RFC 3542, Section 20: Ancillary Data */
 struct cmsghdr {
-  socklen_t  cmsg_len;   /* number of bytes, including header */
-  int        cmsg_level; /* originating protocol */
-  int        cmsg_type;  /* protocol-specific type */
+    socklen_t  cmsg_len;   /* number of bytes, including header */
+    int        cmsg_level; /* originating protocol */
+    int        cmsg_type;  /* protocol-specific type */
 };
 /* Data section follows header and possible padding, typically referred to as
       unsigned char cmsg_data[]; */
@@ -116,32 +96,30 @@ will need to increase long long */
 #define ALIGN_D(size) ALIGN_H(size)
 
 #define CMSG_FIRSTHDR(mhdr) \
-          ((mhdr)->msg_controllen >= sizeof(struct cmsghdr) ? \
-           (struct cmsghdr *)(mhdr)->msg_control : \
-           (struct cmsghdr *)NULL)
+        ((mhdr)->msg_controllen >= sizeof(struct cmsghdr) ? \
+            (struct cmsghdr *)(mhdr)->msg_control : \
+            (struct cmsghdr *)NULL)
 
 #define CMSG_NXTHDR(mhdr, cmsg) \
         (((cmsg) == NULL) ? CMSG_FIRSTHDR(mhdr) : \
-         (((u8_t *)(cmsg) + ALIGN_H((cmsg)->cmsg_len) \
-                            + ALIGN_D(sizeof(struct cmsghdr)) > \
-           (u8_t *)((mhdr)->msg_control) + (mhdr)->msg_controllen) ? \
-          (struct cmsghdr *)NULL : \
-          (struct cmsghdr *)((void*)((u8_t *)(cmsg) + \
-                                      ALIGN_H((cmsg)->cmsg_len)))))
+            (((uint8_t *)(cmsg) + ALIGN_H((cmsg)->cmsg_len) \
+            + ALIGN_D(sizeof(struct cmsghdr)) > \
+            (uint8_t *)((mhdr)->msg_control) + (mhdr)->msg_controllen) ? \
+                (struct cmsghdr *)NULL : \
+                (struct cmsghdr *)((void*)((uint8_t *)(cmsg) + \
+                                            ALIGN_H((cmsg)->cmsg_len)))))
 
-#define CMSG_DATA(cmsg) ((void*)((u8_t *)(cmsg) + \
+#define CMSG_DATA(cmsg) ((void*)((uint8_t *)(cmsg) + \
                          ALIGN_D(sizeof(struct cmsghdr))))
 
-#define CMSG_SPACE(length) (ALIGN_D(sizeof(struct cmsghdr)) + \
-                            ALIGN_H(length))
+#define CMSG_SPACE(length) (ALIGN_D(sizeof(struct cmsghdr)) + ALIGN_H(length))
 
-#define CMSG_LEN(length) (ALIGN_D(sizeof(struct cmsghdr)) + \
-                           length)
+#define CMSG_LEN(length) (ALIGN_D(sizeof(struct cmsghdr)) + length)
 
 /* Set socket options argument */
-#define IFNAMSIZ NETIF_NAMESIZE
+#define IFNAMSIZ 6 /* This must match NETIF_NAMESIZE in netif.h */
 struct ifreq {
-  char ifr_name[IFNAMSIZ]; /* Interface name */
+    char ifr_name[IFNAMSIZ]; /* Interface name */
 };
 
 /* Socket protocol types (TCP/UDP/RAW) */
@@ -191,30 +169,14 @@ struct linger {
 /*
  * Level number for (get/set)sockopt() to apply to socket itself.
  */
-#define  SOL_SOCKET  0xfff    /* options for socket level */
-
+#define SOL_SOCKET  0xfff    /* options for socket level */
 
 #define AF_UNSPEC       0
 #define AF_INET         2
-#if LWIP_IPV6
-#define AF_INET6        10
-#else /* LWIP_IPV6 */
 #define AF_INET6        AF_UNSPEC
-#endif /* LWIP_IPV6 */
 #define PF_INET         AF_INET
 #define PF_INET6        AF_INET6
 #define PF_UNSPEC       AF_UNSPEC
-
-#define IPPROTO_IP      0
-#define IPPROTO_ICMP    1
-#define IPPROTO_TCP     6
-#define IPPROTO_UDP     17
-#if LWIP_IPV6
-#define IPPROTO_IPV6    41
-#define IPPROTO_ICMPV6  58
-#endif /* LWIP_IPV6 */
-#define IPPROTO_UDPLITE 136
-#define IPPROTO_RAW     255
 
 /* Flags we can use with send and recv. */
 #define MSG_PEEK       0x01    /* Peeks at an incoming message */
@@ -224,7 +186,6 @@ struct linger {
 #define MSG_MORE       0x10    /* Sender will send more */
 #define MSG_NOSIGNAL   0x20    /* Uninmplemented: Requests not to send the SIGPIPE signal if an attempt to send is made on a stream-oriented socket that is no longer connected. */
 
-
 /*
  * Options for level IPPROTO_IP
  */
@@ -232,7 +193,6 @@ struct linger {
 #define IP_TTL             2
 #define IP_PKTINFO         8
 
-#if LWIP_TCP
 /*
  * Options for level IPPROTO_TCP
  */
@@ -241,68 +201,12 @@ struct linger {
 #define TCP_KEEPIDLE   0x03    /* set pcb->keep_idle  - Same as TCP_KEEPALIVE, but use seconds for get/setsockopt */
 #define TCP_KEEPINTVL  0x04    /* set pcb->keep_intvl - Use seconds for get/setsockopt */
 #define TCP_KEEPCNT    0x05    /* set pcb->keep_cnt   - Use number of probes sent for get/setsockopt */
-#endif /* LWIP_TCP */
 
-#if LWIP_IPV6
-/*
- * Options for level IPPROTO_IPV6
- */
-#define IPV6_CHECKSUM       7  /* RFC3542: calculate and insert the ICMPv6 checksum for raw sockets. */
-#define IPV6_V6ONLY         27 /* RFC3493: boolean control to restrict AF_INET6 sockets to IPv6 communications only. */
-#endif /* LWIP_IPV6 */
-
-#if LWIP_UDP && LWIP_UDPLITE
 /*
  * Options for level IPPROTO_UDPLITE
  */
 #define UDPLITE_SEND_CSCOV 0x01 /* sender checksum coverage */
 #define UDPLITE_RECV_CSCOV 0x02 /* minimal receiver checksum coverage */
-#endif /* LWIP_UDP && LWIP_UDPLITE*/
-
-
-#if LWIP_MULTICAST_TX_OPTIONS
-/*
- * Options and types for UDP multicast traffic handling
- */
-#define IP_MULTICAST_TTL   5
-#define IP_MULTICAST_IF    6
-#define IP_MULTICAST_LOOP  7
-#endif /* LWIP_MULTICAST_TX_OPTIONS */
-
-#if LWIP_IGMP
-/*
- * Options and types related to multicast membership
- */
-#define IP_ADD_MEMBERSHIP  3
-#define IP_DROP_MEMBERSHIP 4
-
-typedef struct ip_mreq {
-    struct in_addr imr_multiaddr; /* IP multicast address of group */
-    struct in_addr imr_interface; /* local IP address of interface */
-} ip_mreq;
-#endif /* LWIP_IGMP */
-
-#if LWIP_IPV4
-struct in_pktinfo {
-  unsigned int   ipi_ifindex;  /* Interface index */
-  struct in_addr ipi_addr;     /* Destination (from header) address */
-};
-#endif /* LWIP_IPV4 */
-
-#if LWIP_IPV6_MLD
-/*
- * Options and types related to IPv6 multicast membership
- */
-#define IPV6_JOIN_GROUP      12
-#define IPV6_ADD_MEMBERSHIP  IPV6_JOIN_GROUP
-#define IPV6_LEAVE_GROUP     13
-#define IPV6_DROP_MEMBERSHIP IPV6_LEAVE_GROUP
-
-typedef struct ipv6_mreq {
-  struct in6_addr ipv6mr_multiaddr; /*  IPv6 multicast addr */
-  unsigned int    ipv6mr_interface; /*  interface index, or 0 */
-} ipv6_mreq;
-#endif /* LWIP_IPV6_MLD */
 
 /*
  * The Type of Service provides an indication of the abstract
@@ -338,7 +242,7 @@ typedef struct ipv6_mreq {
  * control the access to, and use of, those precedence designations.
  */
 #define IPTOS_PREC_MASK                 0xe0
-#define IPTOS_PREC(tos)                ((tos) & IPTOS_PREC_MASK)
+#define IPTOS_PREC(tos)                 ((tos) & IPTOS_PREC_MASK)
 #define IPTOS_PREC_NETCONTROL           0xe0
 #define IPTOS_PREC_INTERNETCONTROL      0xc0
 #define IPTOS_PREC_CRITIC_ECP           0xa0
@@ -348,10 +252,9 @@ typedef struct ipv6_mreq {
 #define IPTOS_PREC_PRIORITY             0x20
 #define IPTOS_PREC_ROUTINE              0x00
 
-
 /*
  * Commands for ioctlsocket(),  taken from the BSD file fcntl.h.
- * lwip_ioctl only supports FIONREAD and FIONBIO, for now
+ * ioctl only supports FIONREAD and FIONBIO, for now
  *
  * Ioctl's have the command encoded in the lower word,
  * and the size of any in or out parameters in the upper
@@ -417,70 +320,123 @@ typedef struct ipv6_mreq {
 #endif
 
 #ifndef SHUT_RD
-  #define SHUT_RD   0
-  #define SHUT_WR   1
-  #define SHUT_RDWR 2
+    #define SHUT_RD   0
+    #define SHUT_WR   1
+    #define SHUT_RDWR 2
 #endif
 
-/* FD_SET used for lwip_select */
-#ifndef FD_SET
-#undef  FD_SETSIZE
-/* Make FD_SETSIZE match NUM_SOCKETS in socket.c */
-#define FD_SETSIZE    MEMP_NUM_NETCONN
-#define LWIP_SELECT_MAXNFDS (FD_SETSIZE + LWIP_SOCKET_OFFSET)
-#define FDSETSAFESET(n, code) do { \
-  if (((n) - LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n) - LWIP_SOCKET_OFFSET) >= 0)) { \
-  code; }} while(0)
-#define FDSETSAFEGET(n, code) (((n) - LWIP_SOCKET_OFFSET < MEMP_NUM_NETCONN) && (((int)(n) - LWIP_SOCKET_OFFSET) >= 0) ?\
-  (code) : 0)
-#define FD_SET(n, p)  FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] = (u8_t)((p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] |  (1 << (((n)-LWIP_SOCKET_OFFSET) & 7))))
-#define FD_CLR(n, p)  FDSETSAFESET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] = (u8_t)((p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] & ~(1 << (((n)-LWIP_SOCKET_OFFSET) & 7))))
-#define FD_ISSET(n,p) FDSETSAFEGET(n, (p)->fd_bits[((n)-LWIP_SOCKET_OFFSET)/8] &   (1 << (((n)-LWIP_SOCKET_OFFSET) & 7)))
-#define FD_ZERO(p)    memset((void*)(p), 0, sizeof(*(p)))
+/* socket function definitions */
 
-typedef struct fd_set
-{
-  unsigned char fd_bits [(FD_SETSIZE+7)/8];
-} fd_set;
-
-#elif FD_SETSIZE < (LWIP_SOCKET_OFFSET + MEMP_NUM_NETCONN)
-#error "external FD_SETSIZE too small for number of sockets"
-#else
-#define LWIP_SELECT_MAXNFDS FD_SETSIZE
-#endif /* FD_SET */
-
-/* poll-related defines and types */
-/* @todo: find a better way to guard the definition of these defines and types if already defined */
-#if !defined(POLLIN) && !defined(POLLOUT)
-#define POLLIN     0x1
-#define POLLOUT    0x2
-#define POLLERR    0x4
-#define POLLNVAL   0x8
-/* Below values are unimplemented */
-#define POLLRDNORM 0x10
-#define POLLRDBAND 0x20
-#define POLLPRI    0x40
-#define POLLWRNORM 0x80
-#define POLLWRBAND 0x100
-#define POLLHUP    0x200
-typedef unsigned int nfds_t;
-struct pollfd
-{
-  int fd;
-  short events;
-  short revents;
-};
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-/** LWIP_TIMEVAL_PRIVATE: if you want to use the struct timeval provided
- * by your system, set this to 0 and include <sys/time.h> in cc.h */
-#ifndef LWIP_TIMEVAL_PRIVATE
-#define LWIP_TIMEVAL_PRIVATE 1
+/* Create a new socket of type TYPE in domain DOMAIN, using
+   protocol PROTOCOL. If PROTOCOL is zero, one is chosen automatically.
+   Returns a file descriptor for the new socket, or -1 for errors.  */
+extern int socket(int domain, int type, int protocol) __THROW;
+
+/* Give the socket FD the local address ADDR (which is LEN bytes long).  */
+extern int bind(int fd, const struct sockaddr *addr, socklen_t len) __THROW;
+
+/* Open a connection on socket FD to peer at ADDR (which is LEN bytes long).
+   For connectionless socket types, just set the default address to send to
+   and the only address from which to accept transmissions.
+   Return 0 on success, -1 for errors.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern int connect(int fd, const struct sockaddr *addr, socklen_t len);
+
+/* Prepare to accept connections on socket FD.
+   N connection requests will be queued before further requests are refused.
+   Returns 0 on success, -1 for errors.  */
+extern int listen(int fd, int backlog) __THROW;
+
+/* Await a connection on socket FD.
+   When a connection arrives, open a new socket to communicate with it,
+   set *ADDR (which is *ADDR_LEN bytes long) to the address of the connecting
+   peer and *ADDR_LEN to the address's actual length, and return the
+   new socket's descriptor, or -1 for errors.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern int accept(int fd, struct sockaddr *addr, socklen_t *addrlen);
+
+/* Put the local address of FD into *ADDR and its length in *LEN.  */
+extern int getsockname(int fd, struct sockaddr *addr, socklen_t *len) __THROW;
+
+/* Put the address of the peer connected to socket FD into *ADDR
+   (which is *LEN bytes long), and its actual length into *LEN.  */
+extern int getpeername(int fd, struct sockaddr *addr, socklen_t *len) __THROW;
+
+/* Send N bytes of BUF to socket FD.  Returns the number sent or -1.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern ssize_t send(int fd, const void *buf, size_t n, int flags);
+
+/* Send N bytes of BUF on socket FD to peer at address ADDR (which is
+   ADDR_LEN bytes long).  Returns the number sent, or -1 for errors.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern ssize_t sendto(int fd, const void *buf, size_t n, int flags,
+                      const struct sockaddr *addr, socklen_t addrlen);
+
+/* Read N bytes into BUF from socket FD.
+   Returns the number read or -1 for errors.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern ssize_t recv(int fd, void *buf, size_t n, int flags);
+
+/* Read N bytes into BUF through socket FD.
+   If ADDR is not NULL, fill in *ADDR_LEN bytes of it with the address of
+   the sender, and store the actual size of the address in *ADDR_LEN.
+   Returns the number of bytes read or -1 for errors.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern ssize_t recvfrom(int fd, void *buf, size_t n, int flags,
+                        struct sockaddr *addr, socklen_t *addrlen);
+
+/* Shut down all or part of the connection open on socket FD.
+   HOW determines what to shut down:
+     SHUT_RD   = No more receptions;
+     SHUT_WR   = No more transmissions;
+     SHUT_RDWR = No more receptions or transmissions.
+   Returns 0 on success, -1 for errors.  */
+extern int shutdown(int fd, int how) __THROW;
+
+/* Set socket FD's option OPTNAME at protocol level LEVEL
+   to *OPTVAL (which is OPTLEN bytes long).
+   Returns 0 on success, -1 for errors.  */
+extern int setsockopt(int fd, int level, int optname, const void *optval,
+                      socklen_t optlen) __THROW;
+
+/* Put the current value for socket FD's option OPTNAME at protocol level LEVEL
+   into OPTVAL (which is *OPTLEN bytes long), and set *OPTLEN to the value's
+   actual length.  Returns 0 on success, -1 for errors.  */
+extern int getsockopt(int fd, int level, int optname, void *optval,
+                      socklen_t *optlen) __THROW;
+
+/* Send a message described MESSAGE on socket FD.
+   Returns the number of bytes sent, or -1 for errors.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern ssize_t sendmsg(int fd, const struct msghdr *message, int flags);
+
+/* Receive a message as described by MESSAGE from socket FD.
+   Returns the number of bytes read or -1 for errors.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern ssize_t recvmsg(int fd, struct msghdr *message, int flags);
+
+#ifdef __cplusplus
+}
 #endif
 
-#if LWIP_TIMEVAL_PRIVATE
-struct timeval {
-  long    tv_sec;         /* seconds */
-  long    tv_usec;        /* and microseconds */
-};
-#endif /* LWIP_TIMEVAL_PRIVATE */
+#endif /* _SYS_SOCKET_H_ */
