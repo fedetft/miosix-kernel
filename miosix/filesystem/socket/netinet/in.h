@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2026 by Niccolò Betto                                   *
- *   Copyright (C) 2001-2004 by Swedish Institute of Computer Science      *
+ *   Copyright (C) 1997-2026 Free Software Foundation, Inc.                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -26,71 +26,51 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#pragma once
+#ifndef _NETINET_IN_H_
+#define _NETINET_IN_H_
 
-#include "lwip/opt.h"
-
+#include <sys/types.h>
 #include <sys/socket.h>
-#include "lwip/err.h"
-#include "lwip/sys.h"
+#include <bits/in.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef uint32_t in_addr_t;
+typedef uint16_t in_port_t;
 
-union lwip_sock_lastdata {
-  struct netbuf *netbuf;
-  struct pbuf *pbuf;
+struct in_addr {
+  in_addr_t s_addr;
 };
 
-/** Contains all internal pointers and states used for a socket */
-struct lwip_sock {
-  /** sockets currently are built on netconns, each socket has one netconn */
-  struct netconn *conn;
-  /** data that was left from the previous read */
-  union lwip_sock_lastdata lastdata;
-#if LWIP_NETCONN_FULLDUPLEX
-  /* counter of how many threads are using a struct lwip_sock (not the 'int') */
-  u8_t fd_used;
-  /* status of pending close/delete actions */
-  u8_t fd_free_pending;
-#define LWIP_SOCK_FD_FREE_TCP  1
-#define LWIP_SOCK_FD_FREE_FREE 2
-#endif
+/* members are in network byte order */
+struct sockaddr_in {
+    uint8_t         sin_len;
+    sa_family_t     sin_family;
+    in_port_t       sin_port;
+    struct in_addr  sin_addr;
+#define SIN_ZERO_LEN 8
+    char            sin_zero[SIN_ZERO_LEN];
 };
 
-#if !LWIP_TCPIP_CORE_LOCKING
-/** Maximum optlen used by setsockopt/getsockopt */
-#define LWIP_SETGETSOCKOPT_MAXOPTLEN LWIP_MAX(16, sizeof(struct ifreq))
+#define IPPROTO_IP      0
+#define IPPROTO_ICMP    1
+#define IPPROTO_TCP     6
+#define IPPROTO_UDP     17
+#define IPPROTO_UDPLITE 136
+#define IPPROTO_RAW     255
 
-/** This struct is used to pass data to the set/getsockopt_impl
- * functions running in tcpip_thread context (only a void* is allowed) */
-struct lwip_setgetsockopt_data {
-  /** socket index for which to change options */
-  lwip_sock* sock;
-  /** level of the option to process */
-  int level;
-  /** name of the option to process */
-  int optname;
-  /** set: value to set the option to
-    * get: value of the option is stored here */
-#if LWIP_MPU_COMPATIBLE
-  u8_t optval[LWIP_SETGETSOCKOPT_MAXOPTLEN];
-#else
-  union {
-    void *p;
-    const void *pc;
-  } optval;
-#endif
-  /** size of *optval */
-  socklen_t optlen;
-  /** if an error occurs, it is temporarily stored here */
-  int err;
-  /** semaphore to wake up the calling task */
-  void* completed_sem;
+/** 255.255.255.255 */
+#define INADDR_NONE         IPADDR_NONE
+/** 127.0.0.1 */
+#define INADDR_LOOPBACK     IPADDR_LOOPBACK
+/** 0.0.0.0 */
+#define INADDR_ANY          IPADDR_ANY
+/** 255.255.255.255 */
+#define INADDR_BROADCAST    IPADDR_BROADCAST
+
+#define INET_ADDRSTRLEN     IP4ADDR_STRLEN_MAX
+
+struct in_pktinfo {
+  unsigned int   ipi_ifindex;  /* Interface index */
+  struct in_addr ipi_addr;     /* Destination (from header) address */
 };
-#endif /* !LWIP_TCPIP_CORE_LOCKING */
 
-#ifdef __cplusplus
-}
-#endif
+#endif /* _NETINET_IN_H_ */

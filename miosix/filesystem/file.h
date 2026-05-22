@@ -28,7 +28,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include "socket/sys/socket.h"
+#include <sys/socket.h>
 #include "kernel/intrusive.h"
 #include "miosix_settings.h"
 

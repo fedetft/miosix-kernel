@@ -29,6 +29,9 @@
 
 #include "network.h"
 
+// Contains definitions from ip_addr.h and ip4_addr.h
+#include <arpa/inet.h>
+
 #include <interfaces/bsp.h>
 #include <kernel/logging.h>
 #include <kernel/sync.h>
@@ -36,7 +39,6 @@
 
 #include <lwip/dhcp.h>
 #include <lwip/tcpip.h>
-#include <lwip/ip_addr.h>
 #include <lwip/netif.h>
 #include <lwip/timeouts.h>
 

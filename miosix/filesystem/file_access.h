@@ -33,6 +33,7 @@
 #include <bitset>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
 #include "file.h"
 #include "stringpart.h"
 #include "devfs/devfs.h"
@@ -40,7 +41,6 @@
 #include "kernel/intrusive.h"
 #include "kernel/thread.h"
 #include "miosix_settings.h"
-#include "socket/sys/socket.h" // TODO: replace with sys/socket.h when available
 
 #ifdef WITH_FILESYSTEM
 

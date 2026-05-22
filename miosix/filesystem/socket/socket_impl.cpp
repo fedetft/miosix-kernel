@@ -35,6 +35,9 @@
 #include "socket.h"
 #include "socket_impl.h"
 
+// Contains definitions from ip_addr.h and ip4_addr.h
+#include <arpa/inet.h>
+
 #include "lwip/api.h"
 #include "lwip/igmp.h"
 #include "lwip/inet.h"
@@ -2678,8 +2681,7 @@ miosix::Socket::fcntl(int cmd, int val)
   return ret;
 }
 
-const char *
-lwip_inet_ntop(int af, const void *src, char *dst, socklen_t size)
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t size)
 {
   const char *ret = NULL;
   int size_int = (int)size;
@@ -2711,8 +2713,7 @@ lwip_inet_ntop(int af, const void *src, char *dst, socklen_t size)
   return ret;
 }
 
-int
-lwip_inet_pton(int af, const char *src, void *dst)
+int inet_pton(int af, const char *src, void *dst)
 {
   int err;
   switch (af) {
