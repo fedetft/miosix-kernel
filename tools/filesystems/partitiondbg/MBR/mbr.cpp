@@ -2,8 +2,7 @@
 namespace MBR {
 std::pair<bool, MBRReader> MBRReader::readMBR(miosix::intrusive_ref_ptr<miosix::Device> device) {
     MBRReader reader;
-
-    auto result = device->readBlock(&reader.header, sizeof(MBRHeader), 0);
+    auto result = device->readBlock(&reader.header, sizeof(MBRHeader), MBR_POSITION_LBA);
     return {result < 0, reader};
 }
 

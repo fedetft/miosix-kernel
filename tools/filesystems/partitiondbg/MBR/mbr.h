@@ -5,7 +5,8 @@
 #include <filesystem/devfs/devfs.h>
 
 namespace MBR {
-    
+
+constexpr off_t    MBR_POSITION_LBA    = 0;
 constexpr size_t   MBR_BOOT_CODE_SIZE  = 424;
 constexpr uint16_t MBR_SIGNATURE       = 0xAA55;
 constexpr uint8_t  INVALID_SIZE_IN_LBA = 0x0;
@@ -64,6 +65,8 @@ typedef struct MBRHeader {
     MBRPartitionRecord partitionRecords[4];
     uint16_t mbrSignature;
 }  __attribute__((packed)) MBRHeader;
+
+static_assert(sizeof(MBRHeader) == 512, "GPT Header size must not exceed Logic Block Size (512)");
 
 class MBRReader {
 public:  
