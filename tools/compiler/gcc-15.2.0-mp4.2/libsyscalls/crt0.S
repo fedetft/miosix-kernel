@@ -1108,12 +1108,14 @@ send:
 .global sendto
 .type sendto, %function
 sendto:
-	push {r7,lr}
+	push {r4,r5,r7,lr}
+    ldr  r4, [sp, #16]      /* load 'to' into r4 */
+    ldr  r5, [sp, #20]      /* load 'tolen' into r5 */
 	movs r7, #70
 	svc  0
 	cmp  r0, #0
 	blt  .L7100
-	pop  {r7,pc}
+	pop  {r4,r5,r7,pc}
 .L7100:
 	b    syscallfailed32
 
@@ -1152,12 +1154,14 @@ recv:
 .global recvfrom
 .type recvfrom, %function
 recvfrom:
-	push {r7,lr}
+	push {r4,r5,r7,lr}
+    ldr  r4, [sp, #16]      /* load 'from' into r4 */
+    ldr  r5, [sp, #20]      /* load 'fromlen' into r5 */
 	movs r7, #72
 	svc  0
 	cmp  r0, #0
 	blt  .L7300
-	pop  {r7,pc}
+	pop  {r4,r5,r7,pc}
 .L7300:
 	b    syscallfailed32
 
@@ -1191,12 +1195,13 @@ shutdown:
 .global setsockopt
 .type setsockopt, %function
 setsockopt:
-	push {r7,lr}
+	push {r4,r7,lr}
+	ldr  r4, [sp, #12]      /* load 'optlen' into r4 */
 	movs r7, #74
 	svc  0
 	cmp  r0, #0
 	blt  .L7500
-	pop  {r7,pc}
+	pop  {r4,r7,pc}
 .L7500:
 	b    syscallfailed32
 
@@ -1213,12 +1218,13 @@ setsockopt:
 .global getsockopt
 .type getsockopt, %function
 getsockopt:
-	push {r7,lr}
+	push {r4,r7,lr}
+	ldr  r4, [sp, #12]      /* load 'optlen' into r4 */
 	movs r7, #75
 	svc  0
 	cmp  r0, #0
 	blt  .L7600
-	pop  {r7,pc}
+	pop  {r4,r7,pc}
 .L7600:
 	b    syscallfailed32
 
