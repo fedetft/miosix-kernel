@@ -1149,7 +1149,6 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 auto buf = reinterpret_cast<const void *>(sp.getParameter<1>());
                 size_t size = sp.getParameter<2>();
                 int flags = sp.getParameter<3>();
-                // TODO: only up to 4 parameters are passed in registers
                 auto addr = reinterpret_cast<const struct sockaddr *>(sp.getParameter<4>());
                 socklen_t len = sp.getParameter<5>();
 
@@ -1189,7 +1188,6 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 auto buf = reinterpret_cast<void *>(sp.getParameter<1>());
                 size_t size = sp.getParameter<2>();
                 int flags = sp.getParameter<3>();
-                // TODO: only up to 4 parameters are passed in registers
                 auto addr = reinterpret_cast<struct sockaddr *>(sp.getParameter<4>());
                 auto len = reinterpret_cast<socklen_t *>(sp.getParameter<5>());
 
@@ -1220,7 +1218,6 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 int fd = sp.getParameter<0>();
                 int level = sp.getParameter<1>();
                 int optname = sp.getParameter<2>();
-                // TODO: only up to 4 parameters are passed in registers
                 auto optval = reinterpret_cast<const void *>(sp.getParameter<3>());
                 socklen_t optlen = sp.getParameter<4>();
 
@@ -1240,7 +1237,6 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 int fd = sp.getParameter<0>();
                 int level = sp.getParameter<1>();
                 int optname = sp.getParameter<2>();
-                // TODO: only up to 4 parameters are passed in registers
                 auto optval = reinterpret_cast<void *>(sp.getParameter<3>());
                 auto optlen = reinterpret_cast<socklen_t *>(sp.getParameter<4>());
 
