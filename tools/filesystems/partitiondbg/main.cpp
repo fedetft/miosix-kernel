@@ -31,10 +31,21 @@ void tryMBR() {
     mbrReader.second.printMBRInfo();
 }
 
+void tryGPT() {
+    auto gptReaderResult = GPT::GPTReader::readGPT(SDIODriver::instance());
+    auto gptReader = std::move(gptReaderResult.second);
+    if (gptReaderResult.first != GPT::ReaderResult::Ok) {
+        printf("Error reading gpt partition, reasonID: %d", static_cast<int>(gptReaderResult.first));
+        return;
+    }
+
+}
+
 
 int main()
 {
     tryMBR();
+    tryGPT();
     // TODO: here we can try to try-loop mount the partitions coming from the mbr header
     // We can also create virtual devices showing the partitions in devfs
     // linux does that, so we can have read/write ops on the partition directly

@@ -26,7 +26,7 @@ include $(KPATH)/Makefile.kcommon
 ##
 ## List here your source files (both .s, .c and .cpp)
 ##
-SRC := main.cpp MBR/mbr.cpp
+SRC := main.cpp MBR/mbr.cpp GPT/gpt.cpp
 
 ##
 ## List here additional include directories (in the form -Iinclude_dir)

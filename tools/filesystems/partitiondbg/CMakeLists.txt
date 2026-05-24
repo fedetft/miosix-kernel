@@ -37,5 +37,5 @@ set(MIOSIX_LINKER_SCRIPT unikernel.ld)
 
 add_subdirectory(${MIOSIX_KPATH} miosix EXCLUDE_FROM_ALL)
 
-add_executable(partitiondbg main.cpp MBR/mbr.cpp)
+add_executable(partitiondbg main.cpp MBR/mbr.cpp GPT/gpt.cpp)
 miosix_link_target(partitiondbg PROGRAM_DEFAULT)
