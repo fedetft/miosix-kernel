@@ -25,13 +25,13 @@ Breakpoint::Breakpoint(unsigned int address, unsigned int kind) {
         value = address | FP_Comp_BE;
         return;
     }
+
     // Revision 1: Set replace mode, mask address and enable
-    const auto mode = (kind == 2)
-                    ? (address & 0x02)
-                        ? FP_Comp_Mode_BKPT_AT_10
-                        : FP_Comp_Mode_BKPT_AT_00
-                    : FP_Comp_Mode_BKPT_AT_X0
-                    ;
+    int mode;
+    if (kind == 4)              mode = FP_Comp_Mode_BKPT_AT_X0;
+    else if (address & 0x02)    mode = FP_Comp_Mode_BKPT_AT_10;
+    else                        mode = FP_Comp_Mode_BKPT_AT_00;
+
     value = (address & FP_Comp_COMP_MASK)
           | (FP_Comp_ENABLE_MASK)
           | (mode << FP_Comp_REPLACE_SHIFT)
@@ -279,9 +279,7 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
 }
 
 const char targetXMLString[] = 
-"<?xml version=\"1.0\"?>"
-"<!DOCTYPE target SYSTEM \"gdb-target.dtd\">"
-    "<target>"
+"<target>"
     "<architecture>"
         GDB_ARCH
     "</architecture>"

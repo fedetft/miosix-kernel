@@ -196,6 +196,17 @@ inline unsigned int fpbGetWriteMask() {
         return 0xffffffff;
 }
 
+inline bool validBPUAddress(unsigned int address) {
+    // Do not accept odd addresses (instructions are 2-bytes aligned)
+    if(address & 0x1) return false;
+
+    // Rev.2 supports whole address space
+    if (fpbGetRevisionVersion() == FP_Ctrl_REVISION_2) return true;
+
+    // Rev.1 supports up to RAM address (0x20000000, excluded)
+    return address == (address & (FP_Comp_COMP_MASK | 0x2));
+}
+
 /**
  * @brief Get the number of available physical address comparators
  *
@@ -224,15 +235,6 @@ inline unsigned int fpbGetSupportedWatchpointMask() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
- * @brief Disable specified watchpoint for local cpu
- *
- * @param id 
- */
-inline void clearLocalWatchpoint(int id) {
-    _DWT->WP[id].FUNCTION  = 0;
-}
-
-/**
  * @typedef 
  * @brief Define watchpoint as the code they use in the cpu registers
  *
@@ -243,5 +245,14 @@ typedef enum : unsigned int {
     WRITE   = 0b0110,
     ACCESS  = 0b0111,
 } WatchpointType;
+
+/**
+ * @brief Disable specified watchpoint for local cpu
+ *
+ * @param id
+ */
+inline void clearLocalWatchpoint(int id) {
+    _DWT->WP[id].FUNCTION = NONE;
+}
 
 }

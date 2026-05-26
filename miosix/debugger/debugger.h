@@ -432,7 +432,7 @@ public:
     static int addBreakpoint(unsigned int address, unsigned int kind) {
         // If the address lays outside the space addressable by the comparator,
         // do not attempt breakpoint insertion
-        if((address & fpbGetWriteMask()) != address) return -1;
+        if(validBPUAddress(address) == false) return -1;
         for(int i=0; i<breakpointsNum; i++) {
             if(!breakpoints[i].enabled()) {
                 breakpoints[i] = Breakpoint(address, kind);
@@ -514,6 +514,8 @@ public:
         markDirty();
     }
 
+    // Make sure that the type used to store BreakpointUnit cpu flags is wide
+    // enough to accomodate all available cpus
     static_assert(CPU_NUM_CORES < sizeof(BPUFlag) * 8,
             "BreakpointUnit: too many CPUs for dirty flag implementation");
     static inline BPUFlag cpuDirty(unsigned int coreId) {
@@ -525,7 +527,7 @@ public:
     }
 
     static inline void markDirty() {
-        dirty = (BPUFlag)0xff;
+        dirty = ~(BPUFlag)0x0;
     }
 
     static inline int getBreakpointsNum()       { return breakpointsNum; }
@@ -594,8 +596,8 @@ public:
         }
     }
 
-    // NOTE: This is a reminder to add BreakpointUnit handler in a user-defined
-    // scheduler
+    // NOTE: This is a reminder to add handler BreakpointUnit insithe the
+    // scheduler module if a new one is implemented
     // - Call BreakpointUnit::IRQhandleResched(prev, next) inside
     //   IRQrunScheduler passing pointers to the previously scheduled thread and
     //   the next scheduled thread
@@ -606,11 +608,19 @@ public:
      || (defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_CONTROL_MULTIBURST))\
      || (defined(SCHED_TYPE_EDF))
     #else //Valid sched
-    #error "Debugger is enabled but current scheduler is not configured to handle BreakpointUnit"
+    #error "Process debugger is enabled but current scheduler is not configured to handle BreakpointUnit"
     #endif //Valid sched
     #endif //defined(PROCESS_DEBUGGER)
 
 private:
+
+    /**
+     * @brief Check if hardware breakpoints can represent the address
+     *
+     * @param address
+     * @return true if the address can be properly represented, false otherwise
+     */
+    bool validate(unsigned int address);
 
     static int breakpointsNum,
                watchpointsNum;

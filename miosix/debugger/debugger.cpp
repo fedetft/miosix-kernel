@@ -549,7 +549,6 @@ void Debugger::handleCommand_q() {
         // use hardware breakpoints, the stub will prevent insertion attempts
         // outside of addressable space
         const unsigned int _hwbp_valid_length    = 0x20000000 - _hwbp_valid_start;
-        const unsigned int _hwbp_dummy_blocksize = 0x00020000 - _hwbp_valid_start;
         // TODO: This is not the proper way to communicate memory layout, it
         // will break if the length requested by GDB is smaller than the message
         // provided, gdb requests a length appropriate for the advertised
@@ -564,13 +563,10 @@ void Debugger::handleCommand_q() {
             "l"
             "<memory-map>"
                 "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>"
-                "<memory type=\"flash\" start=\"0x%x\" length=\"0x%x\">"
-                    "<property name=\"blocksize\">0x%x</property>"
-                "</memory>"
+                "<memory type=\"rom\" start=\"0x%x\" length=\"0x%x\"/>"
             "</memory-map>",
             _process_pool_start, _process_pool_length,
-            _hwbp_valid_start, _hwbp_valid_length, _hwbp_dummy_blocksize);
-            // _flash_origin, _flash_length, _flash_erasesize);
+            _hwbp_valid_start, _hwbp_valid_length);
     } break;
     default:
         buffer.clear();
