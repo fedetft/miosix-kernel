@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <sys/times.h>
+#include <sys/socket.h>
 //// Settings
 #include "miosix_settings.h"
 //// Filesystem
@@ -50,6 +51,7 @@
 #include "interfaces/poweroff.h"
 #include "interfaces_private/os_timer.h"
 #include "interfaces/cpu_const.h"
+#include "interfaces/endianness.h"
 
 using namespace std;
 
@@ -1376,6 +1378,460 @@ int posix_spawn(pid_t *pid, const char *path,
     #else //WITH_PROCESSES
     return 1;
     #endif //WITH_PROCESSES
+}
+
+ssize_t readv(int fd, const struct iovec *iov, int iovcnt)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().readv(fd,iov,iovcnt);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+ssize_t writev(int fd, const struct iovec *iov, int iovcnt)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().writev(fd,iov,iovcnt);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int socket(int domain, int type, int protocol) {
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int fd=miosix::getFileDescriptorTable().socket(domain,type,protocol);
+        if(fd>=0) return fd;
+        miosix::getReent()->_errno=-fd;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int bind(int fd, const struct sockaddr *name, socklen_t namelen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().bind(fd,name,namelen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int connect(int fd, const struct sockaddr *name, socklen_t namelen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().connect(fd,name,namelen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int listen(int fd, int backlog)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().listen(fd,backlog);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int accept(int fd, struct sockaddr *addr, socklen_t *addrlen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().accept(fd,addr,addrlen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int getsockname(int fd, struct sockaddr *name, socklen_t *namelen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().getsockname(fd,name,namelen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int getpeername(int fd, struct sockaddr *name, socklen_t *namelen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().getpeername(fd,name,namelen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+ssize_t send(int fd, const void *dataptr, size_t size, int flags)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().send(fd,dataptr,size,flags);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+ssize_t sendto(int fd, const void *dataptr, size_t size, int flags,
+               const struct sockaddr *to, socklen_t tolen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().sendto(fd,dataptr,size,flags,to,tolen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+ssize_t recv(int fd, void *mem, size_t len, int flags)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().recv(fd,mem,len,flags);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+ssize_t recvfrom(int fd, void *mem, size_t len, int flags, 
+                 struct sockaddr *from, socklen_t *fromlen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().recvfrom(fd,mem,len,flags,from,fromlen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int shutdown(int fd, int how)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().shutdown(fd,how);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int setsockopt(int fd, int level, int optname, const void *optval,
+               socklen_t optlen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().setsockopt(fd,level,optname,optval,optlen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+int getsockopt(int fd, int level, int optname, void *optval, socklen_t *optlen)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().getsockopt(fd,level,optname,optval,optlen);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+ssize_t sendmsg(int fd, const struct msghdr *message, int flags)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().sendmsg(fd,message,flags);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+ssize_t recvmsg(int fd, struct msghdr *message, int flags)
+{
+    #ifdef WITH_NETWORKING
+    
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        ssize_t result=miosix::getFileDescriptorTable().recvmsg(fd,message,flags);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else //WITH_NETWORKING
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif //WITH_NETWORKING
+}
+
+uint32_t htonl(uint32_t hostlong)
+{
+  return toBigEndian32(hostlong);
+}
+
+uint16_t htons(uint16_t hostshort)
+{
+  return toBigEndian16(hostshort);
+}
+
+uint32_t ntohl(uint32_t netlong)
+{
+  return fromBigEndian32(netlong);
+}
+
+uint16_t ntohs(uint16_t netshort)
+{
+  return fromBigEndian16(netshort);
 }
 
 #ifdef __cplusplus
