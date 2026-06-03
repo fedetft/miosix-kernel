@@ -27,6 +27,7 @@ kernel/scheduler/priority/priority_scheduler.cpp                           \
 kernel/scheduler/control/control_scheduler.cpp                             \
 kernel/scheduler/edf/edf_scheduler.cpp                                     \
 filesystem/file_access.cpp                                                 \
+filesystem/automounter/sd_automounter.cpp                                 \
 filesystem/file.cpp                                                        \
 filesystem/path.cpp                                                        \
 filesystem/stringpart.cpp                                                  \

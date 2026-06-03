@@ -171,6 +171,7 @@ set(MIOSIX_KERNEL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/kernel/scheduler/control/control_scheduler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/kernel/scheduler/edf/edf_scheduler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/file_access.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/automounter/sd_automounter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/file.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/path.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/stringpart.cpp

@@ -74,6 +74,7 @@ static_assert(sizeof(time_t)==8,"time_t is not 64 bit");
 
 // Kercalls tests (shared with syscalls)
 #include "test_syscalls.h"
+#include "test_automounter.h"
 
 using namespace std;
 using namespace miosix;
@@ -156,6 +157,7 @@ int main()
         iprintf("Type:\n"
                 " 't' for kernel test\n"
                 " 'k' for kercall test (includes filesystem)\n"
+                " 'a' for automounter tests\n"
                 " 'p' for syscall/processes test\n"
                 " 'c' for processes crash test\n"
                 " 'x' for exception test\n"
@@ -214,6 +216,9 @@ int main()
                 break;
             case 'k':
                 test_syscalls(); //Actually kercalls
+                break;
+            case 'a':
+                test_automounter();
                 break;
             case 'p':
                 #ifdef WITH_PROCESSES

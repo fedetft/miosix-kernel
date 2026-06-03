@@ -113,8 +113,41 @@ using auxSerialCtsPin = Gpio<PA,0>;
 static const unsigned char sdVoltage=30; //Board powered @ 3.0V
 #define SD_ONE_BIT_DATABUS //Can't use 4 bit databus due to pin conflicts
 
-/**
- * \}
- */
+//
+// SD automounter hardware wiring
+//
+// Behavior and timing settings live in config/sd_automounter_config.h.
+// Detection mode selector:
+// - 0: SDIO software probing
+// - 1: Hardware card-detect pin (CD)
+#ifndef WITH_SD_CD_PIN
+#define WITH_SD_CD_PIN 0
+#endif
+
+#if WITH_SD_CD_PIN!=0 && WITH_SD_CD_PIN!=1
+#error "SD_AUTOMOUNTER_HARDWARE must be 0 (SDIO) or 1 (CD pin)"
+#endif
+
+#if WITH_SD_CD_PIN
+enum class SdAutomounterCdPolarity { ActiveLow, ActiveHigh };
+
+// Hardware CD logic configuration for this board.
+constexpr auto sdAutomounterCdPolarity = SdAutomounterCdPolarity::ActiveLow;
+constexpr auto sdAutomounterCdMode = Mode::INPUT_PULL_UP;
+using sdAutomounterCardDetectPin = Gpio<PC,1>;
+
+static_assert(sdAutomounterCdMode == Mode::INPUT
+           || sdAutomounterCdMode == Mode::INPUT_PULL_UP
+           || sdAutomounterCdMode == Mode::INPUT_PULL_DOWN,
+           "sdAutomounterCdMode must use a supported input mode");
+#endif
+
+// Optional measurement pin used by the SD automounter timing hook.
+// Define this macro to any free GPIO if you want a pulse that spans the whole
+// insertion/removal handling.
+#define SD_AUTOMOUNTER_TIMING_GPIO Gpio<PD, 14>
+#if defined(SD_AUTOMOUNTER_TIMING_GPIO)
+using sdAutomounterTimingPin = SD_AUTOMOUNTER_TIMING_GPIO;
+#endif
 
 } //namespace miosix

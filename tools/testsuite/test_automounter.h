@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2014 by Terraneo Federico                               *
+ *   Copyright (C) 2026 by Lorenzo Pigato                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -27,42 +27,4 @@
 
 #pragma once
 
-#include "kernel/sync.h"
-#include "filesystem/devfs/devfs.h"
-#include "filesystem/ioctl.h"
-
-namespace miosix {
-
-/**
- * Driver for the SDIO peripheral in STM32F2 and F4 microcontrollers
- */
-class SDIODriver : public Device
-{
-public:
-    /**
-     * \return an instance to this class, singleton
-     */
-    static intrusive_ref_ptr<SDIODriver> instance();
-    
-    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
-    
-    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
-    
-    virtual int ioctl(int cmd, void *arg);
-private:
-    /**
-     * Constructor
-     */
-    SDIODriver();
-
-    /**
-     * Reinitialize the card and optionally calibrate the SDIO clock.
-     * The mutex is recursive, so calibration can call readBlock() without
-     * deadlocking even when reinitialize() is already holding it.
-     */
-    bool reinitialize(bool calibrate);
-
-    KernelMutex mutex{MutexOptions::RECURSIVE};
-};
-
-} //namespace miosix
+void test_automounter();

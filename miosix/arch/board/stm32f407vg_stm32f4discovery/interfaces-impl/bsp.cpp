@@ -47,6 +47,7 @@
 #include "interfaces/serial.h"
 #include "drivers/sdmmc/stm32f2_f4_f7_sd.h"
 #include "board_settings.h"
+#include "filesystem/automounter/sd_automounter.h"
 
 namespace miosix {
 
@@ -83,20 +84,34 @@ void IRQbspInit()
         defaultSerialRtsPin,defaultSerialCtsPin>(
             defaultSerial,defaultSerialSpeed,
             defaultSerialFlowctrl,defaultSerialDma));
+
+    #if defined(WITH_AUTOMOUNTER) && WITH_SD_CD_PIN
+    sdAutomounterCardDetectPin::mode(sdAutomounterCdMode);
+    #endif
 }
+
 
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    #ifdef AUX_SERIAL
-    intrusive_ref_ptr<DevFs> devFs=basicFilesystemSetup(SDIODriver::instance());
-    devFs->addDevice(AUX_SERIAL,
-        STM32SerialBase::get<auxSerialTxPin,auxSerialRxPin,
-        auxSerialRtsPin,auxSerialCtsPin>(
-            auxSerial,auxSerialSpeed,auxSerialFlowctrl,auxSerialDma));
-    #else //AUX_SERIAL
+    #ifdef WITH_AUTOMOUNTER
+    basicFilesystemSetup(intrusive_ref_ptr<Device>());
+    SdAutomounter::instance().configure(SDIODriver::instance());
+    SdAutomounter::instance().enable();
+    #else //WITH_AUTOMOUNTER
     basicFilesystemSetup(SDIODriver::instance());
-    #endif //AUX_SERIAL
+    #endif //WITH_AUTOMOUNTER
+
+    #if defined(WITH_DEVFS) && defined(AUX_SERIAL)
+    {
+        intrusive_ref_ptr<DevFs> devFs = FilesystemManager::instance().getDevFs();
+        if(devFs)
+            devFs->addDevice(AUX_SERIAL,
+                STM32SerialBase::get<auxSerialTxPin,auxSerialRxPin,
+                auxSerialRtsPin,auxSerialCtsPin>(
+                    auxSerial,auxSerialSpeed,auxSerialFlowctrl,auxSerialDma));
+    }
+    #endif //WITH_DEVFS && AUX_SERIAL
     #endif //WITH_FILESYSTEM
 }
 
@@ -122,6 +137,9 @@ void shutdown()
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
 
     #ifdef WITH_FILESYSTEM
+    #ifdef WITH_AUTOMOUNTER
+    SdAutomounter::instance().stop();
+    #endif //WITH_AUTOMOUNTER
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 
@@ -134,6 +152,9 @@ void reboot()
     ioctl(STDOUT_FILENO,IOCTL_SYNC,0);
     
     #ifdef WITH_FILESYSTEM
+    #ifdef WITH_AUTOMOUNTER
+    SdAutomounter::instance().stop();
+    #endif //WITH_AUTOMOUNTER
     FilesystemManager::instance().umountAll();
     #endif //WITH_FILESYSTEM
 

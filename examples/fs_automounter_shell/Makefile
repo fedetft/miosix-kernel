@@ -26,7 +26,7 @@ include $(KPATH)/Makefile.kcommon
 ##
 ## List here your source files (both .s, .c and .cpp)
 ##
-SRC := testsuite.cpp test_automounter.cpp
+SRC := main.cpp
 
 ##
 ## List here additional include directories (in the form -Iinclude_dir)
@@ -41,15 +41,12 @@ LIBS :=
 ##
 ## List here subdirectories which contains makefiles
 ##
-# Only build processes if the architecture supports them
-ifneq ($(POSTLD),)
-SUBDIRS += test_process test_execve test_global_dtor_ctor test_crash
-endif
+SUBDIRS +=
 
 ##
 ## Attach a romfs filesystem image after the kernel
 ##
-ROMFS_DIR := testsuite_romfs
+ROMFS_DIR :=
 
 all: $(if $(ROMFS_DIR), image, main)
 
