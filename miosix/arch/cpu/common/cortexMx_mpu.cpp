@@ -37,6 +37,13 @@ using namespace std;
 
 namespace miosix {
 
+enum class AccessPermission
+{
+    RX, //Read-only and executable
+    RW, //Read-write, not executable
+    RWX //W^X disabled, only used for all-in-xram board
+};
+
 /**
  * Using the MPU, configure a region of the memory space as
  * - write-through cacheable
@@ -53,16 +60,17 @@ namespace miosix {
  * if false configure MPU to trap code execution for W^X protection
  */
 static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
-    unsigned int size, bool executePermitted)
+    unsigned int size, AccessPermission ap)
 {
     #if __CORTEX_M == 33U
     // ARMv8-M
     const unsigned int MPU_RLAR_PXN_Msk=1<<4; //This bit is missing in the ARM .h
     MPU->RNR=region;
     MPU->RBAR=(base & (~0x1f))
-             | (executePermitted ? 2<<MPU_RBAR_AP_Pos : MPU_RBAR_XN_Msk); //W^X
+             | (ap==AccessPermission::RX ? 2<<MPU_RBAR_AP_Pos : 0
+             | (ap==AccessPermission::RW ? MPU_RBAR_XN_Msk : 0);
     MPU->RLAR=((base+size-1) & (~0x1f))
-             | (executePermitted ? 0 : MPU_RLAR_PXN_Msk)
+             | (ap==AccessPermission::RW ? MPU_RLAR_PXN_Msk : 0)
              | (0<<MPU_RLAR_AttrIndx_Pos) //NOTE: only region 0 enabled in MAIR0
              | 1; //Enable bit
     #else
@@ -73,8 +81,8 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     // For this reason, all regions are marked as not shareable
     // Region is marked as unaccessible from unprivileged, and W^X privileged
     MPU->RBAR=(base & (~0x1f)) | MPU_RBAR_VALID_Msk | region;
-    MPU->RASR= (executePermitted ? 0 : MPU_RASR_XN_Msk)
-             | (executePermitted ? 0b101<<MPU_RASR_AP_Pos : 0b001<<MPU_RASR_AP_Pos)
+    MPU->RASR= (ap==AccessPermission::RW ? MPU_RASR_XN_Msk : 0)
+             | (ap==AccessPermission::RX ? 0b101<<MPU_RASR_AP_Pos : 0b001<<MPU_RASR_AP_Pos)
              | MPU_RASR_C_Msk     //Normal, outer/inner write through, no write alloc
              | 1                  //Enable bit
              | sizeToMpu(size)<<1;
@@ -91,9 +99,10 @@ void IRQenableMPU()
     volatile unsigned int xramSize=reinterpret_cast<unsigned int>(&_xram_size);
 
     #ifdef __CODE_IN_XRAM
-    constexpr bool xramExec=true;
+    //TODO: maybe split in 2 regions for kernelspace W^X in this uncommon case?
+    constexpr auto xramExec=AccessPermission::RWX;
     #else //__CODE_IN_XRAM
-    constexpr bool xramExec=false;
+    constexpr auto xramExec=AccessPermission::RW;
     #endif //__CODE_IN_XRAM
 
     #if __CORTEX_M == 33U
@@ -134,11 +143,15 @@ void IRQenableMPU()
     #endif //WITH_PROCESSES
 
     //ARM Default memory map: region 0x00000000-0x20000000 for code
-    IRQconfigureMPURegion(0,0x00000000,0x20000000,true);
+    IRQconfigureMPURegion(0,0x00000000,0x20000000,AccessPermission::RX);
     //ARM Default memory map: region 0x20000000-0x40000000 for data
-    IRQconfigureMPURegion(flip ? 6 : 1,0x20000000,0x20000000,false);
+    IRQconfigureMPURegion(flip ? 6 : 1,0x20000000,0x20000000,AccessPermission::RW);
     //External RAM goes to a chip-specific address, only some chips have it
     if(xramSize) IRQconfigureMPURegion(flip ? 1 : 6,xramBase,xramSize,xramExec);
+    //TODO Code in XRAM and ARMv8-M is likely not working as the regions are
+    //reused and the reuse code does not set them back to RWX, so we'll fail at
+    //compile time to warn the unaware user
+    static_assert(xramExec!=AccessPermission::RWX,"Untested");
 
     //If processes are enabled, populate the data structure that is used to
     //reconfigure MPU regions 0 to 5 whenever context switching towards the kernel
@@ -158,7 +171,7 @@ void IRQenableMPU()
     int region=0;
     #ifndef _CHIP_STM32F4
     //ARM Default memory map: region 0x00000000-0x20000000 for code
-    IRQconfigureMPURegion(region++,0x00000000,0x20000000,true);
+    IRQconfigureMPURegion(region++,0x00000000,0x20000000,AccessPermission::RX);
     #else
     //Quirk: despite the 0x00000000-0x20000000 memory region is reserved by ARM
     //for *code* execution, stm32f4 have a *data* TCM at 0x10000000...
@@ -166,7 +179,7 @@ void IRQenableMPU()
     IRQconfigureMPURegion(region++,0x10000000,0x10000000,false);
     #endif
     //ARM Default memory map: region 0x20000000-0x40000000 for data
-    IRQconfigureMPURegion(region++,0x20000000,0x20000000,false);
+    IRQconfigureMPURegion(region++,0x20000000,0x20000000,AccessPermission::RW);
     //External RAM goes to a chip-specific address, only some chips have it
     if(xramSize) IRQconfigureMPURegion(region++,xramBase,xramSize,xramExec);
 
