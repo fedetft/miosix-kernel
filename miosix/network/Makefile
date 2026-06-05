@@ -25,7 +25,8 @@ NET_SRC := $(COREFILES)                         \
            $(NET_DIR)/network.cpp
 
 # lwIP driver source files
-NET_SRC += $(NET_DIR)/drivers/stm32_ethif.cpp
+NET_SRC += $(NET_DIR)/drivers/stm32_ethif.cpp   \
+           $(NET_DIR)/drivers/stm32_phy.cpp \
 
 NET_OBJ ?= $(addsuffix .o, $(basename $(NET_SRC)))
 

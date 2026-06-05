@@ -607,9 +607,7 @@ err_t ethernetif_init(struct netif *netif) {
     netif->state = ethif.release();
     // TODO: cleaup on netif removal
 
-    // TODO: support link detection through PHY
-    netif->flags =
-        NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP | NETIF_FLAG_LINK_UP;
+    netif->flags = NETIF_FLAG_BROADCAST | NETIF_FLAG_ETHARP;
 
 #if LWIP_IPV6
     netif_create_ip6_linklocal_address(netif, 1);

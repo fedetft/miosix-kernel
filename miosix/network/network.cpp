@@ -36,20 +36,30 @@
 #include <kernel/logging.h>
 #include <kernel/sync.h>
 #include <network/ethernetif.h>
+#include <network/phy.h>
 
 #include <lwip/dhcp.h>
-#include <lwip/tcpip.h>
 #include <lwip/netif.h>
+#include <lwip/tcpip.h>
 #include <lwip/timeouts.h>
 
 #include <atomic>
 #include <bit>
+#include <memory>
 
 namespace miosix::network {
 namespace {
 std::atomic<bool> networkOnline = false;
 FastMutex waitOnlineMutex;
 ConditionVariable waitOnlineCv;
+
+constexpr uint32_t LINK_STATUS_POLL_PERIOD_MS = 1000;
+
+struct NetifStatusData {
+    struct netif *netif;
+    uint16_t phy;
+    bool linkStatus;
+};
 
 /**
  * \internal
@@ -98,7 +108,26 @@ void netifStatusCallback(struct netif *netif) {
     if (dhcp_supplied_address(netif)) {
         networkOnline.store(true, std::memory_order_release);
         waitOnlineCv.broadcast();
+    } else if (netif_is_link_up(netif)) {
+        dhcp_network_changed_link_up(netif);
     }
+}
+
+void netifStatusTimer(void *arg) {
+    auto data = reinterpret_cast<NetifStatusData *>(arg);
+
+    bool status = phy::getLinkStatus(data->phy);
+    if (status != data->linkStatus) {
+        if (status) {
+            netif_set_link_up(data->netif);
+        } else {
+            netif_set_link_down(data->netif);
+        }
+
+        data->linkStatus = status;
+    }
+
+    sys_timeout(LINK_STATUS_POLL_PERIOD_MS, netifStatusTimer, arg);
 }
 
 } // namespace
@@ -155,10 +184,25 @@ void *netStackThread(void *) {
         errorLog("netStackThread: DHCP start failed: %d\n", err);
         return 0;
     }
-#else // ETHERNET_ENABLE_DHCP
+#else  // ETHERNET_ENABLE_DHCP
+    // Inform the DHCP server of our static IP address
+    dhcp_inform(&netif);
     networkOnline.store(true, std::memory_order_release);
     waitOnlineCv.broadcast();
 #endif // ETHERNET_ENABLE_DHCP
+
+    // Check the initial link status
+    bool linkStatus = phy::getLinkStatus(0);
+    if (linkStatus)
+        netif_set_link_up(&netif);
+
+    // Create the netif status watcher timer
+    auto netifStatusData = NetifStatusData{
+        .netif = &netif,
+        .phy = 0,
+        .linkStatus = linkStatus,
+    };
+    sys_timeout(LINK_STATUS_POLL_PERIOD_MS, netifStatusTimer, &netifStatusData);
 
     while (true) {
         uint32_t sleepTime = sys_timeouts_sleeptime(); // ms
