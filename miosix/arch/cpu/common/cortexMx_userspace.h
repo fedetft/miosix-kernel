@@ -92,7 +92,8 @@ inline unsigned int SyscallParameters::getParameter() const
     }
     else
     {
-        return archPtr[UPPER_PARAMETERS_OFFSET_IN_CTXSAVE+index];
+        constexpr unsigned int upperIndex=index-UPPER_PARAMETERS_START;
+        return archPtr[UPPER_PARAMETERS_OFFSET_IN_CTXSAVE+upperIndex];
     }
 }
 
@@ -108,7 +109,8 @@ inline void SyscallParameters::setParameter(unsigned int value)
     }
     else
     {
-        archPtr[UPPER_PARAMETERS_OFFSET_IN_CTXSAVE+index]=value;
+        constexpr unsigned int upperIndex=index-UPPER_PARAMETERS_START;
+        archPtr[UPPER_PARAMETERS_OFFSET_IN_CTXSAVE+upperIndex]=value;
     }
 }
 
