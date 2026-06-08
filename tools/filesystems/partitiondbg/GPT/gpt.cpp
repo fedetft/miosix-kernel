@@ -2,36 +2,43 @@
 #include "../MBR/mbr.h"
 
 namespace GPT {
-std::pair<ReaderResult, GPTReader&&> GPTReader::readGPT(miosix::intrusive_ref_ptr<miosix::Device> device) {
-    auto mbrReader = MBR::MBRReader::readMBR(device);
+std::pair<ReaderResult, GPTReader> GPTReader::readGPT(miosix::intrusive_ref_ptr<miosix::Device> device) {
+    auto mbrResult = MBR::MBRReader::readMBR(device);
     GPTReader reader;
 
-    if (mbrReader.first) {
+    if (mbrResult.first) {
         return {ReaderResult::ErrorReadingMBR, std::move(reader)};
     }
-    
-    if (!mbrReader.second.isValidMBR()) {
+
+    auto mbrReader = mbrResult.second;
+
+    printf("Check mbr validity\n");
+    if (!mbrReader.isValidMBR()) {
         return {ReaderResult::ErrorInvalidMBR, std::move(reader)};
     }
 
-    if(!mbrReader.second.isProtectiveMBR()) {
+    printf("Check if mbr is protective\n");
+    if(!mbrReader.isProtectiveMBR()) {
         return {ReaderResult::ErrorMBRIsNotProtective, std::move(reader)};
     }
  
+    printf("Reading first LBA block\n");
     auto result = device->readBlock(&reader.primaryHeader, sizeof(GPTHeader), MAIN_GPT_POSITION_LBA * 512);
     if (result < 0) {
         return {ReaderResult::ErrorReadingPrimaryHeader, std::move(reader)};
     }
 
+    printf("Reading last LBA block\n");
     result = device->readBlock(&reader.backupHeader, sizeof(GPTHeader), reader.primaryHeader.alternateLBA * 512);
     if (result < 0) {
         return {ReaderResult::ErrorReadingBackupHeader, std::move(reader)};
     }
 
-    if (reader.primaryHeader.numberOfPartitionEntries > MAX_GPT_PARTITIONS) {
+    if (reader.primaryHeader.numberOfPartitionEntries < MAX_GPT_PARTITIONS) {
+        printf("Too little partitions %ld of size %ld\n", reader.primaryHeader.numberOfPartitionEntries, reader.primaryHeader.partitionEntrySize);
         return {ReaderResult::ErrorExceededMaxPartitions, std::move(reader)};
     }
-
+    printf("Reading Partition Tables\n");
     auto readerResult = reader.readPartitionTables(device);
 
     return {readerResult, std::move(reader)};
@@ -45,7 +52,7 @@ inline ReaderResult GPTReader::getPartitionsReadingError(GPTHeader &header)
 ReaderResult GPTReader::load128BitSizeEntries(GPTHeader &header, std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, miosix::intrusive_ref_ptr<miosix::Device> device)
 {
     GPTPartitionEntry buff[4];
-    auto numPartitions = header.numberOfPartitionEntries;
+    auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
     
     size_t result = 0;
     
@@ -83,7 +90,7 @@ ReaderResult GPTReader::load128BitSizeEntries(GPTHeader &header, std::array<GPTP
 ReaderResult GPTReader::load256BitSizeEntries(GPTHeader &header, std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, miosix::intrusive_ref_ptr<miosix::Device> device)
 {
     GPTPartitionEntry buff[4];
-    auto numPartitions = header.numberOfPartitionEntries;
+    auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
 
     size_t result = 0;
 
@@ -119,7 +126,7 @@ ReaderResult GPTReader::load256BitSizeEntries(GPTHeader &header, std::array<GPTP
 ReaderResult GPTReader::loadGenericSizeEntries(GPTHeader &header, std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, miosix::intrusive_ref_ptr<miosix::Device> device)
 {
     GPTPartitionEntry buff[4];
-    auto numPartitions = header.numberOfPartitionEntries;
+    auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
     auto entrySize = header.partitionEntrySize / 512;
 
     size_t result = 0;
@@ -182,12 +189,12 @@ GPTReader::GPTReader(GPTReader&& other) {
 
         for (size_t idx = 0; idx < MAX_GPT_PARTITIONS; idx++) {
             // Move primary partition entries
-            memcpy(&this->primaryPartitions.at(idx), &other.primaryPartitions.at(idx), sizeof(GPTPartitionEntry));
-            memset(&other.primaryPartitions.at(idx), 0, sizeof(GPTPartitionEntry));
+            memcpy(&this->primaryPartitions[idx], &other.primaryPartitions[idx], sizeof(GPTPartitionEntry));
+            memset(&other.primaryPartitions[idx], 0, sizeof(GPTPartitionEntry));
 
             // Move backup partition entries
-            memcpy(&this->backupPartitions.at(idx), &other.backupPartitions.at(idx), sizeof(GPTPartitionEntry));
-            memset(&other.backupPartitions.at(idx), 0, sizeof(GPTPartitionEntry));
+            memcpy(&this->backupPartitions[idx], &other.backupPartitions[idx], sizeof(GPTPartitionEntry));
+            memset(&other.backupPartitions[idx], 0, sizeof(GPTPartitionEntry));
         }
     }
 

@@ -50,21 +50,21 @@ constexpr std::initializer_list<std::pair<OSType, const char*>> OSTYPE_STRINGS =
     { OSType::ProtectiveMBR, "Protective MBR (GPT Drive)"}
 };
 
-typedef struct MBRPartitionRecord {
+struct MBRPartitionRecord {
     uint8_t bootIndicatorAndStartingCHS[4]; //< Unused boot indicator (1 byte) + starting CHS address (3 bytes)
     uint8_t osTypeAndEndingCHS[4];          //< OS type (1 byte) + (unused) ending CHS address (3 bytes)
     uint32_t startingLBA;                   // The starting LBA of the partition.
     uint32_t sizeInLBA;                     // The size of the partition in LBAs. A value of 0 indicates an unused partition entry.     
-} __attribute__((packed)) MBRPartitionRecord;
+} __attribute__((packed));
 
-typedef struct MBRHeader {
+struct MBRHeader {
     uint8_t bootCode[MBR_BOOT_CODE_SIZE];
     uint8_t unused[16];
     uint32_t uniqueMBRSignature;
     uint16_t unknown;
     MBRPartitionRecord partitionRecords[4];
     uint16_t mbrSignature;
-}  __attribute__((packed)) MBRHeader;
+}  __attribute__((packed));
 
 static_assert(sizeof(MBRHeader) == 512, "GPT Header size must not exceed Logic Block Size (512)");
 
@@ -78,6 +78,10 @@ public:
 
     uint16_t mbrSignature() {
         return header.mbrSignature;
+    }
+
+    ~MBRReader() {
+        printf("Finished MBR reader lifetime\n");
     }
 private:
     void printOSType(uint8_t osTypeField);

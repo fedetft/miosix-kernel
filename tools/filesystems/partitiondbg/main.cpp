@@ -9,6 +9,8 @@
 using namespace miosix;
 
 void tryMBR() {
+
+    printf("Trying MBR\n");
     auto mbrReader = MBR::MBRReader::readMBR(SDIODriver::instance());
     size_t retryCount = 0;
     while(mbrReader.first && retryCount < 5) {
@@ -29,23 +31,19 @@ void tryMBR() {
     }
     
     mbrReader.second.printMBRInfo();
+    printf("Finished MBR\n");
 }
-
-void tryGPT() {
-    auto gptReaderResult = GPT::GPTReader::readGPT(SDIODriver::instance());
-    auto gptReader = std::move(gptReaderResult.second);
-    if (gptReaderResult.first != GPT::ReaderResult::Ok) {
-        printf("Error reading gpt partition, reasonID: %d", static_cast<int>(gptReaderResult.first));
-        return;
-    }
-
-}
-
 
 int main()
 {
     tryMBR();
-    tryGPT();
+    printf("Trying GPT from main\n");
+    printf("Trying GPT\n");
+    auto gptReaderResult = GPT::GPTReader::readGPT(SDIODriver::instance());
+    // auto gptReader = std::move(gptReaderResult.second);
+    // if (gptReaderResult.first != GPT::ReaderResult::Ok) {
+    //     printf("Error reading gpt partition, reasonID: %d", static_cast<int>(gptReaderResult.first));
+    // }
     // TODO: here we can try to try-loop mount the partitions coming from the mbr header
     // We can also create virtual devices showing the partitions in devfs
     // linux does that, so we can have read/write ops on the partition directly
