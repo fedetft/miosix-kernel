@@ -50,7 +50,7 @@
  * The SDMMC1 peripheral in the STM32F7 is basically the old SDIO with the
  * registers renamed and a few bits changed. Let's map the old names in the new
  */
-#if defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
+#if defined(_CHIP_STM32F7)
 
 #if SD_SDMMC==1
 #define SDIO                 SDMMC1
@@ -73,6 +73,7 @@
 #define SDIO_STA_CMDREND     SDMMC_STA_CMDREND
 #define SDIO_STA_CCRCFAIL    SDMMC_STA_CCRCFAIL
 #define SDIO_STA_CTIMEOUT    SDMMC_STA_CTIMEOUT
+#define SDIO_STA_DATAEND     SDMMC_STA_DATAEND
 
 #define SDIO_CMD_CPSMEN      SDMMC_CMD_CPSMEN
 #define SDIO_CMD_WAITRESP_0  SDMMC_CMD_WAITRESP_0
@@ -102,13 +103,13 @@
 
 constexpr int ICR_FLAGS_CLR=0x5ff;
 
-#else  //defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
+#else  //defined(_CHIP_STM32F7)
 
 constexpr int ICR_FLAGS_CLR=0x7ff;
 
-#endif //defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
+#endif //defined(_CHIP_STM32F7)
 
-#if (defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)) && SD_SDMMC==2
+#if defined(_CHIP_STM32F7)&& SD_SDMMC==2
 #define DMA_Stream           DMA2_Stream0
 #else
 #define DMA_Stream           DMA2_Stream3
@@ -150,7 +151,7 @@ inline static void maybeWakeWaitingThread()
 void SDDMAirqImpl()
 {
     dmaFlags=DMA2->LISR;
-    #if (defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)) && SD_SDMMC==2
+    #if defined(_CHIP_STM32F7) && SD_SDMMC==2
     if(dmaFlags & (DMA_LISR_TEIF0 | DMA_LISR_DMEIF0 | DMA_LISR_FEIF0))
         dmaTransferError=true;
     else
@@ -194,7 +195,7 @@ void SDirqImpl()
         sdioTransferError=true;
     // Latch DATAEND separately; set only when no error flag is present so that
     // maybeWakeWaitingThread() can distinguish success from failure cleanly.
-    if(!sdioTransferError && (sdioFlags & SDMMC_STA_DATAEND))
+    if(!sdioTransferError && (sdioFlags & SDIO_STA_DATAEND))
         sdioDone=true;
 
     SDIO->ICR=ICR_FLAGS_CLR; //Clear flags
@@ -228,7 +229,7 @@ static CardType cardType=Invalid;
 
 //SD card GPIOs
 //TODO: expose gpio selection to the BSPs...
-#if (defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)) && SD_SDMMC==2
+#if defined(_CHIP_STM32F7) && SD_SDMMC==2
 typedef Gpio<PG,9>  sdD0;
 typedef Gpio<PG,10> sdD1;
 typedef Gpio<PB,3>  sdD2;
@@ -1029,7 +1030,7 @@ static unsigned int dmaTransferCommonSetup(const unsigned char *buffer, bool rea
 {
     //Clear both SDIO and DMA interrupt flags
     SDIO->ICR=ICR_FLAGS_CLR;
-    #if (defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)) && SD_SDMMC==2
+    #if defined(_CHIP_STM32F7) && SD_SDMMC==2
     DMA2->LIFCR = DMA_LIFCR_CTCIF0
                 | DMA_LIFCR_CTEIF0
                 | DMA_LIFCR_CDMEIF0
@@ -1103,7 +1104,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     DMA_Stream->FCR = DMA_SxFCR_FEIE   //Interrupt on fifo error
                     | DMA_SxFCR_DMDIS  //Fifo enabled
                     | DMA_SxFCR_FTH_0; //Take action if fifo half full
-    #if (defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)) && SD_SDMMC==2
+    #if defined(_CHIP_STM32F7) && SD_SDMMC==2
     DMA_Stream->CR = (11 << DMA_SxCR_CHSEL_Pos) //Channel 4 (SDIO)
     #else
     DMA_Stream->CR = DMA_SxCR_CHSEL_2   //Channel 4 (SDIO)
@@ -1218,7 +1219,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     DMA_Stream->FCR = DMA_SxFCR_DMDIS  //Fifo enabled
                     | DMA_SxFCR_FTH_1  //Take action if fifo full
                     | DMA_SxFCR_FTH_0;
-#if (defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)) && SD_SDMMC==2
+#if defined(_CHIP_STM32F7) && SD_SDMMC==2
     DMA_Stream->CR = (11 << DMA_SxCR_CHSEL_Pos) // Channel 4 (SDIO)
 #else
     DMA_Stream->CR = DMA_SxCR_CHSEL_2     // Channel 4 (SDIO)
@@ -1337,7 +1338,7 @@ static void initSDIOPeripheralOnce()
     RCC_SYNC();
     RCC->APB2ENR |= RCC_APB2ENR_SDIOEN;
     RCC_SYNC();
-    #if (defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)) && SD_SDMMC==2
+    #if defined(_CHIP_STM32F7) && SD_SDMMC==2
     sdD0::mode(Mode::ALTERNATE);
     sdD0::alternateFunction(11);
     #ifndef SD_ONE_BIT_DATABUS
@@ -1369,7 +1370,7 @@ static void initSDIOPeripheralOnce()
     sdCMD::alternateFunction(12);
     #endif
 
-    #if (defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)) && SD_SDMMC==2
+    #if defined(_CHIP_STM32F7) && SD_SDMMC==2
     IRQregisterIrq(lock,DMA2_Stream0_IRQn,SDDMAirqImpl);
     #else
     IRQregisterIrq(lock,DMA2_Stream3_IRQn,SDDMAirqImpl);
@@ -1388,7 +1389,7 @@ static void initSDIOPeripheral()
     SDIO->CLKCR=0;
     SDIO->CMD=0;
     SDIO->DCTRL=0;
-    #if defined(_CHIP_STM32F7) || defined(_CHIP_STM32H7)
+    #if defined(_CHIP_STM32F7)
     SDIO->ICR=0x4005ff;
     #else
     SDIO->ICR=0xc007ff;
