@@ -61,6 +61,8 @@ private:
      * deadlocking even when reinitialize() is already holding it.
      */
     bool reinitialize(bool calibrate);
+
+    bool sdioReinitLocked();
     
     off_t cardSize; ///< Card size in bytes, zero if no card is present or CMD9 is not supported
     KernelMutex mutex{MutexOptions::RECURSIVE};

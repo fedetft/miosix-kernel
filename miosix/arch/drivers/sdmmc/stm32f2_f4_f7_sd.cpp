@@ -194,7 +194,7 @@ void SDirqImpl()
         sdioTransferError=true;
     // Latch DATAEND separately; set only when no error flag is present so that
     // maybeWakeWaitingThread() can distinguish success from failure cleanly.
-    if(!sdioTransferError && (sdioFlags & SDIO_STA_DATAEND))
+    if(!sdioTransferError && (sdioFlags & SDMMC_STA_DATAEND))
         sdioDone=true;
 
     SDIO->ICR=ICR_FLAGS_CLR; //Clear flags
@@ -1655,7 +1655,7 @@ int SDIODriver::ioctl(int cmd, void* arg)
     return waitForCardReady() ? 0 : -EFAULT;
 }
 
-static bool sdioReinitLocked()
+bool SDIODriver::sdioReinitLocked()
 {
     initSDIOPeripheral();
 
