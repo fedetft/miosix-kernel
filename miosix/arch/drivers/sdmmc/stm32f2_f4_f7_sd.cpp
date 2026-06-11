@@ -444,6 +444,11 @@ public:
      */
     unsigned int getResponse() { return response; }
 
+    /**
+     * \internal
+     * \param part one of the four 32 bit parts of the 128 bit response
+     * \return the part selected with the part parameter or 0 if out of bounds
+     */
     unsigned int getResponse2Part(size_t part) {
         if (part >= 4) return 0;
         return response2[part];

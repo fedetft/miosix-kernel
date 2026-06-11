@@ -57,6 +57,7 @@ private:
     SDIODriver();
     
     KernelMutex mutex;
+    off_t cardSize;
 };
 
 } //namespace miosix

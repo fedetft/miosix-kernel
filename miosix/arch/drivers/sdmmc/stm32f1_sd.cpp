@@ -301,7 +301,7 @@ public:
      * \internal
      * Default constructor
      */
-    CmdResult(): cmd(0), error(Ok), response(0) {}
+    CmdResult(): cmd(0), error(Ok), response(0), response2{0, 0, 0, 0} {}
 
     /**
      * \internal
@@ -310,7 +310,9 @@ public:
      * \param result result of command
      */
     CmdResult(unsigned char cmd, Error error): cmd(cmd), error(error),
-            response(SDIO->RESP1) {}
+            response(SDIO->RESP1), response2{SDIO->RESP4, SDIO->RESP3, SDIO->RESP2, 0} {
+                response2[3] = response;
+            }
 
     /**
      * \internal
@@ -319,6 +321,16 @@ public:
      * response, such as CMD0
      */
     unsigned int getResponse() { return response; }
+
+    /**
+     * \internal
+     * \param part one of the four 32 bit parts of the 128 bit response
+     * \return the part selected with the part parameter or 0 if out of bounds
+     */
+    unsigned int getResponse2Part(size_t part) {
+        if (part >= 4) return 0;
+        return response2[part];
+    }
 
     /**
      * \internal
@@ -356,6 +368,14 @@ public:
 
     /**
      * \internal
+     * interprets this->getResponse() as an R2 response, and checks if there are
+     * errors, or everything is ok
+     * \return true on success, false on failure
+     */
+    bool validateR2Response();
+
+    /**
+     * \internal
      * interprets this->getResponse() as an R6 response, and checks if there are
      * errors, or everything is ok
      * \return true on success, false on failure
@@ -372,6 +392,7 @@ private:
     unsigned char cmd; ///<\internal Command index that was sent
     Error error; ///<\internal possible error that occurred
     unsigned int response; ///<\internal 32bit response
+    unsigned int response2[4]; ///<\internal 128bit response, only valid for R2 responses
 };
 
 bool CmdResult::validateError()
@@ -427,6 +448,14 @@ bool CmdResult::IRQvalidateR1Response()
 {
     if(error!=Ok) return false;
     if(response & 0xfff98008) return false;
+    return true;
+}
+
+
+bool CmdResult::validateR2Response() {
+    // R2 responses do not contain cmd index so it is always wrong
+    if(error!=Ok && error!=RespNotMatch) return validateError();
+
     return true;
 }
 
@@ -1532,6 +1561,41 @@ static CardType detectCardType()
     }
 }
 
+
+static off_t getCardSize() {
+    CmdResult r=Command::send(Command::CMD9,Command::getRca()<<16);    //Get CSD 
+    if(r.validateR2Response()==false) return 0;
+    auto csdStructure = (r.getResponse2Part(3) & 0xC0000000) >> 30;
+    switch (csdStructure) {
+        case 0: {
+            DBG("CSD structure version 1.0\n");
+            auto cSize  = ((r.getResponse2Part(2) & 0x000003ff)) << 2 | ((r.getResponse2Part(1) & 0xC0000000) >> 30);
+            DBG("C_SIZE=%8X\n", cSize);
+            auto cSizeMult = (r.getResponse2Part(1) & 0x00038000) >> 15;
+            DBG("C_SIZE_MULT=%8X\n", cSizeMult);
+            auto readBlLen = (r.getResponse2Part(2) & 0x000F0000) >> 16;
+            DBG("READ_BL_LEN=%8X\n", readBlLen);
+            return (cSize + 1) * (1 << (cSizeMult + 2)) * (1 << readBlLen); // (C_SIZE + 1) * 2^(C_SIZE_MULT + 2) * 2^READ_BL_LEN
+        }
+        case 1: {
+            DBG("CSD structure version 2.0\n");
+            off_t cSize = (r.getResponse2Part(1) & 0xffff0000) >> 16 | ((r.getResponse2Part(2) & 0x0000001f) << 16);
+            DBG("C_SIZE=%16llX\n", cSize);
+            return (cSize + 1) * (512 * 1024); // (C_SIZE + 1) * 512KB, since C_SIZE is in units of 512KB for CSD version 2.0
+        }
+        case 2: {
+            DBG("CSD structure version 3.0\n");
+            off_t cSize = (r.getResponse2Part(1) & 0xffff0000) >> 16 | ((r.getResponse2Part(2) & 0x000007ff) << 16);
+            DBG("C_SIZE=%16llX\n", cSize);
+            return (cSize + 1) * (512 * 1024); // Same formula as CSD version 2.0, but with a larger C_SIZE field
+        }
+        default:
+            DBGERR("Unsupported CSD structure version: %d\n", csdStructure);
+            return 0;
+    }
+
+}
+
 //
 // class SDIODriver
 //
@@ -1715,12 +1779,8 @@ SDIODriver::SDIODriver() : Device(Device::BLOCK)
     // Now give an RCA to the card. In theory we should loop and enumerate all
     // the cards but this driver supports only one card.
     r=Command::send(Command::CMD2,0);
-    //CMD2 sends R2 response, whose CMDINDEX field is wrong
-    if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::RespNotMatch)
-    {
-        r.validateError();
-        return;
-    }
+    if(r.validateR2Response()==false) return;
+
     r=Command::send(Command::CMD3,0);
     if(r.validateR6Response()==false) return;
     Command::setRca(r.getResponse()>>16);
@@ -1731,6 +1791,16 @@ SDIODriver::SDIODriver() : Device(Device::BLOCK)
         DBGERR("RCA=0 is invalid\n");
         return;
     }
+
+    // Here we should be able to get the card's CSD
+    cardSize = getCardSize();
+    if (cardSize == 0)
+    {
+        DBGERR("Failed to get card size or card is empty\n");
+    } else {
+        DBG("Card size: %llu bytes\n", cardSize);
+    }
+
 
     //Lastly, try selecting the card and configure the latest bits
     {
