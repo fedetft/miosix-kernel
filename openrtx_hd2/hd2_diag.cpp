@@ -294,6 +294,8 @@ static void dtmf_tx_send(const char *s, unsigned n, uint16_t onMs, uint16_t offM
     hd2_at1846s_write(0x57, hd2_at1846s_read(0x57) | 0x0001u);              // AFOUT=DTMF
     hd2_at1846s_write(0x79, hd2_at1846s_read(0x79) & ~0xC000u);             // dtmf_direct/tx=0
 
+    Thread::sleep(60);   // let the carrier + far-end squelch/AGC settle before the first tone
+
     unsigned sent = 0;
     for(unsigned i = 0; i < n; ++i)
     {
@@ -431,17 +433,21 @@ void *diagThreadFunc(void *)
                 tx('k');
                 break;
             }
-            case 'T':                              // DTMF tx: <n u8><n ASCII digits> -> "DTMF tx sent=N"
-            {                                      // TRANSMITS RF
-                uint8_t n;
-                if(!rxByte(n)) break;
+            case 'T':                              // DTMF tx: <n u8><onMs u16LE><offMs u16LE><n ASCII digits>
+            {                                      // TRANSMITS RF.  on/off 0 -> defaults (120/80 ms).
+                uint8_t n, ol, oh, fl, fh;
+                if(!rxByte(n) || !rxByte(ol) || !rxByte(oh) || !rxByte(fl) || !rxByte(fh)) break;
                 if(n > 32u) n = 32u;
+                uint16_t onMs  = (uint16_t)(ol | (oh << 8));
+                uint16_t offMs = (uint16_t)(fl | (fh << 8));
+                if(onMs  == 0u) onMs  = 120u;
+                if(offMs == 0u) offMs = 80u;
                 char s[32];
                 bool ok = true;
                 for(uint8_t i = 0; i < n; ++i) { uint8_t b; if(!rxByte(b)) { ok = false; break; } s[i] = (char)b; }
                 if(!ok) break;
                 char buf[48];
-                dtmf_tx_send(s, n, 60u, 60u, buf, sizeof buf);
+                dtmf_tx_send(s, n, onMs, offMs, buf, sizeof buf);
                 txStr(buf);
                 break;
             }
