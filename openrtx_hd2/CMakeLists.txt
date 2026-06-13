@@ -63,7 +63,10 @@ set(ORTX_HD2
 # The codeplug half of nvmem stays stubbed (cps_io_stub.c below).
 set(ORTX_NVM
     ${ORTX}/platform/drivers/SPI/spi_hd2.c
-    ${ORTX}/platform/drivers/NVM/nvmem_settings_HD2.c)
+    ${ORTX}/platform/drivers/NVM/flash_w25q_HD2.c
+    ${ORTX}/platform/drivers/NVM/nvmem_settings_HD2.c
+    ${ORTX}/platform/drivers/NVM/nvmem_vendor_settings_HD2.c
+    ${ORTX}/platform/drivers/NVM/nvmem_vendor_records_HD2.c)
 
 # Phase C: real analog-FM RX *control* path (tune + RSSI + tone squelch), plus
 # the audio_HD2 routing matrix (interfaces/audio.h; replaces audio_stub.c) which

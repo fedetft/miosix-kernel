@@ -25,9 +25,12 @@
 #include <pthread.h>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include "hd2_router.h"   /* audio-routing matrix + named device-routing twiddlers */
 #include "hd2_wdt.h"      /* watchdog: 'X' reboot / auto-WDT control */
 #include "hd2_crumb.h"    /* hard-lock forensics: 'H' dump + idle-loop stamp */
+#include "hd2_cps_settings.h" /* 'D' op: vendor settings/records accessors */
+#include "hd2_cps_records.h"
 
 /* Speaker self-test tone.  platform_beepStart() is the HD2's minimal speaker
  * output pathway: it warms the codec (codec DAC -> lineout), unmutes DIPLEX0 +
@@ -388,6 +391,43 @@ void *diagThreadFunc(void *)
             {                                      // (boot-inhibit debug). -> "RADIO=1\r\n"
                 g_radio_enabled = 1;
                 txStr("RADIO=1\r\n");
+                break;
+            }
+            case 'D':                              // dump vendor data layer (settings +
+            {                                      // channel[0] + contact[0]) -> ascii lines
+                char buf[200];
+                hd2_cps_settings_t st;
+                int sres = hd2_cps_settings_load(&st);
+                snprintf(buf, sizeof buf,
+                    "VSET(%s) sql=%u bl=%u bri=%u mic=%d keybeep=%u step=%u\r\n",
+                    sres == 1 ? "dflt" : (sres == 0 ? "ok" : "err"),
+                    st.squelch, st.backlight, st.brightness, (int)st.mic_gain,
+                    (st.flags4 & HD2_VSET_F4_KEY_BEEP) ? 1u : 0u, st.step);
+                txStr(buf);
+
+                hd2_vendor_channel_t ch;
+                if(hd2_vendor_channel_read(0, &ch) == 0 && hd2_vendor_channel_present(&ch))
+                {
+                    char nm[11]; memcpy(nm, ch.name, 10); nm[10] = 0;
+                    snprintf(buf, sizeof buf,
+                        "CH0 \"%s\" rx=%lu tx=%lu %s %s\r\n", nm,
+                        (unsigned long)hd2_bcd4_to_hz(ch.rx_freq),
+                        (unsigned long)hd2_bcd4_to_hz(ch.tx_freq),
+                        hd2_channel_is_dmr(&ch) ? "DMR" : "FM",
+                        hd2_channel_is_wide(&ch) ? "wide" : "narrow");
+                }
+                else snprintf(buf, sizeof buf, "CH0 empty\r\n");
+                txStr(buf);
+
+                hd2_vendor_contact_t ct;
+                if(hd2_vendor_contact_read(0, &ct) == 0 && hd2_vendor_contact_present(&ct))
+                {
+                    char nm[17]; memcpy(nm, ct.name, 16); nm[16] = 0;
+                    snprintf(buf, sizeof buf, "CT0 id=%lu type=%u \"%s\"\r\n",
+                        (unsigned long)ct.dmr_id, ct.type, nm);
+                }
+                else snprintf(buf, sizeof buf, "CT0 empty\r\n");
+                txStr(buf);
                 break;
             }
             case 'H':                              // crumbs: previous-life + live breadcrumbs
