@@ -272,6 +272,94 @@ static void fm_tx_tone_test(uint8_t secs, uint8_t flags, char *out, unsigned out
              (unsigned long)irqs, (unsigned long)swseen);
 }
 
+/*
+ * DTMF transmit (diag 'T'): key a bare FM carrier and send an ASCII digit
+ * string.  The AT1846S generates the tone pairs internally (reg 0x35/0x36) and
+ * sums them into the FM modulation -- no C7000 voice path needed.  Fixed
+ * on/off timing per digit.  TRANSMITS RF.  Mirrors fm_tx_tone_test's key/dekey.
+ */
+static void dtmf_tx_send(const char *s, unsigned n, uint16_t onMs, uint16_t offMs,
+                         char *out, unsigned outsz)
+{
+    static const uint16_t rows[4] = { 697, 770, 852, 941 };
+    static const uint16_t cols[4] = { 1209, 1336, 1477, 1633 };
+
+    uint32_t freeze0 = g_rf_freeze; g_rf_freeze = 1;
+    uint16_t r40 = hd2_at1846s_read(0x40);
+
+    hd2_at1846s_write(0x40, 0x0030u);
+    hd2_at1846s_write(0x30, 0x4006u);
+    hd2_at1846s_write(0x30, 0x4046u);                                       // tx_on
+    hd2_at1846s_write(0x3A, (hd2_at1846s_read(0x3A) & ~0x7000u) | 0x3000u); // tone1+tone2
+    hd2_at1846s_write(0x57, hd2_at1846s_read(0x57) | 0x0001u);              // AFOUT=DTMF
+    hd2_at1846s_write(0x79, hd2_at1846s_read(0x79) & ~0xC000u);             // dtmf_direct/tx=0
+
+    unsigned sent = 0;
+    for(unsigned i = 0; i < n; ++i)
+    {
+        int r, c;
+        switch(s[i])
+        {
+            case '1':r=0;c=0;break; case '2':r=0;c=1;break; case '3':r=0;c=2;break; case 'A':case 'a':r=0;c=3;break;
+            case '4':r=1;c=0;break; case '5':r=1;c=1;break; case '6':r=1;c=2;break; case 'B':case 'b':r=1;c=3;break;
+            case '7':r=2;c=0;break; case '8':r=2;c=1;break; case '9':r=2;c=2;break; case 'C':case 'c':r=2;c=3;break;
+            case '*':r=3;c=0;break; case '0':r=3;c=1;break; case '#':r=3;c=2;break; case 'D':case 'd':r=3;c=3;break;
+            default: continue;
+        }
+        hd2_at1846s_write(0x35, (uint16_t)(rows[r] * 10u));
+        hd2_at1846s_write(0x36, (uint16_t)(cols[c] * 10u));
+        hd2_at1846s_write(0x7A, hd2_at1846s_read(0x7A) | 0x8000u);          // dtmf_en=1
+        Thread::sleep(onMs);
+        hd2_at1846s_write(0x7A, hd2_at1846s_read(0x7A) & ~0x8000u);         // dtmf_en=0
+        Thread::sleep(offMs);
+        sent++;
+    }
+
+    hd2_at1846s_write(0x57, hd2_at1846s_read(0x57) & ~0x0001u);
+    hd2_at1846s_write(0x3A, (hd2_at1846s_read(0x3A) & ~0x7000u) | 0x4000u); // mic
+    hd2_at1846s_write(0x30, 0x4006u);                                       // dekey
+    hd2_at1846s_write(0x40, (r40 != 0u) ? r40 : 0x0031u);
+    hd2_at1846s_write(0x30, 0x4826u);                                       // RX-on
+    g_rf_freeze = freeze0;
+    snprintf(out, outsz, "DTMF tx sent=%u\r\n", sent);
+}
+
+/*
+ * DTMF receive (diag 't'): enable the AT1846S decoder and drain up to 'max'
+ * digits seen within a ~3 s window.  NOTE: the 0x67..0x76 Goertzel coefficients
+ * are left at the chip default (12.8/25.6 MHz reference); the HD2 is 26 MHz, so
+ * this op is the HW check of whether decode works at the default coefficients.
+ */
+static void dtmf_rx_read(uint8_t max, char *out, unsigned outsz)
+{
+    static const char tbl[16] = { '0','1','2','3','4','5','6','7',
+                                  '8','9','A','B','C','D','*','#' };
+    uint32_t freeze0 = g_rf_freeze; g_rf_freeze = 1;
+    hd2_at1846s_write(0x7A, 0x8018u);                  // dtmf_en + detect time
+
+    char digits[33]; unsigned k = 0;
+    if(max > 32u) max = 32u;
+    for(unsigned t = 0; t < 300u && k < max; ++t)      // ~3 s @10 ms
+    {
+        uint16_t st = hd2_at1846s_read(0x7E);
+        if((st & 0x0010u) != 0u)                        // dtmf_sample ready
+        {
+            digits[k++] = tbl[st & 0x0F];
+            for(unsigned w = 0; w < 30u; ++w)           // wait for ready to clear
+            {
+                if((hd2_at1846s_read(0x7E) & 0x0010u) == 0u) break;
+                Thread::sleep(5);
+            }
+        }
+        Thread::sleep(10);
+    }
+
+    hd2_at1846s_write(0x7A, hd2_at1846s_read(0x7A) & ~0x8000u);  // disable
+    g_rf_freeze = freeze0;
+    digits[k] = 0;
+    snprintf(out, outsz, "DTMF rx=%s (%u)\r\n", digits, k);
+}
+
 void *diagThreadFunc(void *)
 {
     for(;;)
@@ -341,6 +429,29 @@ void *diagThreadFunc(void *)
                 if(!rxByte(flags) || !rxByte(vox)) break;
                 hd2_rtx_setFmExtras(flags, vox);
                 tx('k');
+                break;
+            }
+            case 'T':                              // DTMF tx: <n u8><n ASCII digits> -> "DTMF tx sent=N"
+            {                                      // TRANSMITS RF
+                uint8_t n;
+                if(!rxByte(n)) break;
+                if(n > 32u) n = 32u;
+                char s[32];
+                bool ok = true;
+                for(uint8_t i = 0; i < n; ++i) { uint8_t b; if(!rxByte(b)) { ok = false; break; } s[i] = (char)b; }
+                if(!ok) break;
+                char buf[48];
+                dtmf_tx_send(s, n, 60u, 60u, buf, sizeof buf);
+                txStr(buf);
+                break;
+            }
+            case 't':                              // DTMF rx: <max u8> -> "DTMF rx=<digits> (N)"
+            {
+                uint8_t mx;
+                if(!rxByte(mx)) break;
+                char buf[48];
+                dtmf_rx_read(mx, buf, sizeof buf);
+                txStr(buf);
                 break;
             }
             case 'S':                              // set routing target: <target u8><val u32 LE> -> u32 LE
