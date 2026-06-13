@@ -399,7 +399,12 @@ bool rtx_rxSquelchOpen(void)
      * the lockups).  USB-serial ground-loop/RF-pickup flutters the RSSI a few
      * dB; 8 dBm absorbs it. */
     static bool open = false;
-    rssi_t squelch = -127 + (rtxStatus.sqlLevel * 66) / 15;
+    /* Match the AT1846S hardware 0x49 close threshold basis (-127 + 6*level,
+     * level clamped 0..9; see AT1846S::setSquelchLevel) so HW and SW agree at
+     * the close point, while the ±4 dBm window stays the wider audio-gate
+     * authority that absorbs RSSI flutter (the 2026-06-10 lockup fix). */
+    uint8_t lvl   = (rtxStatus.sqlLevel > 9u) ? 9u : rtxStatus.sqlLevel;
+    rssi_t squelch = -127 + 6 * (rssi_t)lvl;
     if(!open && (rssi > squelch + 4)) open = true;
     else if(open && (rssi < squelch - 4)) open = false;
     return open;
