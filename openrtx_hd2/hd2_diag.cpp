@@ -32,6 +32,7 @@
 #include "hd2_cps_settings.h" /* 'D' op: vendor settings/records accessors */
 #include "hd2_cps_records.h"
 #include "drivers/NVM/flash_w25q_HD2.h" /* 'd' op: raw W25Q sector write */
+extern "C" int hd2_import_vendor_codeplug(int *out_ch); /* 'g' op (hd2_vendor_import.c) */
 
 /* Speaker self-test tone.  platform_beepStart() is the HD2's minimal speaker
  * output pathway: it warms the codec (codec DAC -> lineout), unmutes DIPLEX0 +
@@ -386,6 +387,14 @@ void *diagThreadFunc(void *)
                 if(!rxByte(on)) break;
                 g_rf_freeze = (on != 0u) ? 1u : 0u;
                 txStr(g_rf_freeze ? "RFFREEZE=1\r\n" : "RFFREEZE=0\r\n");
+                break;
+            }
+            case 'g':                              // import factory channels -> OpenRTX codeplug
+            {                                      // -> "IMPORT=<n>\r\n"
+                int n = hd2_import_vendor_codeplug(nullptr);
+                char buf[24];
+                snprintf(buf, sizeof buf, "IMPORT=%d\r\n", n);
+                txStr(buf);
                 break;
             }
             case 'd':                              // flash-write one sector: <addr u32 LE>
