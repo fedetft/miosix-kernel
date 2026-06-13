@@ -100,6 +100,10 @@ extern "C" void hd2_pcm_capture(uint16_t ms, uint8_t arm, char *out, unsigned ou
  * AFSK/AX.25 from the demod audio.  BLOCKS up to ~10 s. */
 extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz);
 
+/* APRS TX (hd2_pcm_stream.cpp): keys analog-FM TX and streams a 1200-baud
+ * AFSK/AX.25 beacon via the codec playback path.  TRANSMITS RF.  BLOCKS ~<3 s. */
+extern "C" void hd2_aprs_tx(uint8_t preamble, uint8_t flags, char *out, unsigned outsz);
+
 /* Voice-prompt test (hd2_diag.cpp below): forces vpLevel high, queues a
  * sequence, and triggers playback.  The actual codec2 decode + streaming runs
  * in the UI main_thread's vp_tick(), so this returns immediately. */
@@ -706,6 +710,15 @@ void *diagThreadFunc(void *)
                 if(!rxByte(fr)) break;
                 static char buf[288];              // static: keep the diag stack small
                 hd2_aprs_rx((uint16_t)fr, buf, sizeof buf);
+                txStr(buf);
+                break;
+            }
+            case 'B':                              // aprs_tx: <preamble u8><flags u8> -> "APRSTX .."
+            {                                      // keys analog-FM TX, beacons 1200-AFSK via
+                uint8_t pre, fl;                   // codec playback.  TRANSMITS RF for <~3 s.
+                if(!rxByte(pre) || !rxByte(fl)) break;
+                char buf[96];
+                hd2_aprs_tx(pre, fl, buf, sizeof buf);
                 txStr(buf);
                 break;
             }

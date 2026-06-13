@@ -58,12 +58,13 @@ set(ORTX_HD2
     ${ORTX}/platform/targets/HD2/hd2_vendor_import.c)
 
 # Hardware-agnostic protocol modules (openrtx/src/protocols), structured per
-# OSI layers like M17.  APRS = 1200-baud AFSK + HDLC + AX.25 RX.
+# OSI layers like M17.  APRS = 1200-baud AFSK + HDLC + AX.25, RX (Decoder) + TX (Encoder).
 set(ORTX_PROTOCOLS
     ${ORTX}/openrtx/src/protocols/APRS/Afsk1200.cpp
     ${ORTX}/openrtx/src/protocols/APRS/Hdlc.cpp
     ${ORTX}/openrtx/src/protocols/APRS/Ax25.cpp
-    ${ORTX}/openrtx/src/protocols/APRS/Decoder.cpp)
+    ${ORTX}/openrtx/src/protocols/APRS/Decoder.cpp
+    ${ORTX}/openrtx/src/protocols/APRS/Encoder.cpp)
 
 # Persistent settings + last-VFO storage on the W25Q SPI-NOR (GPIOA
 # bit-bang).  nvmem_settings_HD2.c implements the settings half of

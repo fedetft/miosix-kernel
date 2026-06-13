@@ -188,8 +188,11 @@ extern "C" void hd2_pcm_capture(uint16_t ms, uint8_t arm, char *out, unsigned ou
  * (x10 ms).  Hardware glue only; the modem itself lives in openrtx/protocols. */
 extern "C" uint16_t hd2_at1846s_read(uint8_t reg);
 extern "C" void     hd2_at1846s_write(uint8_t reg, uint16_t val);
+extern "C" void hd2_txpower_levels(uint16_t *apc, uint16_t *padrv);  /* UI power level -> APC + padrv */
 #include "protocols/APRS/Decoder.hpp"
+#include "protocols/APRS/Encoder.hpp"
 static Aprs::Decoder g_aprsDec;     /* ~400 B decoder state (not on the stack) */
+static Aprs::Encoder g_aprsEnc;     /* ~1.3 KB encoder state (not on the stack) */
 
 extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
 {
@@ -226,8 +229,6 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
     volatile uint16_t *src = SAHB_PCM_CAP;
     static int16_t buf[PCM_FRAME_SAMPLES];
     static char    line[256];
-    static int16_t dbg[5000];           /* first ~0.6 s post-trigger (full packet), for host analysis */
-    int      dn = 0;
     bool     got = false;
     int16_t  lo = 32767, hi = -32768;
     uint16_t f;
@@ -238,7 +239,6 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
         {
             int16_t s = (int16_t)src[i];
             buf[i] = s;
-            if(dn < 5000) dbg[dn++] = s;
             if(s < lo) lo = s;
             if(s > hi) hi = s;
         }
@@ -249,21 +249,166 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
 
     hd2_at1846s_write(0x58, r58);          /* restore the voice filters */
     SOCSYS_VOICE_PATH = vpSave;
-    (void)dbg; (void)dn;
     if(got) { snprintf(out, outsz, "APRS: %s\r\n", line); return; }
 
     /* Near-miss diagnosis: status + hex of the longest assembled frame, so the
      * host can diff it against the known packet to localise the bit errors. */
     int w = snprintf(out, outsz,
-                     "APRS none (trig=%d pp=%d flags=%d max=%d dbg=%08x dn=%d) F=",
+                     "APRS none (trig=%d pp=%d flags=%d max=%d) F=",
                      trig ? 1 : 0, (int)(hi - lo),
-                     g_aprsDec.flagsSeen(), g_aprsDec.maxFrameLen(),
-                     (unsigned)(uintptr_t)dbg, dn);
+                     g_aprsDec.flagsSeen(), g_aprsDec.maxFrameLen());
     const uint8_t *fr = g_aprsDec.lastRawFrame();
     int frlen = g_aprsDec.lastRawLen();
     for(int i = 0; i < frlen && w < (int)outsz - 3; ++i)
         w += snprintf(out + w, outsz - w, "%02x", fr[i]);
     snprintf(out + w, (w < (int)outsz) ? outsz - w : 0, "\r\n");
+}
+
+/* vec-0x3b playback ISR for APRS TX: handshake, then fill the SAHB playback
+ * window with the encoder's next 80-sample frame (vendor pcm_isr_rd order).
+ * Sets g_aprsTxDone once the encoder drains (a fully-silent frame). */
+static volatile bool     g_aprsTxDone   = false;
+static volatile uint32_t g_aprsTxFrames = 0;
+
+static void aprsPlayIsr(void *)
+{
+    SOCSYS_INT_STATUS |= INT_STATUS_PCM_PLAY_ACK;
+    volatile uint16_t *dst = SAHB_PCM_PLAY;
+    bool any = false;
+    for(unsigned i = 0; i < PCM_FRAME_SAMPLES; ++i)
+    {
+        int16_t s = 0;
+        if(g_aprsEnc.nextSample(s)) any = true;
+        dst[i] = static_cast<uint16_t>(s);
+    }
+    ++g_aprsTxFrames;
+    if(!any) g_aprsTxDone = true;
+}
+
+/* APRS TX (diag 'B'): build an AX.25 UI beacon, key the proven analog-FM TX
+ * carrier (the same path normal PTT uses -- NOT the modem TX RAM, which is the
+ * DMR/digital path and does not modulate analog FM: 2026-06-13 the tx_voice_
+ * source RAM bit produced a dead/UNMODULATED carrier), and stream the AFSK as
+ * audio through the CODEC PLAYBACK window (SAHB 0x180000a0, vec-0x3b ISR --
+ * the vendor voice-prompt-over-air mechanism), routed into the FM modulator.
+ *
+ * The voice-path routing bits at 0x11000080 have conflicting RE/manual
+ * meanings, so they're <flags>-selectable for live A/B (no reflash):
+ *   bit0 -> 0x01 (PCM bridge / "tx_voice_source")   bit1 -> 0x20 (PLAY)
+ *   bit2 -> 0x40 (fm_play_ctrl, "select FM path")    bit3 -> 0x08 (sidetone)
+ *   bit4 -> drop PTB3 mic gate (mic OFF -> playback-only modulation)
+ * Power follows the UI level (Settings->Radio->TX Power); keep it low (full
+ * power at high duty cooked a final 2026-06-13).
+ * <preamble u8> leading 0x7E flags (0->48, ~320 ms TXDELAY); <flags u8> routing
+ * (0 -> 0x16 = PLAY|fm_play_ctrl|mic-off). */
+extern "C" void hd2_aprs_tx(uint8_t preamble, uint8_t flags, char *out, unsigned outsz)
+{
+    if(preamble == 0u) preamble = 48u;
+    if(flags == 0u)    flags = 0x16u;
+
+    g_aprsEnc.buildBeacon("APZHD2", 0, "AI5QZ", 7, "WIDE1", 1,
+                          "!4807.00N/01131.00E>HD2 APRS TX", preamble);
+
+    volatile uint32_t *wm       = reinterpret_cast<volatile uint32_t*>(0x11000100u);
+    volatile uint32_t *ptt      = reinterpret_cast<volatile uint32_t*>(0x11000560u);
+    volatile uint32_t *imask    = reinterpret_cast<volatile uint32_t*>(0x1100039cu);
+    volatile uint32_t *audioctl = reinterpret_cast<volatile uint32_t*>(0x11000080u);
+
+    uint32_t freeze0 = g_rf_freeze;
+    g_rf_freeze = 1;                        /* rtx thread off the bus while we TX */
+
+    /* ---- Carrier: the proven analog-FM TX path (normal-PTT equivalent) ---- */
+    uint32_t wm0 = *wm, imask0 = *imask, audioctl0 = *audioctl;
+    *imask = 0x0001007fu;                   /* vendor FM SYS_INTERP_MASK          */
+    *wm    = wm0 | 0x80u;                    /* FM analog modulator mode           */
+    *ptt   = 1u;                             /* modem FM TX on                     */
+
+    uint16_t apc, padrv;
+    hd2_txpower_levels(&apc, &padrv);        /* UI-selected TX power level         */
+    uint32_t gpiob0 = GPIOB_DR;
+    GPIOB_DR |= (1u << 19);                  /* band-select high (430 MHz)         */
+    if(flags & 0x10u) GPIOB_DR &= ~(1u << 3);/* mic gate OFF (playback-only mod)   */
+    else              GPIOB_DR |=  (1u << 3);/* mic gate ON  (vendor TX parity)    */
+    DAC_PD_MODE_EN &= ~0x2u;
+    DAC_PD_CTRL    &= ~0x2u;
+    DAC_DATA_B      = apc;
+
+    uint16_t r40 = hd2_at1846s_read(0x40);
+    uint16_t r0a = hd2_at1846s_read(0x0a);
+    uint16_t r59 = hd2_at1846s_read(0x59);
+
+    /* HD2 TX cal offset (+12.5 kHz = +200 freq-word units on 0x29/0x2A). */
+    uint16_t fhi = hd2_at1846s_read(0x29);
+    uint16_t flo = hd2_at1846s_read(0x2A);
+    uint32_t ftx = ((((uint32_t)fhi << 16) | flo) + 200u);
+    hd2_at1846s_write(0x29, (uint16_t)((ftx >> 16) & 0xffffu));
+    hd2_at1846s_write(0x2A, (uint16_t)(ftx & 0xffffu));
+
+    hd2_at1846s_write(0x0a, (uint16_t)((padrv << 11) | 0x0420u));
+    hd2_at1846s_write(0x59, 0x0C50u);       /* wideband FM deviation              */
+    hd2_at1846s_write(0x40, 0x0030u);
+    hd2_at1846s_write(0x30, 0x4006u);
+    hd2_at1846s_write(0x30, 0x4046u);       /* tx_on: key the carrier             */
+    hd2_at1846s_write(0x30, 0x40c6u);       /* + bit7: PA-stage on                */
+
+    /* ---- Modulation: stream the AFSK through the codec playback path ---- */
+    uint32_t route = 0u;
+    if(flags & 0x01u) route |= 0x01u;       /* PCM bridge                         */
+    if(flags & 0x02u) route |= 0x20u;       /* VOICE_PATH PLAY                    */
+    if(flags & 0x04u) route |= 0x40u;       /* fm_play_ctrl (select FM path)      */
+    if(flags & 0x08u) route |= 0x08u;       /* fm_sidetone                        */
+    uint32_t pmSave = SOCSYS_PCM_MODE;
+    SOCSYS_SYS_SOFT_RSTN |= SOFT_RSTN_PCM_BITS;
+    SOCSYS_PCM_MODE = 3u;
+    *audioctl = audioctl0 | route;
+
+    g_aprsTxDone = false; g_aprsTxFrames = 0;
+    {
+        GlobalIrqLock lock;
+        IRQregisterIrq(lock, HD2_IRQ_PCM_PLAY, &aprsPlayIsr, nullptr);
+    }
+    /* Prime the first frame + handshake (vendor modem_pcm_path_enable order). */
+    {
+        volatile uint16_t *dst = SAHB_PCM_PLAY;
+        for(unsigned i = 0; i < PCM_FRAME_SAMPLES; ++i)
+        {
+            int16_t s = 0; g_aprsEnc.nextSample(s);
+            dst[i] = static_cast<uint16_t>(s);
+        }
+    }
+    SOCSYS_INT_STATUS |= INT_STATUS_PCM_PLAY_ACK;
+
+    /* Wait for the beacon to clock out (ISR sets done) or a ~3 s safety bound. */
+    int guard;
+    for(guard = 0; guard < 600 && !g_aprsTxDone; ++guard)
+        Thread::sleep(5);
+
+    {
+        GlobalIrqLock lock;
+        IRQunregisterIrq(lock, HD2_IRQ_PCM_PLAY, &aprsPlayIsr, nullptr);
+    }
+
+    /* ---- dekey + restore ---- */
+    hd2_at1846s_write(0x30, 0x4006u);       /* dekey (clears PA bit7)             */
+    DAC_DATA_B      = 0u;
+    DAC_PD_CTRL    |= 0x2u;
+    *ptt      = 0u;
+    *wm       = wm0;
+    *audioctl = audioctl0;
+    *imask    = imask0;
+    SOCSYS_PCM_MODE = pmSave;
+    GPIOB_DR  = gpiob0;
+    hd2_at1846s_write(0x29, fhi);
+    hd2_at1846s_write(0x2A, flo);
+    hd2_at1846s_write(0x59, r59);
+    hd2_at1846s_write(0x0a, r0a);
+    hd2_at1846s_write(0x40, (r40 != 0u) ? r40 : 0x0031u);
+    hd2_at1846s_write(0x30, 0x4826u);       /* back to RX-on                      */
+    g_rf_freeze = freeze0;
+
+    snprintf(out, outsz, "APRSTX pre=%u flags=%02x frames=%lu apc=%03x done=%d\r\n",
+             preamble, flags, (unsigned long)g_aprsTxFrames, (unsigned)apc,
+             g_aprsTxDone ? 1 : 0);
 }
 
 /* Full-stack stream test: tone via audioPath_request -> audioStream_start ->
