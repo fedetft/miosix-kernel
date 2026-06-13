@@ -5,7 +5,7 @@
  * HD2 FM broadcast receive worker thread, gated by the UI FM screen.
  *
  * Drives the DEDICATED broadcast-FM tuner chip (I2C 0x20 on the GPIOA bit-bang
- * bus) via the fm_broadcast_HD2 driver -- NOT the AT1846S transceiver and NOT
+ * bus) via the RDA5802E_HD2 driver -- NOT the AT1846S transceiver and NOT
  * the HR_C7000 codec.  Broadcast audio is analog out of the 0x20 chip and gated
  * to the speaker by GPIO (PTB10 route + PTB20 enable), so there is no codec /
  * socsys audio path to bring up here.  (Earlier versions of this worker used
@@ -23,13 +23,13 @@
 #include <pthread.h>
 #include <cstdint>
 #include "hd2_regs.h"          /* GPIOB_DR, SPKR_AMP_BIT */
-#include "drivers/baseband/fm_broadcast_HD2.h"
+#include "drivers/baseband/RDA5802E_HD2.h"
 
 using namespace miosix;
 
 extern "C" volatile uint32_t g_fm_test_freq;   /* tune target, Hz (default 103.6M) */
 
-/* AT1846S chip-side RX AF mute (reg 0x30 bit7 RMW, radio_test_HD2.cpp).  The
+/* AT1846S chip-side RX AF mute (reg 0x30 bit7 RMW, radio_HD2.cpp).  The
  * 2-way AFOUT and the broadcast tuner output share the analog node into the
  * speaker amp; the boot config leaves the AT1846S UNMUTED (LISTEN), which in
  * 2-way mode is hidden by the closed amp -- but broadcast mode opens the amp
@@ -38,7 +38,7 @@ extern "C" volatile uint32_t g_fm_test_freq;   /* tune target, Hz (default 103.6
  * resulting reg 0x30. */
 extern "C" uint16_t hd2_at1846s_afmute(uint32_t mute);
 
-/* RF-freeze flag (radio_test_HD2.cpp, loader op 'z').  The broadcast tuner
+/* RF-freeze flag (radio_HD2.cpp, loader op 'z').  The broadcast tuner
  * shares the GPIOA bit-bang I2C bus with the AT1846S and drives PTB10/PTB20,
  * so while frozen this worker must not touch the chip at all -- the thread
  * keeps looping (heartbeat advances) but skips ALL tuner I/O, including the
@@ -126,7 +126,7 @@ static void *fmThread(void *)
 
 /* Start the FM worker thread. Call from the HD2 entry (main.cpp) after
  * openrtx_init (platform/radio/i2c up). HD2-only. */
-extern "C" void hd2_fm_probe_start()
+extern "C" void hd2_fm_broadcast_start()
 {
     static pthread_t fm_thread;
     pthread_create(&fm_thread, nullptr, fmThread, nullptr);

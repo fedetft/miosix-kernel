@@ -37,7 +37,7 @@
 extern "C" void platform_beepStart(uint16_t freq);
 extern "C" void platform_beepStop(void);
 
-/* AT1846S register access (radio_test_HD2.cpp).  CAUTION: i2c0_lockDeviceBlocking
+/* AT1846S register access (radio_HD2.cpp).  CAUTION: i2c0_lockDeviceBlocking
  * is a NO-OP on HD2 (the AT1846S bit-bang bus was assumed single-user), and the
  * GPIOA RMW is non-atomic -- so q/Q is ONLY safe with the FM worker OFF
  * (g_fm_active=0).  Poking concurrently with the FM worker's 250ms RSSI bit-bang
@@ -48,11 +48,11 @@ extern "C" void platform_beepStop(void);
 extern "C" uint16_t hd2_at1846s_read(uint8_t reg);
 extern "C" void     hd2_at1846s_write(uint8_t reg, uint16_t val);
 
-/* Radio-path test helpers (radio_test_HD2.cpp / hd2_rtx.c).  g_rf_freeze is
+/* Radio-path test helpers (radio_HD2.cpp / hd2_rtx.c).  g_rf_freeze is
  * the global that suspends ALL firmware-initiated AT1846S traffic and
  * audio-GPIO rewrites (rtx RSSI poll, squelch amp/route gating, FM worker,
  * beeps) so a host can run live chip experiments unopposed -- see the gated
- * call-site list at its definition in radio_test_HD2.cpp. */
+ * call-site list at its definition in radio_HD2.cpp. */
 extern "C" volatile uint32_t g_rf_freeze;
 
 /* Radio boot-inhibit (hd2_rtx.c): 0 = radio bring-up deferred at boot; the
@@ -92,7 +92,7 @@ extern "C" void hd2_vp_say(uint8_t kind, uint8_t arg);
 
 /* IMA-ADPCM decode test (hd2_pcm_stream.cpp): decode the embedded "zero" clip
  * to PCM and stream it.  BLOCKS this thread for the clip duration (~540 ms). */
-extern "C" void hd2_adpcm_test_play(char *out, unsigned outsz);
+extern "C" void hd2_adpcm_sample_play(char *out, unsigned outsz);
 
 using namespace miosix;
 
@@ -511,7 +511,7 @@ void *diagThreadFunc(void *)
             case 'A':                              // adpcm_test: no args -> ascii line
             {                                      // decode embedded "zero" ADPCM clip -> stream
                 char buf[80];
-                hd2_adpcm_test_play(buf, sizeof buf);
+                hd2_adpcm_sample_play(buf, sizeof buf);
                 txStr(buf);
                 break;
             }

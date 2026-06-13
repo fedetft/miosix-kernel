@@ -41,12 +41,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* FM-broadcast-active flag (hd2_fm_probe.cpp, set by the UI FM screen):
+/* FM-broadcast-active flag (hd2_fm_broadcast.cpp, set by the UI FM screen):
  * while set, the dedicated 0x20 tuner owns the speaker; rtx_task stands down
  * from the audio path (see the gate in rtx_task). */
 extern volatile uint32_t g_fm_active;
 
-/* RF-freeze flag (radio_test_HD2.cpp, loader op 'z'): while set, rtx_task
+/* RF-freeze flag (radio_HD2.cpp, loader op 'z'): while set, rtx_task
  * skips ALL chip I/O -- the 33 Hz AT1846S RSSI poll, the squelch-driven
  * audio GPIO gate and any pending reconfigure's radio_* writes -- so a host
  * can poke the AT1846S live without being overwritten.  The thread itself
@@ -212,7 +212,7 @@ void rtx_task(void)
         return;
     }
 
-    /* FM-broadcast mode (UI FM screen, hd2_fm_probe.cpp): the dedicated 0x20
+    /* FM-broadcast mode (UI FM screen, hd2_fm_broadcast.cpp): the dedicated 0x20
      * tuner owns the speaker route (PTB10/PTB4/PTB17) while active.  Stand
      * down from the audio path: close the 2-way RX->speaker gate if it was
      * open (mutes the AT1846S + re-parks the GPIOs; the FM worker re-asserts

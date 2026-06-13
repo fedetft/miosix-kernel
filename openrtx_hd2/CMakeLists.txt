@@ -73,8 +73,7 @@ set(ORTX_NVM
 set(ORTX_RADIO
     ${ORTX}/platform/drivers/baseband/radio_HD2.cpp
     ${ORTX}/platform/drivers/baseband/AT1846S_HD2.cpp
-    ${ORTX}/platform/drivers/baseband/radio_test_HD2.cpp
-    ${ORTX}/platform/drivers/baseband/fm_broadcast_HD2.c
+    ${ORTX}/platform/drivers/baseband/RDA5802E_HD2.c
     ${ORTX}/platform/drivers/audio/audio_HD2.c
     ${ORTX}/platform/drivers/audio/outputStream_HD2.cpp)
 
@@ -107,10 +106,10 @@ add_executable(openrtx_hd2
     ${CMAKE_SOURCE_DIR}/hd2_stubs.c
     ${CMAKE_SOURCE_DIR}/hd2_rtx.c
     ${CMAKE_SOURCE_DIR}/hd2_diag.cpp
-    ${CMAKE_SOURCE_DIR}/hd2_gps_probe.cpp
-    ${CMAKE_SOURCE_DIR}/hd2_fm_probe.cpp
+    ${CMAKE_SOURCE_DIR}/hd2_gps.cpp
+    ${CMAKE_SOURCE_DIR}/hd2_fm_broadcast.cpp
     ${CMAKE_SOURCE_DIR}/hd2_pcm_stream.cpp
-    ${CMAKE_SOURCE_DIR}/hd2_adpcm_test.c
+    ${CMAKE_SOURCE_DIR}/hd2_adpcm_sample.c
     ${ORTX_CORE} ${ORTX_UI} ${ORTX_HD2} ${ORTX_NVM} ${ORTX_RADIO} ${ORTX_STUBS}
     ${ORTX_VP} ${ORTX_LIBS})
 

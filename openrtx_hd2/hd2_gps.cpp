@@ -149,7 +149,7 @@ static void *gpsProbeThread(void *)
 
 /* Start the GPS probe thread. Call AFTER platform/clock init (openrtx_init),
  * from the HD2 entry (main.cpp). HD2-only. */
-extern "C" void hd2_gps_probe_start()
+extern "C" void hd2_gps_start()
 {
     static pthread_t gps_thread;
     pthread_create(&gps_thread, nullptr, gpsProbeThread, nullptr);

@@ -30,7 +30,7 @@
 #include "core/voicePromptUtils.h"
 #include "core/state.h"
 
-/* Codec DAC->lineout->speaker warm-up + rf_freeze guard (radio_test_HD2.cpp);
+/* Codec DAC->lineout->speaker warm-up + rf_freeze guard (radio_HD2.cpp);
  * same pair platform_beepStart() uses to make the PWM beep audible. */
 extern "C" void hd2_audio_out_warm(void);
 extern "C" volatile uint32_t g_rf_freeze;
@@ -227,23 +227,23 @@ inline int16_t imaDecodeNibble(ImaState &s, uint8_t code)
 
 } // namespace
 
-extern "C" const unsigned char hd2_adpcm_test[];
-extern "C" const unsigned hd2_adpcm_test_samples;
+extern "C" const unsigned char hd2_adpcm_sample[];
+extern "C" const unsigned hd2_adpcm_sample_count;
 
 /* ADPCM test: decode the embedded "zero" clip into the circular stream buffer,
  * refilling the idle half on each sync (real producer pattern).  Proves
  * integer ADPCM decode keeps up + the outputStream path, end to end.  Reports
  * underruns (syncs that returned early). */
-extern "C" void hd2_adpcm_test_play(char *out, unsigned outsz)
+extern "C" void hd2_adpcm_sample_play(char *out, unsigned outsz)
 {
     static int16_t buf[320];               // two 160-sample halves (20 ms each)
-    const unsigned total = hd2_adpcm_test_samples;
+    const unsigned total = hd2_adpcm_sample_count;
 
     ImaState ima = {0, 0};
     unsigned nib = 0;                      // nibble index into the clip
     auto nextSample = [&]() -> int16_t {
         if(nib >= total) return 0;
-        uint8_t byte = hd2_adpcm_test[nib >> 1];
+        uint8_t byte = hd2_adpcm_sample[nib >> 1];
         uint8_t code = (nib & 1) ? (byte >> 4) : (byte & 0xf);
         ++nib;
         return imaDecodeNibble(ima, code);
