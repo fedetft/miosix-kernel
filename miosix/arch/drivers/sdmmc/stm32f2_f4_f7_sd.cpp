@@ -527,8 +527,9 @@ public:
     bool IRQvalidateR1Response();
 
     /**
-     * \internal TODO
-     * \return true on success, false on failure
+     * \internal checks if there was an error during long response exchange.
+     * R2 responses can never generate RespNotMatch error.
+     * \return true on success, false on any error
      */
     bool validateR2Response();
 
@@ -698,6 +699,7 @@ CmdResult Command::send(CommandType cmd, unsigned int arg)
         CmdResult r=send(CommandType::CMD55,(static_cast<unsigned int>(rca))<<16);
         if(r.validateR1Response()==false)
             return CmdResult(cmd,CmdResult::ACMDFail);
+        //Bit 5 @ 1 = next command will be interpreted as ACMD
         if((r.getShortResponse() & (1<<5))==0)
             return CmdResult(cmd,CmdResult::ACMDFail);
     } else DBG("CMD%u\n",cc);
