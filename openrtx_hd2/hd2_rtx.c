@@ -353,8 +353,17 @@ void rtx_task(void)
         /* Gate the RX->speaker audio on the RF squelch: route the AT1846S
          * demod audio while a signal is over threshold, mute when it drops.
          * Skip the post-retune settling tick (justReinit), where the AT1846S
-         * momentarily reads full-scale and would briefly false-open the path. */
-        rtx_setAudio(cfgApplied && !justReinit && rtx_rxSquelchOpen());
+         * momentarily reads full-scale and would briefly false-open the path.
+         *
+         * For tone-coded channels (rxToneEn) additionally require the CTCSS/DCS
+         * sub-audio match: RSSI still drives the S-meter/LED via
+         * rtx_rxSquelchOpen(), but the speaker only opens when the programmed
+         * tone is detected -- so an unkeyed-tone carrier reads signal yet stays
+         * muted (true tone squelch). */
+        bool sqlOpen = rtx_rxSquelchOpen();
+        if(sqlOpen && rtxStatus.rxToneEn)
+            sqlOpen = radio_checkRxDigitalSquelch();
+        rtx_setAudio(cfgApplied && !justReinit && sqlOpen);
     }
     else
     {
