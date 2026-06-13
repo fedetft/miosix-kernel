@@ -1014,7 +1014,21 @@ void Thread::PKrestartKernelAndWaitImpl()
     // can be called).
     FastPauseKernelLock::irqDisabledFastUnlock();
     IRQinvokeScheduler();
+    // On cores with no PendSV-equivalent (CK803S/HD2), IRQinvokeScheduler()
+    // above could only set s_schedPending (interrupts are off here), and a
+    // bare fastEnableIrq() has no drain: this thread -- already marked
+    // WAITING -- would keep RUNNING until the next IRQ takes the deferred
+    // switch, racing the wakeup path hundreds of times a second.  That race
+    // was the HD2's stochastic post-boot hard lock (every fatal resume frame
+    // pointed at this wait path; root-caused 2026-06-13 via reset-surviving
+    // breadcrumb forensics).  Claim and take the switch ourselves, mirroring
+    // FastGlobalIrqLock::unlock()'s proven drain.  On PendSV architectures
+    // s_schedPending is never set, so this is a no-op and the switch happens
+    // at fastEnableIrq() exactly as before.
+    bool pending=s_schedPending;
+    s_schedPending=false;
     fastEnableIrq();
+    if(pending) Thread::yield();
     //Interrupts are enabled, context switch happens, return after wakeup
     FastPauseKernelLock::lock();
 }

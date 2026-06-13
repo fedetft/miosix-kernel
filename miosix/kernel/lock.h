@@ -40,6 +40,11 @@ namespace miosix {
 //Forward declarations
 inline bool isKernelPaused() noexcept;
 
+//CK803S substitute for the Cortex-M PendSV-set bit (defined in the
+//cskyv2_ck803s interrupt layer). Drained by FastGlobalIrqLock::unlock() to
+//take a context switch deferred under the global lock. See that method.
+extern volatile bool s_schedPending;
+
 /**
  * \defgroup lock Low-level locking
  * \ingroup Kernel
@@ -269,7 +274,29 @@ public:
     static inline void unlock() noexcept
     {
         FastGlobalLockFromIrq::unlock();
+        // CK803S (HD2) has NO hardware PendSV. On stock Cortex-M Miosix the
+        // context switch deferred by IRQinvokeScheduler() under this lock is
+        // taken the instant interrupts are re-enabled (the lowest-priority
+        // PendSV fires). On this core IRQinvokeScheduler() can only set
+        // s_schedPending, and being tickless nothing would otherwise consume it
+        // at lock release -> Thread::sleep() blocks forever. Mirror
+        // FastPauseKernelLock::unlock()'s proven missed-preemption drain.
+        //
+        // ATOMIC CLAIM: test-and-clear s_schedPending while IRQs are STILL OFF
+        // (single-core => no preemption/IRQ here), so the IRQ-path drain
+        // (csky_isr_dispatch, interrupts.cpp) cannot race this read-modify-write
+        // and swallow a reschedule -- that race stranded one equal-priority
+        // thread while IRQ-woken threads kept running (the "hangs after idle"
+        // bug). THEN re-enable IRQs and take the switch via Thread::yield() ->
+        // IRQinvokeScheduler(), which passes the areInterruptsEnabled() &&
+        // !s_inIrq gate (IE on, thread ctx) and runs the proven synchronous
+        // switch (csky_yield_switch, which clears IE around the scheduler
+        // itself). FastGlobalIrqLock cannot nest -> OUTERMOST release, never
+        // mid kernel-operation. See tmp/sleep_research/SYNTHESIS.md.
+        bool pending = s_schedPending;
+        s_schedPending = false;
         fastEnableIrq();
+        if(pending) Thread::yield();
     }
 };
 
