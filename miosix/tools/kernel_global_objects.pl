@@ -43,6 +43,7 @@ my $verbose=0; # Edit this file and set this to 1 for testing
 
 my @files_with_global_objects;
 my @files_to_fix;
+my @files_to_fix_ctors;
 my @files_broken;
 
 GetOptions(
@@ -57,7 +58,10 @@ foreach my $idx (0 .. $#ARGV)
 
 	# First, check that the argument is really an object file
 	die "$filename is not a file name."    unless -f $filename;
-	die "$filename is not an object file." unless    $filename=~/\.o$/;
+	# Accept .o and .obj: CMake 4.x emits ASM objects as .obj despite
+	# Platform/Miosix.cmake setting CMAKE_ASM_OUTPUT_EXTENSION=.o (e.g. the
+	# C-SKY/HD2 cskyv2_context.S.obj). readelf below validates object-ness.
+	die "$filename is not an object file." unless    $filename=~/\.(o|obj)$/;
 
 	# Then use readelf to dump all sections of the file
 	my $output=`$prefix-readelf -SW \"$filename\"`;
@@ -80,6 +84,17 @@ foreach my $idx (0 .. $#ARGV)
 			push(@files_to_fix,$filename);
 			push(@files_with_global_objects,"$filename (.init_array)");
 		}
+		# Toolchains configured without init_array support (e.g. the HD2's
+		# csky-miosix-elf, where -fuse-init-array is unrecognized) emit C++
+		# global ctors into the LEGACY .ctors section instead. Treat it like
+		# .init_array: rename to .miosix_init_array so kernel global ctors run
+		# before the kernel starts. Each .ctors entry is one per-TU init
+		# function, so cross-TU order is irrelevant for independent singletons.
+		if($section_name=~/^\.ctors/)
+		{
+			push(@files_to_fix_ctors,$filename);
+			push(@files_with_global_objects,"$filename (.ctors)");
+		}
 		# An already fixed file, may occur when make is called multiple times
 		if($section_name=~/^\.miosix_init_array/)
 		{
@@ -89,7 +104,8 @@ foreach my $idx (0 .. $#ARGV)
 		# been observed in the wild with the current ABI miosix is using,
 		# so for now, to be on the safe side, we will fail compiling if they
 		# are found. Probably it is enough to transform their name as well.
-		if($section_name=~/^\.preinit_array|^\.ctors|^\.dtors|^\.init |^\.fini /)
+		# (.ctors handled above; .dtors ignored — the kernel runs no dtors.)
+		if($section_name=~/^\.preinit_array|^\.init |^\.fini /)
 		{
 			push(@files_broken,$filename);
 		}
@@ -106,6 +122,12 @@ foreach my $idx (0 .. $#ARGV)
 foreach my $filename (@files_to_fix)
 {
 	my $exitcode=system("$prefix-objcopy \"$filename\" --rename-section .init_array=.miosix_init_array");
+	die "Error calling objcopy" unless($exitcode==0);
+}
+# Legacy .ctors toolchains (csky-miosix-elf): rename .ctors the same way.
+foreach my $filename (@files_to_fix_ctors)
+{
+	my $exitcode=system("$prefix-objcopy \"$filename\" --rename-section .ctors=.miosix_init_array");
 	die "Error calling objcopy" unless($exitcode==0);
 }
 

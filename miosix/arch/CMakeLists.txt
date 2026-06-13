@@ -29,6 +29,7 @@ set(MIOSIX_BOARDS
     atsam4lc2aa_generic
     efm32g222f128_generic
     efm32gg332f1024_wandstem
+    hd2
     lpc2138_generic
     lpc2138_miosix_board
     nrf52840_generic

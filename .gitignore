@@ -23,3 +23,6 @@ build
 # Exclude Mac OS X temporary
 ._*
 .DS_Store
+hd2_phase1/out/
+openrtx_hd2/out/
+build-docker/

@@ -59,7 +59,11 @@ tuple<void (*)(void*), void*> unmemberLogic(unsigned long mixedField,
         result=reinterpret_cast<void (*)(void*)>(mixedField);
     }
 
-    #elif defined(__i386) || defined(__x86_64__)
+    #elif defined(__i386) || defined(__x86_64__) || defined(__csky__)
+    //C-SKY V2 (CK803S) uses the generic (Itanium) C++ ABI pointer-to-member
+    //representation, with the virtual bit in the function-pointer field — like
+    //x86, NOT like ARM-EABI (whose vbit-in-delta is a Thumb LSB workaround).
+    //GCC's csky backend uses the default ptrmemfunc_vbit_in_pfn.
     //With multiple or virtual inheritance we need to add an offset to this.
     o+=thisOffset/sizeof(long);
 
