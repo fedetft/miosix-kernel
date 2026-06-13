@@ -1,5 +1,6 @@
 /***************************************************************************
- *   Copyright (C) 2010, 2011, 2012, 2013, 2014 by Terraneo Federico       *
+ *   Copyright (C) 2010-2014, 2026 by Terraneo Federico, Pigato Lorenzo,   *
+ *                 Radu Raul                                               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -566,7 +567,8 @@ bool ClockController::calibrateClockSpeed(SDIODriver *sdmmc)
 
     DBG("Automatic speed calibration\n");
     unsigned int reference[512/sizeof(unsigned int)];
-    unsigned int probe[512/sizeof(unsigned int)];    unsigned int minFreq=CLOCK_400KHz;
+    unsigned int probe[512/sizeof(unsigned int)];   
+    unsigned int minFreq=CLOCK_400KHz;
     unsigned int maxFreq=CLOCK_MAX;
     unsigned int selected;
     bool success=false;
@@ -1289,10 +1291,11 @@ bool SDIODriver::reinitialize(bool calibrate)
     return true;
 }
 
-SDIODriver::SDIODriver()
+SDIODriver::SDIODriver() : Device(Device::BLOCK)
 {
     initSDMMCPeripheralOnce();
     if(reinitialize(true)) DBG("SDIO Init: Successful\n");
     else DBGERR("SDIO Init: Failed\n");
+}
 
 } //namespace miosix
