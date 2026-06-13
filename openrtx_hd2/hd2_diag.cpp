@@ -96,6 +96,10 @@ extern "C" void hd2_stream_tone(uint16_t freq_hz, uint16_t ms,
  * BLOCKS this thread for <ms> (<= 10 s). */
 extern "C" void hd2_pcm_capture(uint16_t ms, uint8_t arm, char *out, unsigned outsz);
 
+/* APRS RX (hd2_pcm_stream.cpp): carrier-triggered, stream-decodes 1200-baud
+ * AFSK/AX.25 from the demod audio.  BLOCKS up to ~10 s. */
+extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz);
+
 /* Voice-prompt test (hd2_diag.cpp below): forces vpLevel high, queues a
  * sequence, and triggers playback.  The actual codec2 decode + streaming runs
  * in the UI main_thread's vp_tick(), so this returns immediately. */
@@ -693,6 +697,15 @@ void *diagThreadFunc(void *)
                 if(!rxByte(mlo) || !rxByte(mhi) || !rxByte(arm)) break;
                 char buf[96];
                 hd2_pcm_capture((uint16_t)(mlo | (mhi << 8)), arm, buf, sizeof buf);
+                txStr(buf);
+                break;
+            }
+            case 'w':                              // aprs_rx: <frames u8> -> "APRS: <frame>" or status
+            {
+                uint8_t fr;
+                if(!rxByte(fr)) break;
+                static char buf[288];              // static: keep the diag stack small
+                hd2_aprs_rx((uint16_t)fr, buf, sizeof buf);
                 txStr(buf);
                 break;
             }

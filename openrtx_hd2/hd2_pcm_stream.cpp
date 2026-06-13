@@ -181,6 +181,81 @@ extern "C" void hd2_pcm_capture(uint16_t ms, uint8_t arm, char *out, unsigned ou
              (unsigned)src[0], (unsigned)src[1], (unsigned)src[2], (unsigned)src[3]);
 }
 
+/* APRS RX (diag 'w'): wait for a carrier (AT1846S RSSI rise), then stream the
+ * 8 kHz demod-audio frames through the AFSK+HDLC+AX.25 decoder (hd2_aprs.c) --
+ * O(1) memory, no large buffer.  Reports the first decoded frame, or a status
+ * line.  <frames> = how long to decode after the carrier (x10 ms). */
+extern "C" uint16_t hd2_at1846s_read(uint8_t reg);
+extern "C" void     hd2_at1846s_write(uint8_t reg, uint16_t val);
+#include "hd2_aprs.h"
+static aprs_t g_aprs;               /* ~400 B decoder state (not on the stack) */
+
+extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
+{
+    if(frames == 0u || frames > 600u) frames = 200u;   /* default ~2 s decode  */
+
+    uint32_t vpSave = SOCSYS_VOICE_PATH;
+    SOCSYS_SYS_SOFT_RSTN |= SOFT_RSTN_PCM_BITS;
+    SOCSYS_PCM_MODE = 3u;
+    SOCSYS_VOICE_PATH |= VOICE_PATH_PCM_EN | VOICE_PATH_CAP;
+
+    /* Flatten the AT1846S audio for data: bypass the voice low/high-pass
+     * filters + de-emphasis (reg 0x58 bits 5/6/7) so the 1200/2200 Hz AFSK
+     * tones both survive (HW-confirmed 2026-06-13: this restores the 2200 Hz
+     * space tone that the voice filtering otherwise rolls off). */
+    uint16_t r58 = hd2_at1846s_read(0x58);
+    hd2_at1846s_write(0x58, (uint16_t)(r58 | 0x00E0u));
+
+    /* RSSI baseline (AT1846S reg 0x1B upper byte; dBm = -137 + x). */
+    int base = 0;
+    for(int i = 0; i < 8; ++i) { base += (int)(hd2_at1846s_read(0x1B) >> 8); Thread::sleep(5); }
+    base /= 8;
+
+    /* Wait up to ~8 s for a carrier (RSSI jump >= ~8 dB). */
+    bool trig = false;
+    for(int t = 0; t < 1600; ++t)
+    {
+        if((int)(hd2_at1846s_read(0x1B) >> 8) > base + 8) { trig = true; break; }
+        Thread::sleep(5);
+    }
+
+    /* Stream-decode the demod audio, frame by frame.  buf/line are static to
+     * keep the diag thread's small stack out of trouble. */
+    aprs_init(&g_aprs);
+    volatile uint16_t *src = SAHB_PCM_CAP;
+    static int16_t buf[PCM_FRAME_SAMPLES];
+    static char    line[256];
+    static int16_t dbg[2000];           /* first ~0.25 s post-trigger, for host analysis */
+    int      dn = 0;
+    bool     got = false;
+    int16_t  lo = 32767, hi = -32768;
+    uint16_t f;
+    for(f = 0; f < frames && !got; ++f)
+    {
+        Thread::sleep(10);
+        for(unsigned i = 0; i < PCM_FRAME_SAMPLES; ++i)
+        {
+            int16_t s = (int16_t)src[i];
+            buf[i] = s;
+            if(dn < 2000) dbg[dn++] = s;
+            if(s < lo) lo = s;
+            if(s > hi) hi = s;
+        }
+        SOCSYS_INT_STATUS |= INT_STATUS_PCM_CAP_ACK;
+        if(aprs_feed(&g_aprs, buf, (int)PCM_FRAME_SAMPLES, line, (int)sizeof line))
+            got = true;
+    }
+
+    hd2_at1846s_write(0x58, r58);          /* restore the voice filters */
+    SOCSYS_VOICE_PATH = vpSave;
+    if(got) snprintf(out, outsz, "APRS: %s\r\n", line);
+    else    snprintf(out, outsz,
+                     "APRS none (trig=%d frames=%u pp=%d flags=%d max=%d dbg=%08x dn=%d)\r\n",
+                     trig ? 1 : 0, (unsigned)f, (int)(hi - lo),
+                     g_aprs.dbg_flags, g_aprs.dbg_maxflen,
+                     (unsigned)(uintptr_t)dbg, dn);
+}
+
 /* Full-stack stream test: tone via audioPath_request -> audioStream_start ->
  * outputStream_HD2 driver (the proper OpenRTX route, vs. hd2_pcm_tone's raw
  * register poke).  Refills the idle half on every sync like a real producer

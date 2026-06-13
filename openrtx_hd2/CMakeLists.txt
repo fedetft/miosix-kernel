@@ -55,7 +55,8 @@ set(ORTX_HD2
     ${ORTX}/platform/mcu/CSKY_V2/drivers/adc_hd2.c
     ${ORTX}/platform/mcu/CSKY_V2/drivers/rtc_hd2.c
     ${ORTX}/platform/targets/HD2/hd2_router.c
-    ${ORTX}/platform/targets/HD2/hd2_vendor_import.c)
+    ${ORTX}/platform/targets/HD2/hd2_vendor_import.c
+    ${ORTX}/platform/targets/HD2/hd2_aprs.c)
 
 # Persistent settings + last-VFO storage on the W25Q SPI-NOR (GPIOA
 # bit-bang).  nvmem_settings_HD2.c implements the settings half of
