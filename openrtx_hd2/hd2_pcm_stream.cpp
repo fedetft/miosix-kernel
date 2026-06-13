@@ -226,7 +226,7 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
     volatile uint16_t *src = SAHB_PCM_CAP;
     static int16_t buf[PCM_FRAME_SAMPLES];
     static char    line[256];
-    static int16_t dbg[2000];           /* first ~0.25 s post-trigger, for host analysis */
+    static int16_t dbg[5000];           /* first ~0.6 s post-trigger (full packet), for host analysis */
     int      dn = 0;
     bool     got = false;
     int16_t  lo = 32767, hi = -32768;
@@ -238,7 +238,7 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
         {
             int16_t s = (int16_t)src[i];
             buf[i] = s;
-            if(dn < 2000) dbg[dn++] = s;
+            if(dn < 5000) dbg[dn++] = s;
             if(s < lo) lo = s;
             if(s > hi) hi = s;
         }
@@ -249,12 +249,21 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
 
     hd2_at1846s_write(0x58, r58);          /* restore the voice filters */
     SOCSYS_VOICE_PATH = vpSave;
-    if(got) snprintf(out, outsz, "APRS: %s\r\n", line);
-    else    snprintf(out, outsz,
-                     "APRS none (trig=%d frames=%u pp=%d flags=%d max=%d dbg=%08x dn=%d)\r\n",
-                     trig ? 1 : 0, (unsigned)f, (int)(hi - lo),
+    (void)dbg; (void)dn;
+    if(got) { snprintf(out, outsz, "APRS: %s\r\n", line); return; }
+
+    /* Near-miss diagnosis: status + hex of the longest assembled frame, so the
+     * host can diff it against the known packet to localise the bit errors. */
+    int w = snprintf(out, outsz,
+                     "APRS none (trig=%d pp=%d flags=%d max=%d dbg=%08x dn=%d) F=",
+                     trig ? 1 : 0, (int)(hi - lo),
                      g_aprsDec.flagsSeen(), g_aprsDec.maxFrameLen(),
                      (unsigned)(uintptr_t)dbg, dn);
+    const uint8_t *fr = g_aprsDec.lastRawFrame();
+    int frlen = g_aprsDec.lastRawLen();
+    for(int i = 0; i < frlen && w < (int)outsz - 3; ++i)
+        w += snprintf(out + w, outsz - w, "%02x", fr[i]);
+    snprintf(out + w, (w < (int)outsz) ? outsz - w : 0, "\r\n");
 }
 
 /* Full-stack stream test: tone via audioPath_request -> audioStream_start ->
