@@ -56,8 +56,17 @@ private:
      */
     SDIODriver();
     
-    KernelMutex mutex;
-    off_t cardSize;
+    /**
+     * Reinitialize the card and optionally calibrate the SDIO clock.
+     * The mutex is recursive, so calibration can call readBlock() without
+     * deadlocking even when reinitialize() is already holding it.
+     */
+    bool reinitialize(bool calibrate);
+
+    bool sdioReinitLocked();
+    
+    off_t cardSize; ///< Card size in bytes, zero if no card is present or CMD9 is not supported
+    KernelMutex mutex{MutexOptions::RECURSIVE};
 };
 
 } //namespace miosix
