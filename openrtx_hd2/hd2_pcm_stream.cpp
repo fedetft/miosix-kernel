@@ -182,13 +182,14 @@ extern "C" void hd2_pcm_capture(uint16_t ms, uint8_t arm, char *out, unsigned ou
 }
 
 /* APRS RX (diag 'w'): wait for a carrier (AT1846S RSSI rise), then stream the
- * 8 kHz demod-audio frames through the AFSK+HDLC+AX.25 decoder (hd2_aprs.c) --
- * O(1) memory, no large buffer.  Reports the first decoded frame, or a status
- * line.  <frames> = how long to decode after the carrier (x10 ms). */
+ * 8 kHz demod-audio frames through the OpenRTX APRS protocol module
+ * (Aprs::Decoder) -- O(1) memory, no large buffer.  Reports the first decoded
+ * frame, or a status line.  <frames> = how long to decode after the carrier
+ * (x10 ms).  Hardware glue only; the modem itself lives in openrtx/protocols. */
 extern "C" uint16_t hd2_at1846s_read(uint8_t reg);
 extern "C" void     hd2_at1846s_write(uint8_t reg, uint16_t val);
-#include "hd2_aprs.h"
-static aprs_t g_aprs;               /* ~400 B decoder state (not on the stack) */
+#include "protocols/APRS/Decoder.hpp"
+static Aprs::Decoder g_aprsDec;     /* ~400 B decoder state (not on the stack) */
 
 extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
 {
@@ -221,7 +222,7 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
 
     /* Stream-decode the demod audio, frame by frame.  buf/line are static to
      * keep the diag thread's small stack out of trouble. */
-    aprs_init(&g_aprs);
+    g_aprsDec.reset();
     volatile uint16_t *src = SAHB_PCM_CAP;
     static int16_t buf[PCM_FRAME_SAMPLES];
     static char    line[256];
@@ -242,7 +243,7 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
             if(s > hi) hi = s;
         }
         SOCSYS_INT_STATUS |= INT_STATUS_PCM_CAP_ACK;
-        if(aprs_feed(&g_aprs, buf, (int)PCM_FRAME_SAMPLES, line, (int)sizeof line))
+        if(g_aprsDec.process(buf, PCM_FRAME_SAMPLES, line, (int)sizeof line))
             got = true;
     }
 
@@ -252,7 +253,7 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
     else    snprintf(out, outsz,
                      "APRS none (trig=%d frames=%u pp=%d flags=%d max=%d dbg=%08x dn=%d)\r\n",
                      trig ? 1 : 0, (unsigned)f, (int)(hi - lo),
-                     g_aprs.dbg_flags, g_aprs.dbg_maxflen,
+                     g_aprsDec.flagsSeen(), g_aprsDec.maxFrameLen(),
                      (unsigned)(uintptr_t)dbg, dn);
 }
 

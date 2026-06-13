@@ -55,8 +55,15 @@ set(ORTX_HD2
     ${ORTX}/platform/mcu/CSKY_V2/drivers/adc_hd2.c
     ${ORTX}/platform/mcu/CSKY_V2/drivers/rtc_hd2.c
     ${ORTX}/platform/targets/HD2/hd2_router.c
-    ${ORTX}/platform/targets/HD2/hd2_vendor_import.c
-    ${ORTX}/platform/targets/HD2/hd2_aprs.c)
+    ${ORTX}/platform/targets/HD2/hd2_vendor_import.c)
+
+# Hardware-agnostic protocol modules (openrtx/src/protocols), structured per
+# OSI layers like M17.  APRS = 1200-baud AFSK + HDLC + AX.25 RX.
+set(ORTX_PROTOCOLS
+    ${ORTX}/openrtx/src/protocols/APRS/Afsk1200.cpp
+    ${ORTX}/openrtx/src/protocols/APRS/Hdlc.cpp
+    ${ORTX}/openrtx/src/protocols/APRS/Ax25.cpp
+    ${ORTX}/openrtx/src/protocols/APRS/Decoder.cpp)
 
 # Persistent settings + last-VFO storage on the W25Q SPI-NOR (GPIOA
 # bit-bang).  nvmem_settings_HD2.c implements the settings half of
@@ -116,7 +123,7 @@ add_executable(openrtx_hd2
     ${CMAKE_SOURCE_DIR}/hd2_pcm_stream.cpp
     ${CMAKE_SOURCE_DIR}/hd2_adpcm_sample.c
     ${ORTX_CORE} ${ORTX_UI} ${ORTX_HD2} ${ORTX_NVM} ${ORTX_RADIO} ${ORTX_STUBS}
-    ${ORTX_VP} ${ORTX_LIBS})
+    ${ORTX_VP} ${ORTX_LIBS} ${ORTX_PROTOCOLS})
 
 target_include_directories(openrtx_hd2 PRIVATE
     ${ORTX}/openrtx/include
