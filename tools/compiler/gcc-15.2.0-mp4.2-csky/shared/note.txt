@@ -1,0 +1,1 @@
+These files must be kept in sync with the ones in the Miosix kernel

@@ -1,0 +1,909 @@
+#!/usr/bin/env bash
+
+# Script to build the gcc compiler required for Miosix.
+# Usage: ./install-script -j`nproc`
+# The -j parameter is passed to make for parallel compilation
+#
+# Starting from Miosix 1.58 the use of the arm-miosix-eabi-gcc compiler built
+# by this script has become mandatory due to patches related to posix threads
+# in newlib. The kernel *won't* compile unless the correct compiler is used.
+#
+# Starting from 04/2014 this script is also used to build binary releases
+# of the Miosix compiler for both linux and windows. Most users will want to
+# download the binary relase from https://miosix.org instead of compiling GCC
+# using this script.
+
+#### Configuration tunables -- begin ####
+
+__GCCPATCUR='4.2' # Can't autodetect this one easily from gcc.patch
+
+# This should be set to true unless you're installing locally on your Linux
+# machine the compiler that will be used to do canadian cross compiling for
+# making a Windows redistributable build. The compiler built with this variable
+# set to false should only be used for this purpose, as it will contain the
+# stubs.o in libc with dummy implementations of some core functionality which
+# sometimes get linked in resulting in kernel builds being subtly non-functional
+STRIP_STUBS_FROM_LIBC=true
+
+# Uncomment if installing globally on this system
+# CSKY re-target: was /opt/arm-miosix-eabi
+PREFIX=/opt/csky-miosix-elf
+DESTDIR=
+SUDO=sudo
+
+# CSKY re-target: GNU target triple. Mirrors arm-miosix-eabi (cpu=csky,
+# vendor=miosix, os=elf). The "miosix" vendor is REQUIRED: newlib configure.host
+# matches *-miosix-* to select sys_dir=miosix, and gcc config.gcc routes
+# csky-*-miosix-elf* to miosix.h which defines _MIOSIX. Program prefix derives
+# from this, giving csky-miosix-elf-gcc etc.
+TARGET=csky-miosix-elf
+# Uncomment if installing locally on this system, sudo isn't necessary
+#PREFIX=`pwd`/arm-miosix-eabi
+#DESTDIR=
+#SUDO=
+# Uncomment for producing a package for redistribution. The prefix is set to the
+# final install directory, but when this script does "make install" files are
+# copied with $DESTDIR as prefix. When doing a redistibutable build you also
+# have to specify HOST or (on Mac OS), BUILD, see below.
+# When compiling the Windows installer, do not change the default values!
+#PREFIX=/opt/arm-miosix-eabi
+#DESTDIR=`pwd`/dist
+#SUDO=
+
+# Uncomment if targeting a local install. This will use -march= -mtune= flags
+# to optimize for your processor, but the code won't be portable to other
+# architectures, so don't distribute it
+BUILD=
+HOST=
+# Uncomment if targeting linux 64 bit (distributable)
+#BUILD=
+#HOST=x86_64-linux-gnu
+# Uncomment if targeting windows 64 bit (distributable)
+# You have to run this script from Linux anyway (see canadian cross compiling).
+# Must first install the mingw-w64 toolchain.
+#BUILD=
+#HOST=x86_64-w64-mingw32
+# Uncomment if targeting macOS 64 bit Intel (distributable), compiling on Linux
+# Must first install the osxcross toolchain
+#BUILD=
+#HOST=x86_64-apple-darwin18
+# Uncomment if targeting macOS 64 bit Intel (distributable), compiling on macOS.
+# The script must be run under macOS and without canadian cross compiling
+# because it confuses autotools's configuration scripts. Instead we set the
+# compiler options for macOS minimum version and architecture in order to be
+# able to deploy the binaries on older machines and OS versions. We also must
+# force --build and --host to specify a x86_64 cpu to avoid
+# architecture-dependent code.
+#BUILD=x86_64-apple-darwin17
+#HOST=
+#export CFLAGS='-mmacos-version-min=10.13 -O3'
+#export CXXFLAGS='-mmacos-version-min=10.13 -O3'
+# Uncomment if targeting macOS 64 bit ARM64 (distributable).
+# Run the script under arm64 macOS.
+#BUILD=aarch64-apple-darwin20
+#HOST=
+#export CFLAGS='-mmacos-version-min=11.0 -O3'
+#export CXXFLAGS='-mmacos-version-min=11.0 -O3'
+
+#### Configuration tunables -- end ####
+
+# Libraries are compiled statically, so they are never installed in the system
+LIB_DIR=`pwd`/lib
+
+# Program versions
+BINUTILS=binutils-2.45
+GCC=gcc-15.2.0
+NEWLIB=newlib-4.6.0.20260123
+GDB=gdb-16.3
+GMP=gmp-6.3.0
+MPFR=mpfr-4.2.2
+MPC=mpc-1.3.1
+NCURSES=ncurses-6.5
+MAKE=make-4.4.1
+MAKESELF=makeself-2.6.0
+EXPAT=expat-2.7.3
+
+quit() {
+	echo $1
+	exit 1
+}
+
+# Ensure the install destination is clean. If it is not, old and new
+# compiler files will mix up, potentially making the compilation fail.
+# This also applies to redistributable compilation because we need to make
+# symlinks inside $PREFIX to make the whole process work.
+# Don't do this check if canadian cross compiling for Windows though because we
+# need a working compiler installed in the right place for the host machine.
+if [[ -d "$PREFIX" && ! ( "$HOST" == *mingw* ) ]]; then
+	quit ":: Uninstall (or move away) the existing compiler first"
+fi
+
+# Is it a redistributable build?
+if [[ $DESTDIR ]]; then
+	if [[ $SUDO ]]; then
+		quit ":: Error global install and distributable compiling are mutually exclusive"
+	fi
+	if [[ -d "$DESTDIR" ]]; then
+		quit ":: Remove staging directory ($DESTDIR) first"
+	fi
+	if [[ $(uname -s) == 'Darwin' ]]; then
+		if [[ -z $BUILD ]]; then
+			quit ":: Error distributable compiling but no BUILD specifed"
+		fi
+	else
+		if [[ -z $HOST ]]; then
+			quit ":: Error distributable compiling but no HOST specifed"
+		fi
+	fi
+	# Clean up PATH as even though it is a list of executables it also avoids
+	# finding system-installed libraries that won't be present when actually
+	# installing the compiler. This is mostly relevant for macOS, because Linux
+	# distributions install all packages (system-required and user-requested)
+	# in the same place, making redistributable builds basically impossible
+	# without at least uninstalling the previous version of the Miosix compiler,
+	# and checking with the checkdeps.sh script that no additional libraries
+	# have been linked.
+	export PATH=/usr/bin:/bin:/usr/sbin:/sbin
+	# When building a redistributable build, we use DESTDIR. Thus, the
+	# compiler is "installed" to $DESTDIR$PREFIX even though it is meant to
+	# be run from $PREFIX. There is an issue though: building the standard
+	# libraries requires the to-be-built compiler, which isn't found, so
+	# building fails at the newlib stage. We wish the fix would just be a
+	# export PATH=$DESTDIR$PREFIX/bin:$PATH
+	# but turns out that isn't enough, as after newlib is built, the
+	# subsequent libraries (part of gcc-end) don't just require the compiler,
+	# they require the libc too that is installed in $DESTDIR$PREFIX, but
+	# the compiler looks for it in $PREFIX only...
+	# As a workaround, we temporarily do a symlink to make the compiler
+	# and standard libraries available from their final path, $PREFIX during
+	# the compilation process.
+	# Moreover, just symlinking /opt/arm-miosix-eabi fails, so we need to
+	# symlink only /opt/arm-miosix-eabi/arm-miosix-eabi
+	# Finally, the exception is the windows redistributable that is built with
+	# canadian cross compiling and needs the same version of the compiler to be
+	# installed in /opt, so we can't make symlinks in /opt as it's not empty
+	if [[ $HOST != *mingw* ]]; then
+		export PATH=$DESTDIR$PREFIX/bin:$PATH
+		mkdir -p $DESTDIR$PREFIX/$TARGET
+		# Workaround for the --with-headers issue, see --with-headers comment.
+		# This must unconditionally be done with sudo so it's important we use
+		# sudo and not $SUDO.
+		sudo mkdir -p $PREFIX
+		sudo ln -s $DESTDIR$PREFIX/$TARGET $PREFIX/$TARGET
+	fi
+else
+	if [[ $HOST || $BUILD ]]; then
+		# NOTE: doing a non redistributable build but specifying HOST or BUILD
+		# may work, but is untested. Remove this line if you want to try.
+		quit ":: Specifying either HOST or BUILD without DESTDIR is not supported"
+	fi
+	# Add the install prefix to the path in order to ensure tools are
+	# available as soon as we build them.
+	export PATH=$PREFIX/bin:$PATH
+fi
+
+# Are we canadian cross compiling?
+if [[ $HOST ]]; then
+	# Canadian cross compiling requires the compiler for the host machine
+	which "$HOST-gcc" > /dev/null || quit ":: Error must have host cross compiler"
+
+	HOSTCC="$HOST-gcc"
+	HOSTCXX="$HOST-g++"
+	HOSTSTRIP="$HOST-strip"
+	if [[ $HOST == *mingw* ]]; then
+		# For windows not to depend on libstdc++.dll
+		HOSTLDFLAGS="-static-libstdc++ -static-libgcc"
+		EXT=".exe"
+	else
+		HOSTLDFLAGS=
+		EXT=
+	fi
+else
+	HOSTCC=gcc
+	HOSTCXX=g++
+	HOSTSTRIP=strip
+	HOSTLDFLAGS=
+	EXT=
+fi
+
+if [[ -z "$CMAKE" ]]; then
+  CMAKE=cmake
+fi
+which "$CMAKE" > /dev/null || quit ":: Error cmake is required"
+
+if [[ $1 == '' ]]; then
+	if command -v nproc > /dev/null; then
+		PARALLEL="-j$(nproc)"
+	elif [[ $(uname -s) == 'Darwin' ]]; then
+		PARALLEL="-j$(sysctl -n hw.logicalcpu)"
+	else
+		PARALLEL="-j1";
+	fi
+else
+	PARALLEL=$1;
+fi
+
+#
+# Part 1/2: extract data, apply patches
+#
+
+extract()
+{
+	label=$1
+	filename=$2
+	shift 2
+	directory=${filename%.tar*}
+	
+	if [[ -e $directory ]]; then
+		echo "Skipping extraction/patching of $label, directory $directory exists"
+	else
+		echo "Extracting $label..."
+		tar -xf "downloaded/$filename" || quit ":: Error extracting $label"
+		for patchfile in $@; do
+			echo "Applying ${patchfile}..."
+			patch -p0 < "$patchfile" || quit ":: Failed patching $label"
+		done
+	fi
+}
+
+extract 'binutils' $BINUTILS.tar.xz patches/binutils.patch
+extract 'gcc' $GCC.tar.xz patches/gcc.patch
+extract 'newlib' $NEWLIB.tar.gz patches/newlib.patch
+extract 'gdb' $GDB.tar.xz patches/gdb.patch
+extract 'gmp' $GMP.tar.xz
+extract 'mpfr' $MPFR.tar.xz
+extract 'mpc' $MPC.tar.gz
+
+if [[ $HOST == *mingw* ]]; then
+	extract 'make' $MAKE.tar.gz
+fi
+if [[ $HOST == *linux* ]]; then
+	extract 'ncurses' $NCURSES.tar.gz
+fi
+if [[ $DESTDIR ]]; then
+	extract 'expat' $EXPAT.tar.xz
+fi
+
+mkdir log
+
+#
+# Part 3: compile libraries
+#
+
+cd $GMP
+
+if [[ $HOST ]]; then
+	# GMP's configure script is bugged and does not properly handle canadian cross
+	# compiling, so we need to properly inform it manually by setting these
+	# environment variables. See also: https://gmplib.org/list-archives/gmp-discuss/2020-July/006519.html
+	export CC_FOR_BUILD='gcc'
+	export CPP_FOR_BUILD='g++'
+fi
+
+if [[ $(uname -s) == 'Darwin' ]]; then
+	# On macOS, the assembly implementations in GMP intermittently cause
+	# either compilation failures or broken builds. Disable them
+	MX_GMP_ASSEMBLY="--disable-assembly"
+else
+	MX_GMP_ASSEMBLY=""
+fi
+
+echo "Configuring $GMP..."
+./configure \
+	--build=$BUILD \
+	--host=$HOST \
+	--prefix=$LIB_DIR \
+	--enable-static --disable-shared \
+	$MX_GMP_ASSEMBLY \
+	&> ../log/03_1_gmp_1_configure.txt \
+	|| quit ":: Error configuring gmp"
+
+echo "Building $GMP..."
+make all $PARALLEL &> ../log/03_1_gmp_2_build.txt \
+	|| quit ":: Error compiling gmp"
+
+echo "Testing $GMP..."
+if [[ ! $HOST ]]; then
+	# Don't check if cross-compiling
+	make check $PARALLEL &> ../log/03_1_gmp_3_check.txt \
+	|| quit ":: Error testing gmp"
+fi
+
+echo "Installing $GMP..."
+make install &>../log/03_1_gmp_4_install.txt \
+	|| quit ":: Error installing gmp"
+
+if [[ $HOST ]]; then
+	unset CC_FOR_BUILD
+	unset CPP_FOR_BUILD
+fi
+
+cd ..
+
+cd $MPFR
+
+echo "Configuring $MPFR..."
+./configure \
+	--build=$BUILD \
+	--host=$HOST \
+	--prefix=$LIB_DIR \
+	--enable-static --disable-shared \
+	--with-gmp=$LIB_DIR \
+	&> ../log/03_2_mpfr_1_configure.txt \
+	|| quit ":: Error configuring mpfr"
+
+echo "Building $MPFR..."
+make all $PARALLEL &> ../log/03_2_mpfr_2_build.txt \
+	|| quit ":: Error compiling mpfr"
+
+echo "Testing $MPFR..."
+if [[ ! $HOST ]]; then
+	# Don't check if cross-compiling
+	make check $PARALLEL &> ../log/03_2_mpfr_3_check.txt \
+	|| quit ":: Error testing mpfr"
+fi
+
+echo "Installing $MPFR..."
+make install &>../log/03_2_mpfr_4_install.txt \
+	|| quit ":: Error installing mpfr"
+
+cd ..
+
+cd $MPC
+
+echo "Configuring $MPC..."
+./configure \
+	--build=$BUILD \
+	--host=$HOST \
+	--prefix=$LIB_DIR \
+	--enable-static --disable-shared \
+	--with-gmp=$LIB_DIR \
+	--with-mpfr=$LIB_DIR \
+	&> ../log/03_3_mpc_1_configure.txt \
+	|| quit ":: Error configuring mpc"
+
+echo "Building $MPC..."
+make all $PARALLEL &> ../log/03_3_mpc_2_build.txt \
+	|| quit ":: Error compiling mpc"
+
+echo "Testing $MPC..."
+if [[ ! $HOST ]]; then
+	# Don't check if cross-compiling for windows
+	make check $PARALLEL &>../log/03_3_mpc_3_check.txt \
+	|| quit ":: Error testing mpc"
+fi
+
+echo "Installing $MPC..."
+make install &>../log/03_3_mpc_4_install.txt \
+	|| quit ":: Error installing mpc"
+
+cd ..
+
+#
+# Part 4: compile and install binutils
+#
+
+mkdir binutils_build
+cd binutils_build
+
+echo "Configuring $BINUTILS..."
+../$BINUTILS/configure \
+	--build=$BUILD \
+	--host=$HOST \
+	--target=$TARGET \
+	--prefix=$PREFIX \
+	--disable-multilib \
+	--enable-lto \
+	--disable-werror &>../log/04_binutils_1_configure.txt \
+	|| quit ":: Error configuring binutils"
+
+echo "Building $BINUTILS..."
+make all $PARALLEL &>../log/04_binutils_2_build.txt \
+	|| quit ":: Error compiling binutils"
+
+echo "Installing $BINUTILS..."
+$SUDO make install DESTDIR=$DESTDIR &>../log/04_binutils_3_install.txt \
+	|| quit ":: Error installing binutils"
+
+cd ..
+
+#
+# Part 5: compile and install gcc-start
+#
+
+mkdir gcc_build
+cd gcc_build
+
+# WORKARAOUND: GCC needs the C headers of the target, therefore when configured
+# --with-headers=[...] the configure script unconditionally copies those headers
+# in the $PREFIX/arm-miosix-eabi/sys-include folder.
+# This is fine for local installs, (up to a certain point, see later comments),
+# and works even for redistributable builds thanks to the symlink that was done
+# of $DESTDIR$PREFIX to $PREFIX. However for Windows distributable builds since
+# we're canadian cross compiling, we already have the headers in
+# $PREFIX/arm-miosix-eabi/include (not in sys-include!) and we don't want to
+# touch the existing install, thus we switch to using --with-sysroot.
+# All this is a massive pile of kludges, what we would like to do is for the GCC
+# configure to copy the headers to $DESTDIR$PREFIX/arm-miosix-eabi/sys-include
+# instead of $PREFIX/arm-miosix-eabi/sys-include, and look for them there.
+# That would remove the need for the symlink done with sudo and work the same
+# way for non-redistributable, redistributable and canadian redistributable.
+# Moreover the GCC makefiles are not clever enough to search in `include`
+# rather than `sys-include` when checking if limits.h exists to decide whether
+# to "fix" it. Since `sys-include` does not exists, GCC does not find limits.h
+# and replaces it with its own, which does not include all definitions made
+# by newlib's one. To be more precise, GCC always replaces limits.h with its own
+# in $PREFIX/lib/gcc/arm-miosix-eabi/15.2.0/include
+# but only if it correctly figures out that there's another one it patches that
+# file by adding an #include_next <limits.h> to also include the newlib one.
+# This incorrect file ends up installed and used by the built GCC causing build
+# failures usually related to missing defines used by dirent.h.
+# We thus must differentiate the case in which we are canadian cross compiling.
+# In that case we use --with-sysroot and --with-native-system-header-dir to
+# instruct the GCC configure script to set CROSS_SYSTEM_HEADER_DIR to the place
+# where we already have our headers available, without attempting to copy stuff
+# in $PREFIX.
+if [[ $HOST == *mingw* ]]; then
+	__GCC_CONF_HEADERS_PARAM="--with-sysroot=$PREFIX/$TARGET --with-native-system-header-dir=/include"
+else
+	__GCC_CONF_HEADERS_PARAM=--with-headers=../$NEWLIB/newlib/libc/include
+fi
+
+# About --enable-libstdcxx-static-eh-pool, --with-libstdcxx-eh-pool-obj-count=3:
+# we used to patch eh_alloc.cc to reduce the C++ emergency exception allocation
+# pool to limit the amount of RAM it uses. In GCC 15.2.0 it is no longer needed
+# as it can be configured. The formula for the used RAM is:
+# pool_size = EMERGENCY_OBJ_COUNT * (EMERGENCY_OBJ_SIZE * P + R + D)
+# EMERGENCY_OBJ_COUNT is set via --with-libstdcxx-eh-pool-obj-count, so is 3
+# EMERGENCY_OBJ_SIZE is fixed to 6, a reasonable exception size
+# P is sizeof(void*), 4 on ARM
+# R is sizeof(__cxa_refcounted_exception), 128 on ARM
+# D is sizeof(__cxa_dependent_exception), 120 on RAM
+# This is about as small as it can get in a multithreaded system.
+echo "Configuring $GCC (start)..."
+$SUDO ../$GCC/configure \
+	--build=$BUILD \
+	--host=$HOST \
+	--target=$TARGET \
+	--with-cpu=ck803 \
+	--with-endian=little \
+	--with-float=soft \
+	--disable-multilib \
+	--with-gmp=$LIB_DIR \
+	--with-mpfr=$LIB_DIR \
+	--with-mpc=$LIB_DIR \
+	MAKEINFO=missing \
+	--prefix=$PREFIX \
+	--disable-shared \
+	--disable-libssp \
+	--disable-nls \
+	--enable-libgomp \
+	--disable-libstdcxx-pch \
+	--disable-libstdcxx-dual-abi \
+	--disable-libstdcxx-filesystem-ts \
+	--enable-libstdcxx-static-eh-pool \
+	--with-libstdcxx-eh-pool-obj-count=3 \
+	--enable-threads=miosix \
+	--enable-languages="c,c++" \
+	--enable-lto \
+	--disable-wchar_t \
+	--with-newlib \
+	${__GCC_CONF_HEADERS_PARAM} \
+	--with-pkgversion="GCC_mp${__GCCPATCUR}" \
+	&>../log/05_gcc-start_1_configure.txt \
+	|| quit ":: Error configuring gcc-start"
+
+echo "Building $GCC (start)..."
+$SUDO make all-gcc $PARALLEL &>../log/05_gcc-start_2_build.txt \
+	|| quit ":: Error compiling gcc-start"
+
+echo "Installing $GCC (start)..."
+$SUDO make install-gcc DESTDIR=$DESTDIR &>../log/05_gcc-start_3_install.txt \
+	|| quit ":: Error installing gcc-start"
+
+# Remove the sys-include directory if we are installing locally.
+# There are two reasons why to remove it: first because it is unnecessary,
+# second because it is harmful.
+# After gcc is compiled, the installation of newlib places the headers in the
+# include dirctory and at that point the sys-include headers aren't necessary anymore
+# Now, to see why the're harmful, consider the header newlib.h It is initially
+# empty and is filled in by the newlib's ./configure with the appropriate options
+# Now, since the configure process happens after, the newlib.h in sys-include
+# is the wrong (empty) one, while the one in include is the correct one.
+# This causes troubles because newlib.h contains configuration options that are
+# used by other headers in libc, and the misconfiguration becomes visible to
+# user code since GCC seems to take the wrong newlib.h
+$SUDO rm -rf $DESTDIR$PREFIX/$TARGET/sys-include
+
+cd ..
+
+#
+# Part 6: compile and install newlib
+#
+
+mkdir newlib_build
+cd newlib_build
+
+echo "Configuring $NEWLIB..."
+../$NEWLIB/configure \
+	--build=$BUILD \
+	--host=$HOST \
+	--target=$TARGET \
+	--prefix=$PREFIX \
+	--disable-multilib \
+	--enable-newlib-multithread \
+	--enable-newlib-io-long-long \
+	--enable-newlib-use-malloc-in-execl \
+	--disable-newlib-io-c99-formats \
+	--disable-newlib-io-long-double \
+	--disable-newlib-io-pos-args \
+	--disable-newlib-mb \
+	--disable-newlib-supplied-syscalls \
+	&>../log/06_newlib_1_configure.txt \
+	|| quit ":: Error configuring newlib"
+
+echo "Building $NEWLIB..."
+make MAKEINFO=/usr/bin/true $PARALLEL &>../log/06_newlib_2_build.txt \
+	|| quit ":: Error compiling newlib"
+
+echo "Installing $NEWLIB..."
+$SUDO make install MAKEINFO=/usr/bin/true PATH=$PATH DESTDIR=$DESTDIR &>../log/06_newlib_3_install.txt \
+	|| quit ":: Error installing newlib"
+
+cd ..
+
+#
+# Part 7: compile and install gcc-end
+#
+
+# CSKY re-target: SKIPPED the Miosix process linker script install
+# (libsyscalls/install_linkerscript.sh). The Miosix *process* model is OUT OF
+# SCOPE for this build (threads only, WITH_PROCESSES off). The script also
+# hardcodes the arm-miosix-eabi target and installs miosix_process.ld, which our
+# csky miosix.h no longer references (we stripped the process LINK_COMMAND_SPEC).
+
+# Build and install GCC's libraries
+cd gcc_build
+echo "Building $GCC (end)..."
+$SUDO make all $PARALLEL PATH=$PATH &> ../log/07_gcc-end_1_build.txt \
+	|| quit ":: Error compiling gcc-end"
+echo "Installing $GCC (end)..."
+$SUDO make install PATH=$PATH DESTDIR=$DESTDIR &>../log/07_gcc-end_2_install.txt \
+	|| quit ":: Error installing gcc-end"
+cd ..
+
+# CSKY re-target: SKIPPED libsyscalls/install_multilibs.sh (the userspace process
+# syscall library). Process model is OUT OF SCOPE; additionally its crt0.s is ARM
+# assembly and the script skips the root multilib anyway (so with --disable-multilib
+# it would build nothing). The kernel provides its own syscalls for threads-only use.
+
+#
+# Part 8: Fixup and verify multilibs
+#
+
+# CSKY re-target: this build uses --disable-multilib, so there is a SINGLE
+# library variant living directly in $PREFIX/$TARGET/lib (the "root" multilib).
+# The original ARM code iterated over many multilibs and then DELETED the root
+# libraries (step 8A) because on ARM the root is an unsafe arm7tdmi fallback.
+# For our single-variant ck803/-EL build the root IS the only valid variant, so
+# we must NOT delete it. We keep the stubs-strip and the libgloss-artifact
+# cleanup, operating on the root lib dir only.
+
+ROOT_LIB=$DESTDIR$PREFIX/$TARGET/lib
+echo "Single multilib (ck803/-EL): $ROOT_LIB"
+if [[ -f $ROOT_LIB/libc.a ]]; then
+	## stubs.c was added to newlib as part of the Miosix patches to make
+	## it possible to compile/link binaries during the gcc-end and libstdc++
+	## configure feature tests (before any syscalls library exists).
+	## After the compiler is built, stubs.o must NOT be linked into real
+	## programs (the kernel provides the real implementations), so strip it.
+	## NOTE: name is libc_a-stubs.o as of newlib 4.6.0.
+	if [[ $STRIP_STUBS_FROM_LIBC = true ]]; then
+	    $SUDO $TARGET-ar d $ROOT_LIB/libc.a libc_a-stubs.o || true
+	    $SUDO $TARGET-ranlib $ROOT_LIB/libc.a
+	fi
+	## Remove libgloss/semihosting artifacts we do not want linked. Miosix
+	## provides startup + syscalls itself (crt0.o here is the intentionally
+	## empty sys/miosix/crt0.o; our miosix.h has empty STARTFILE_SPEC). Use
+	## rm -f since not all of these exist for csky.
+	$SUDO rm -f $ROOT_LIB/libnosys.a
+	$SUDO rm -f $ROOT_LIB/libgloss.a
+	$SUDO rm -f $ROOT_LIB/crt0.o
+	$SUDO rm -f $ROOT_LIB/*.specs
+fi
+
+# Check that the single multilib has all the libraries we need. A missing
+# library here means a component (newlib / libstdc++ / libatomic) failed to
+# build for ck803; surface it loudly but do not abort, so the rest of the
+# toolchain still installs and can be assessed.
+MULTILIB_OK=true
+check_multilibs() {
+	for lib in libc.a libm.a libg.a libatomic.a libstdc++.a libsupc++.a; do
+		if [[ ! -f $1/$lib ]]; then
+			echo "::WARNING, $1/$lib not installed"
+			MULTILIB_OK=false
+		fi
+	done
+}
+
+check_multilibs $ROOT_LIB
+if [[ $MULTILIB_OK = true ]]; then
+	echo "Checked multilib: all expected libraries are present!"
+else
+	echo "Checked multilib: SOME LIBRARIES ARE MISSING (see warnings above)"
+fi
+
+#
+# Part 9: compile and install gdb
+#
+
+# GDB on linux/windows needs expat
+if [[ $DESTDIR ]]; then
+	cd $EXPAT
+	
+	echo "Configuring $EXPAT..."
+	./configure \
+		--build=$BUILD \
+		--host=$HOST \
+		--prefix=$LIB_DIR \
+		--enable-static=yes \
+		--enable-shared=no \
+		&> ../log/09_expat_1_configure.txt \
+		|| quit ":: Error configuring expat"
+
+	echo "Building $EXPAT..."
+	make all $PARALLEL &>../log/09_expat_2_build.txt \
+		|| quit ":: Error compiling expat"
+
+	echo "Installing $EXPAT..."
+	make install &>../log/09_expat_3_install.txt \
+		|| quit ":: Error installing expat"
+
+	cd ..
+fi
+
+# GDB on linux requires ncurses, and not to depend on them when doing a
+# redistributable linux build we build a static version
+# Based on previous gdb that when run with --tui reported as error
+# "Error opening terminal: xterm-256color" we now build this terminal as
+# fallback within ncurses itself.
+if [[ $HOST == *linux* ]]; then
+	cd $NCURSES
+
+	echo "Configuring $NCURSES..."
+	./configure \
+		--build=$BUILD \
+		--host=$HOST \
+		--prefix=$LIB_DIR \
+		--with-normal --without-shared \
+		--without-ada --without-cxx-binding --without-debug \
+		--with-fallbacks='xterm-256color' \
+		--without-manpages --without-progs --without-tests \
+		&> ../log/10_ncurses_1_configure.txt \
+		|| quit ":: Error configuring ncurses"
+
+	echo "Building $NCURSES..."
+	make all $PARALLEL &>../log/10_ncurses_2_build.txt \
+		|| quit ":: Error compiling ncurses"
+
+	echo "Installing $NCURSES..."
+	make install &>../log/10_ncurses_3_install.txt \
+		|| quit ":: Error installing ncurses"
+
+	cd ..
+fi
+
+mkdir gdb_build
+cd gdb_build
+
+echo "Configuring $GDB..."
+../$GDB/configure \
+	--build=$BUILD \
+	--host=$HOST \
+	--target=$TARGET \
+	--prefix=$PREFIX \
+	--with-gmp=$LIB_DIR \
+	--with-mpfr=$LIB_DIR \
+	--with-libmpfr-prefix=$LIB_DIR \
+	--with-libexpat-prefix=$LIB_DIR \
+	--with-system-zlib=no \
+	--with-lzma=no \
+	--with-python=no \
+	--disable-multilib \
+	--disable-werror &>../log/11_gdb_1_configure.txt \
+	|| quit ":: Error configuring gdb"
+
+# Specify a dummy MAKEINFO binary to work around an issue in the gdb makefiles
+# where compilation fails if MAKEINFO is not installed.
+# https://sourceware.org/bugzilla/show_bug.cgi?id=14678
+# LDFLAGS="$HOSTLDFLAGS" to avoid having to distribute libstdc++.dll on windows
+echo "Building $GDB..."
+make all LDFLAGS="$HOSTLDFLAGS" MAKEINFO=/usr/bin/true $PARALLEL &>../log/11_gdb_2_build.txt \
+	|| quit ":: Error compiling gdb"
+
+echo "Installing $GDB..."
+$SUDO make install LDFLAGS="$HOSTLDFLAGS" MAKEINFO=/usr/bin/true PATH=$PATH DESTDIR=$DESTDIR &>../log/11_gdb_3_install.txt \
+	|| quit ":: Error installing gdb"
+
+cd ..
+
+#
+# Part 10: install the postlinker, buildromfs, maputil
+#
+
+build_mx_tool()
+{
+	toolname=$1
+	echo "Installing $toolname..."
+	cd $toolname || quit ":: Error $toolname not found"
+	mkdir build
+	cd build
+	CC=$HOSTCC CXX=$HOSTCXX LDFLAGS="$HOSTLDFLAGS" \
+		$CMAKE .. || quit ":: Error configuring $toolname"
+	make || quit ":: Error building $toolname"
+	$SUDO cp $toolname$EXT $DESTDIR$PREFIX/bin || quit ":: Error installing $toolname"
+	cd ..
+	rm -rf build
+	cd ..
+}
+
+build_mx_tool "mx-postlinker"
+build_mx_tool "mx-buildromfs"
+build_mx_tool "mx-maputil"
+
+#
+# Part 11: install GNU make and rm (windows release only)
+#
+
+if [[ $HOST == *mingw* ]]; then
+
+	cd $MAKE
+
+	echo "Configuring $MAKE..."
+	./configure \
+		--build=$BUILD \
+		--host=$HOST \
+		--prefix=$PREFIX &> z.make.a.txt \
+		|| quit ":: Error configuring make"
+
+	echo "Building $MAKE..."
+	make all $PARALLEL &>../log/z.make.b.txt \
+		|| quit ":: Error compiling make"
+
+	echo "Installing $MAKE..."
+	make install DESTDIR=$DESTDIR &>../log/z.make.c.txt \
+		|| quit ":: Error installing make"
+
+	cd ..
+
+	# FIXME get a better rm to distribute for windows
+	echo "Installing rm..."
+	$HOSTCC -o rm$EXT -O2 installers/windows/rm.c \
+		|| quit ":: Error compiling rm"
+
+	mv rm$EXT $DESTDIR$PREFIX/bin \
+		|| quit ":: Error installing rm"
+fi
+
+#
+# Part 12: Final fixups
+#
+
+# Remove the redundant version-suffixed gcc copy ($TARGET-gcc-15.2.0)
+$SUDO rm -f $DESTDIR$PREFIX/bin/$TARGET-$GCC$EXT
+# Remove gstack if present (useless when cross-compiling; may not exist for csky)
+$SUDO rm -f $DESTDIR$PREFIX/bin/$TARGET-gstack
+
+# Strip stuff that is very large when having debug symbols to save disk space
+# This simple thing can easily save 500+MB
+find $DESTDIR$PREFIX -name cc1$EXT     | $SUDO xargs $HOSTSTRIP
+find $DESTDIR$PREFIX -name cc1plus$EXT | $SUDO xargs $HOSTSTRIP
+find $DESTDIR$PREFIX -name lto1$EXT    | $SUDO xargs $HOSTSTRIP
+$SUDO $HOSTSTRIP $DESTDIR$PREFIX/bin/*
+
+
+
+# Installers, env variables and other stuff
+if [[ $DESTDIR ]]; then
+	if [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *linux* ) ]]; then
+		# Build a makeself installer
+		# Distribute the installer and uninstaller too
+		echo "Building Linux makeself installer..."
+		sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" installers/linux/installer.sh > $DESTDIR$PREFIX/installer.sh
+		sed -E "s|/opt/arm-miosix-eabi|$PREFIX|g" uninstall.sh > $DESTDIR$PREFIX/uninstall.sh
+		chmod +x $DESTDIR$PREFIX/installer.sh $DESTDIR$PREFIX/uninstall.sh
+		sh downloaded/$MAKESELF.run
+		# NOTE: --keep-umask otherwise the installer extracts files setting to 0
+		# permissions to group and other, resulting in an unusable installation
+		./$MAKESELF/makeself.sh --xz --keep-umask \
+			$DESTDIR$PREFIX \
+			MiosixToolchainInstaller15.2.0mp4.2.run \
+			"Miosix toolchain for Linux (GCC 15.2.0-mp4.2)" \
+			"./installer.sh"
+	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *mingw* ) ]]; then
+		# Build an executable installer for Windows
+		echo "Building Windows InnoSetup installer..."
+		cd installers/windows
+		wine "C:\Program Files (x86)\Inno Setup 6\Compil32.exe" /cc MiosixInstaller.iss
+		cd ../..
+	elif [[ ( $(uname -s) == 'Linux' ) && ( $HOST == *darwin* ) ]]; then
+		echo "TODO: there seems to be no way to produce a .pkg mac installer"
+		echo "from Linux as the pkgbuild/productbuild tools aren't available"
+	elif [[ $(uname -s) == 'Darwin' ]]; then
+		# Build a .pkg installer for macOS if we are on macOS and we are building for it
+		echo "Building macOS package..."
+		cp uninstall.sh $DESTDIR$PREFIX
+		# Prepare the postinstall script by replacing the correct prefix
+		mkdir -p installers/macos/Scripts
+		cat installers/macos/ScriptsTemplates/postinstall | \
+			sed -e 's|PREFIX=|PREFIX='"$PREFIX"'|' > \
+				installers/macos/Scripts/postinstall
+		chmod +x installers/macos/Scripts/postinstall
+		# Build a standard macOS package.
+		# The wizard steps are configured by the Distribution.xml file.
+		# Documentation:
+		#   https://developer.apple.com/library/archive/documentation/
+		#   DeveloperTools/Reference/DistributionDefinitionRef/Chapters/
+		#   Introduction.html#//apple_ref/doc/uid/TP40005370-CH1-SW1
+		# Also see `man productbuild` and `man pkgbuild`.
+		distr_script='installers/macos/Distribution_Intel.xml'
+		suffix='Intel'
+		if [[ $BUILD == aarch64* ]]; then
+		  distr_script='installers/macos/Distribution_ARM.xml'
+		  suffix='ARM'
+		fi
+		# Detect selected minimum OS version from $CFLAGS
+		min_os_ver=$(echo "$CFLAGS" | sed -E 's/.*-mmacos-version-min=([^ ]+).*/\1/g')
+		if [[ -z "${min_os_ver}" ]]; then
+		  # Not specified in $CFLAGS: use the OS version associated to the SDK
+		  # we are using
+		  min_os_ver="$(xcrun --show-sdk-version)"
+		fi
+		
+		pkgbuild \
+			--identifier 'org.miosix.toolchain.gcc' \
+			--version "15.2.0.${__GCCPATCUR}" \
+			--min-os-version "${min_os_ver}" \
+			--compression latest \
+			--install-location / \
+			--scripts installers/macos/Scripts \
+			--root $DESTDIR \
+			"gcc.pkg"
+		productbuild \
+			--distribution ${distr_script} \
+			--resources installers/macos/Resources \
+			--package-path ./ \
+			"./MiosixToolchainInstaller15.2.0mp${__GCCPATCUR}_${suffix}.pkg"
+	fi
+else
+	# Install the uninstaller too
+	echo "Installing uninstall script..."
+	chmod +x uninstall.sh
+	$SUDO cp uninstall.sh $DESTDIR$PREFIX
+	# If sudo not an empty variable and we are not on macOS, make symlinks to
+	# /usr/bin. else make a script to override PATH
+	if [[ ( $(uname -s) != 'Darwin' ) && $SUDO ]]; then
+		$SUDO ln -s $DESTDIR$PREFIX/bin/* /usr/bin
+	else
+		echo '# Used when installing the compiler locally to test it' > env.sh
+		echo '# usage: $ . ./env.sh' >> env.sh
+		echo '# or     $ source ./env.sh' >> env.sh
+		echo "export PATH=$PREFIX/bin:"'$PATH' >> env.sh
+		chmod +x env.sh
+	fi
+fi
+
+# Workaround for the --with-headers issue, see --with-headers comment.
+# Symlink of $DESTDIR$PREFIX/arm-miosix-eabi to $PREFIX/arm-miosix-eabi no
+# longer required. This must unconditionally be done with sudo so it's important
+# we use sudo and not $SUDO.
+if [[ -h $PREFIX/$TARGET ]]; then
+	sudo rm $PREFIX/$TARGET
+	sudo rmdir $PREFIX
+fi
+
+#
+# The end.
+#
+
+echo "Successfully installed!"
