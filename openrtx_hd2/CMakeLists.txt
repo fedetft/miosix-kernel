@@ -79,7 +79,7 @@ set(ORTX_RADIO
 
 # Stubs for the not-yet-wired subsystems (UI scope).
 set(ORTX_STUBS
-    ${ORTX}/platform/drivers/stubs/cps_io_stub.c)
+    ${ORTX}/platform/drivers/NVM/cps_io_HD2.c)
 
 # Vendored helper libs OpenRTX core pulls in (cf. meson openrtx_src/inc).
 set(ORTX_LIBS
