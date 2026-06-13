@@ -31,6 +31,7 @@
 #include "hd2_crumb.h"    /* hard-lock forensics: 'H' dump + idle-loop stamp */
 #include "hd2_cps_settings.h" /* 'D' op: vendor settings/records accessors */
 #include "hd2_cps_records.h"
+#include "drivers/NVM/flash_w25q_HD2.h" /* 'd' op: raw W25Q sector write */
 
 /* Speaker self-test tone.  platform_beepStart() is the HD2's minimal speaker
  * output pathway: it warms the codec (codec DAC -> lineout), unmutes DIPLEX0 +
@@ -385,6 +386,25 @@ void *diagThreadFunc(void *)
                 if(!rxByte(on)) break;
                 g_rf_freeze = (on != 0u) ? 1u : 0u;
                 txStr(g_rf_freeze ? "RFFREEZE=1\r\n" : "RFFREEZE=0\r\n");
+                break;
+            }
+            case 'd':                              // flash-write one sector: <addr u32 LE>
+            {                                      // <len u16 LE> <data[len]> -> "FWR=ok/err"
+                static uint8_t fwbuf[W25Q_HD2_SECTOR_SIZE];
+                uint8_t h[6];
+                bool ok = true;
+                for(int i = 0; i < 6 && ok; ++i) ok = rxByte(h[i]);
+                if(!ok) { txStr("FWR=short\r\n"); break; }
+                uint32_t addr = (uint32_t)h[0] | ((uint32_t)h[1] << 8) |
+                                ((uint32_t)h[2] << 16) | ((uint32_t)h[3] << 24);
+                uint32_t len  = (uint32_t)h[4] | ((uint32_t)h[5] << 8);
+                if(len > sizeof(fwbuf)) { txStr("FWR=toolong\r\n"); break; }
+                for(uint32_t i = 0; i < len && ok; ++i) ok = rxByte(fwbuf[i]);
+                if(!ok) { txStr("FWR=short\r\n"); break; }
+                if(!w25q_hd2_probe()) { txStr("FWR=noflash\r\n"); break; }
+                int e = w25q_hd2_eraseSector(addr);
+                int p = (e == 0) ? w25q_hd2_program(addr, fwbuf, len) : -1;
+                txStr((e == 0 && p == 0) ? "FWR=ok\r\n" : "FWR=err\r\n");
                 break;
             }
             case 'F':                              // radio_enable: bring the radio up on command
