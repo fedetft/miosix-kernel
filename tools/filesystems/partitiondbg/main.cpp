@@ -11,26 +11,28 @@ using namespace miosix;
 void tryMBR() {
 
     printf("Trying MBR\n");
-    auto mbrReader = MBR::MBRReader::readMBR(SDIODriver::instance());
+    auto mbrReaderResult = MBR::MBRReader::readMBR(SDIODriver::instance());
     size_t retryCount = 0;
-    while(mbrReader.first && retryCount < 5) {
+    while(!mbrReaderResult && retryCount < 5) {
         printf("Error while reading from device\n");
-        mbrReader = MBR::MBRReader::readMBR(SDIODriver::instance());
+        mbrReaderResult = MBR::MBRReader::readMBR(SDIODriver::instance());
         retryCount++;
         Thread::sleep(1);
     }
 
-    if (mbrReader.first) {
+    if (!mbrReaderResult) {
         printf("Excedeed the retry count while reading the device.\n");
         return;
     }
 
-    if (!mbrReader.second.isValidMBR()) {
-        printf("Invalid MBR. Expected: 0xAA55, Got: 0x%04X\n", mbrReader.second.mbrSignature());
+    auto mbrReader = *mbrReaderResult;
+
+    if (mbrReader.isValidMBR()) {
+        printf("Invalid MBR. Expected: 0xAA55, Got: 0x%04X\n", mbrReader.mbrSignature());
         return;
     }
     
-    mbrReader.second.printMBRInfo();
+    mbrReader.printMBRInfo();
     printf("Finished MBR\n");
 }
 

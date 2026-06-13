@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <cstddef>
+#include <expected>
 #include <miosix.h>
 #include <filesystem/devfs/devfs.h>
 
@@ -70,7 +70,7 @@ static_assert(sizeof(MBRHeader) == 512, "GPT Header size must not exceed Logic B
 
 class MBRReader {
 public:  
-    static std::pair<bool, MBRReader> readMBR(miosix::intrusive_ref_ptr<miosix::Device> device);
+    static std::expected<MBRReader, bool> readMBR(miosix::intrusive_ref_ptr<miosix::Device> device);
 
     bool isValidMBR();
     void printMBRInfo();
@@ -80,9 +80,7 @@ public:
         return header.mbrSignature;
     }
 
-    ~MBRReader() {
-        printf("Finished MBR reader lifetime\n");
-    }
+    ~MBRReader() {}
 private:
     void printOSType(uint8_t osTypeField);
     MBRReader() = default;

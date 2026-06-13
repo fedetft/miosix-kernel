@@ -1,9 +1,12 @@
 #include "mbr.h"
 namespace MBR {
-std::pair<bool, MBRReader> MBRReader::readMBR(miosix::intrusive_ref_ptr<miosix::Device> device) {
+std::expected<MBRReader, bool> MBRReader::readMBR(miosix::intrusive_ref_ptr<miosix::Device> device) {
     MBRReader reader;
     auto result = device->readBlock(&reader.header, sizeof(MBRHeader), MBR_POSITION_LBA);
-    return {result < 0, reader};
+    if (result < 0) {
+        return std::unexpected(true);
+    } 
+    return reader;
 }
 
 bool MBRReader::isValidMBR() {

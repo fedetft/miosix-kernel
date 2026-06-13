@@ -2,54 +2,65 @@
 #include "../MBR/mbr.h"
 
 namespace GPT {
-std::pair<ReaderResult, GPTReader> GPTReader::readGPT(miosix::intrusive_ref_ptr<miosix::Device> device) {
+std::expected<GPTReader, ReaderResult> GPTReader::readGPT(miosix::intrusive_ref_ptr<miosix::Device> device) {
     auto mbrResult = MBR::MBRReader::readMBR(device);
     GPTReader reader;
 
-    if (mbrResult.first) {
-        return {ReaderResult::ErrorReadingMBR, std::move(reader)};
+    if (!mbrResult) {
+        return std::unexpected{ReaderResult::ErrorReadingMBR};
     }
 
-    auto mbrReader = mbrResult.second;
+    auto mbrReader = *mbrResult;
 
     printf("Check mbr validity\n");
     if (!mbrReader.isValidMBR()) {
-        return {ReaderResult::ErrorInvalidMBR, std::move(reader)};
+        return std::unexpected{ReaderResult::ErrorInvalidMBR};
     }
 
     printf("Check if mbr is protective\n");
     if(!mbrReader.isProtectiveMBR()) {
-        return {ReaderResult::ErrorMBRIsNotProtective, std::move(reader)};
+        return std::unexpected{ReaderResult::ErrorMBRIsNotProtective};
     }
  
     printf("Reading first LBA block\n");
     auto result = device->readBlock(&reader.primaryHeader, sizeof(GPTHeader), MAIN_GPT_POSITION_LBA * 512);
     if (result < 0) {
-        return {ReaderResult::ErrorReadingPrimaryHeader, std::move(reader)};
+        return std::unexpected{ReaderResult::ErrorReadingPrimaryHeader};
     }
 
     printf("Reading last LBA block\n");
     result = device->readBlock(&reader.backupHeader, sizeof(GPTHeader), reader.primaryHeader.alternateLBA * 512);
     if (result < 0) {
-        return {ReaderResult::ErrorReadingBackupHeader, std::move(reader)};
+        return std::unexpected{ReaderResult::ErrorReadingBackupHeader};
     }
 
     if (reader.primaryHeader.numberOfPartitionEntries < MAX_GPT_PARTITIONS) {
-        printf("Too little partitions %ld of size %ld\n", reader.primaryHeader.numberOfPartitionEntries, reader.primaryHeader.partitionEntrySize);
-        return {ReaderResult::ErrorExceededMaxPartitions, std::move(reader)};
+        printf("Too little partitions %ld of size %ld\n", 
+            reader.primaryHeader.numberOfPartitionEntries, 
+            reader.primaryHeader.partitionEntrySize);
+        return std::unexpected{ReaderResult::ErrorExceededMaxPartitions};
     }
+
     printf("Reading Partition Tables\n");
     auto readerResult = reader.readPartitionTables(device);
 
-    return {readerResult, std::move(reader)};
+    if (readerResult != ReaderResult::Ok) {
+        return std::unexpected{readerResult};
+    }
+
+    return std::move(reader);
 }
 
 inline ReaderResult GPTReader::getPartitionsReadingError(GPTHeader &header)
 {
-    return header.myLBA == MAIN_GPT_POSITION_LBA ? ReaderResult::ErrorReadingPrimaryPartitions : ReaderResult::ErrorReadingBackupPartitions;
+    return header.myLBA == MAIN_GPT_POSITION_LBA ? 
+        ReaderResult::ErrorReadingPrimaryPartitions : 
+        ReaderResult::ErrorReadingBackupPartitions;
 }
 
-ReaderResult GPTReader::load128BitSizeEntries(GPTHeader &header, std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, miosix::intrusive_ref_ptr<miosix::Device> device)
+ReaderResult GPTReader::load128BitSizeEntries(GPTHeader &header, 
+    std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, 
+    miosix::intrusive_ref_ptr<miosix::Device> device)
 {
     GPTPartitionEntry buff[4];
     auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
@@ -67,6 +78,8 @@ ReaderResult GPTReader::load128BitSizeEntries(GPTHeader &header, std::array<GPTP
         }
 
         memcpy(&partitions.at(idx), &buff[0], sizeof(GPTPartitionEntry));
+        // this line adds ~290kb in size at the final binary??? is std::format bloated too? yes it is due to the unicode stuff...
+        // printf("Partition type GUID: %s\n", std::format("{}", UUID::UUID(partitions.at(idx).partitionTypeGUID)).c_str());
         memcpy(&partitions.at(idx + 1), &buff[1], sizeof(GPTPartitionEntry));
         memcpy(&partitions.at(idx + 2), &buff[2], sizeof(GPTPartitionEntry));
         memcpy(&partitions.at(idx + 3), &buff[3], sizeof(GPTPartitionEntry));
@@ -87,7 +100,9 @@ ReaderResult GPTReader::load128BitSizeEntries(GPTHeader &header, std::array<GPTP
     return ReaderResult::Ok;
 }
 
-ReaderResult GPTReader::load256BitSizeEntries(GPTHeader &header, std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, miosix::intrusive_ref_ptr<miosix::Device> device)
+ReaderResult GPTReader::load256BitSizeEntries(GPTHeader &header, 
+        std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, 
+        miosix::intrusive_ref_ptr<miosix::Device> device)
 {
     GPTPartitionEntry buff[4];
     auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
@@ -123,7 +138,9 @@ ReaderResult GPTReader::load256BitSizeEntries(GPTHeader &header, std::array<GPTP
     return ReaderResult::Ok;
 }
 
-ReaderResult GPTReader::loadGenericSizeEntries(GPTHeader &header, std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, miosix::intrusive_ref_ptr<miosix::Device> device)
+ReaderResult GPTReader::loadGenericSizeEntries(GPTHeader &header, 
+    std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, 
+    miosix::intrusive_ref_ptr<miosix::Device> device)
 {
     GPTPartitionEntry buff[4];
     auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
@@ -147,7 +164,9 @@ ReaderResult GPTReader::loadGenericSizeEntries(GPTHeader &header, std::array<GPT
     return ReaderResult::Ok;
 }
 
-ReaderResult GPTReader::loadPartitionTable(GPTHeader &header, std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, miosix::intrusive_ref_ptr<miosix::Device> device)
+ReaderResult GPTReader::loadPartitionTable(GPTHeader &header, 
+    std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, 
+    miosix::intrusive_ref_ptr<miosix::Device> device)
 {
     // If the partition entries are of standard size we can load them fast, otherwise we need a slower approach
     // This likely happens every time.
