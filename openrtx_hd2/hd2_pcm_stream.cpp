@@ -133,6 +133,54 @@ extern "C" void hd2_pcm_tone(uint16_t freq_hz, uint16_t ms, uint8_t arm,
              (unsigned long)pmNow, (unsigned long)rstnNow);
 }
 
+/* Capture probe (diag 'O'): arm the codec ADC -> SAHB PCM capture path and
+ * sample the capture window, reporting peak-to-peak amplitude so we can see on
+ * the bench whether received (or mic) audio is landing in the buffer.  The
+ * modem FM-RX path is already set at boot (hd2_modem_fm_boot_init); this only
+ * arms the SoC capture side and services the per-frame handshake.
+ * arm-mask bits (0 -> all): 1 = release SOFT_RSTN PCM bits, 2 = pcm_mode=3,
+ * 4 = voice_path PCM-bridge bit0, 8 = voice_path capture side (VOICE_PATH_CAP).
+ * Touches only SoC PCM/voice-path regs (no AT1846S / modem retune); restored
+ * on exit.  Leaves RX running (no rf_freeze) so live received audio is present. */
+extern "C" void hd2_pcm_capture(uint16_t ms, uint8_t arm, char *out, unsigned outsz)
+{
+    if(ms == 0u)    ms = 200u;
+    if(ms > 10000u) ms = 10000u;          /* keep the diag thread responsive */
+    if(arm == 0u)   arm = 0x0fu;
+
+    uint32_t vpSave = SOCSYS_VOICE_PATH;
+    uint32_t pmSave = SOCSYS_PCM_MODE;
+    if(arm & 1u) SOCSYS_SYS_SOFT_RSTN |= SOFT_RSTN_PCM_BITS;
+    if(arm & 2u) SOCSYS_PCM_MODE = 3u;
+    if(arm & 4u) SOCSYS_VOICE_PATH |= VOICE_PATH_PCM_EN;
+    if(arm & 8u) SOCSYS_VOICE_PATH |= VOICE_PATH_CAP;
+
+    volatile uint16_t *src = SAHB_PCM_CAP;
+    int16_t  lo = 32767, hi = -32768;
+    uint32_t frames = ms / 10u; if(frames == 0u) frames = 1u;
+    for(uint32_t f = 0; f < frames; ++f)
+    {
+        Thread::sleep(10);                 /* one 80-sample frame / 10 ms @ 8 kHz */
+        for(unsigned i = 0; i < PCM_FRAME_SAMPLES; ++i)
+        {
+            int16_t s = (int16_t)src[i];
+            if(s < lo) lo = s;
+            if(s > hi) hi = s;
+        }
+        SOCSYS_INT_STATUS |= INT_STATUS_PCM_CAP_ACK;   /* ack -> advance frame */
+    }
+
+    uint32_t vpNow = SOCSYS_VOICE_PATH, pmNow = SOCSYS_PCM_MODE;
+    SOCSYS_VOICE_PATH = vpSave;
+    if(arm & 2u) SOCSYS_PCM_MODE = pmSave;
+
+    snprintf(out, outsz,
+             "CAP pp=%d lo=%d hi=%d vp=%08lx pm=%08lx s=%04x %04x %04x %04x\r\n",
+             (int)(hi - lo), (int)lo, (int)hi,
+             (unsigned long)vpNow, (unsigned long)pmNow,
+             (unsigned)src[0], (unsigned)src[1], (unsigned)src[2], (unsigned)src[3]);
+}
+
 /* Full-stack stream test: tone via audioPath_request -> audioStream_start ->
  * outputStream_HD2 driver (the proper OpenRTX route, vs. hd2_pcm_tone's raw
  * register poke).  Refills the idle half on every sync like a real producer

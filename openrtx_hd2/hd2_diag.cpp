@@ -91,6 +91,11 @@ extern "C" void hd2_pcm_tone(uint16_t freq_hz, uint16_t ms, uint8_t arm,
 extern "C" void hd2_stream_tone(uint16_t freq_hz, uint16_t ms,
                                 char *out, unsigned outsz);
 
+/* RX audio-capture probe (hd2_pcm_stream.cpp): arm the codec ADC -> SAHB PCM
+ * capture path and report peak-to-peak amplitude of the captured window.
+ * BLOCKS this thread for <ms> (<= 10 s). */
+extern "C" void hd2_pcm_capture(uint16_t ms, uint8_t arm, char *out, unsigned outsz);
+
 /* Voice-prompt test (hd2_diag.cpp below): forces vpLevel high, queues a
  * sequence, and triggers playback.  The actual codec2 decode + streaming runs
  * in the UI main_thread's vp_tick(), so this returns immediately. */
@@ -679,6 +684,15 @@ void *diagThreadFunc(void *)
             {                                      // full audio-path state: AT1846S + GPIO +
                 char buf[512];                     // diplex + CLK_MGR + codec (hd2_router.c)
                 hd2_audio_snap(buf, sizeof buf);
+                txStr(buf);
+                break;
+            }
+            case 'O':                              // pcm_capture probe: <ms u16 LE><arm u8> -> "CAP pp=.."
+            {
+                uint8_t mlo, mhi, arm;
+                if(!rxByte(mlo) || !rxByte(mhi) || !rxByte(arm)) break;
+                char buf[96];
+                hd2_pcm_capture((uint16_t)(mlo | (mhi << 8)), arm, buf, sizeof buf);
                 txStr(buf);
                 break;
             }
