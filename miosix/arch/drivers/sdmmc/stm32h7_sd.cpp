@@ -65,7 +65,7 @@ namespace miosix {
 
 static volatile bool transferError; ///< \internal DMA or SDMMC transfer error
 static Thread *waiting;             ///< \internal Thread waiting for transfer
-static unsigned int sdmmcFlags;      ///< \internal SDMMC status flags
+static unsigned int sdmmcFlags;     ///< \internal SDMMC status flags
 
 /**
  * \internal
@@ -77,7 +77,7 @@ void SDirqImpl()
     if(sdmmcFlags & (SDMMC_STA_RXOVERR  |
                     SDMMC_STA_TXUNDERR | SDMMC_STA_DTIMEOUT | SDMMC_STA_DCRCFAIL))
         transferError=true;
-    
+
     SDMMC->ICR=ICR_FLAGS_CLR; //Clear flags
 
     if(!waiting) return;
@@ -481,18 +481,22 @@ public:
     /**
      * \internal
      * Automatically select the data speed. This routine selects the highest
-     * sustainable data transfer speed. This is done by binary search until
-     * the highest clock speed that causes no errors is found.
+     * sustainable data transfer speed. This is done by binary search and 
+     * accepts a candidate speed only if repeated block reads succeed and 
+     * return the expected payload.
      * This function as a side effect enables 4bit bus width, and clock
      * powersave.
+     * \return true on success, false on failure
      */
-    static void calibrateClockSpeed(SDIODriver *sdmmc);
+    static bool calibrateClockSpeed(SDIODriver *sdmmc);
 
     /**
      * \internal
-     * Since clock speed is set dynamically by binary search at runtime, a
-     * corner case might be that of a clock speed which results in unreliable
-     * data transfer, that sometimes succeeds, and sometimes fail.
+     * Reduce the SDIO clock slightly after calibration.
+     * This helper is only used later, during normal operation, if a transfer
+     * error suggests that the selected speed is marginally too high.
+     * Since clock speed is chosen dynamically at runtime, a corner case might
+     * be that of a speed which works most of the time but occasionally fails.
      * For maximum robustness, this function is provided to reduce the clock
      * speed slightly in case a data transfer should fail after clock
      * calibration. To avoid inadvertently considering other kind of issues as
@@ -505,10 +509,9 @@ public:
 
     /**
      * \internal
-     * Read and write operation do retry during normal use for robustness, but
-     * during clock claibration they must not retry for speed reasons. This
-     * member function returns 1 during clock claibration and MAX_RETRY during
-     * normal use.
+     * Read and write operations retry during normal use for robustness. During
+     * speed probing each read uses a single attempt, so calibration does not
+     * accept a marginal clock just because a later retry happened to succeed.
      */
     static unsigned char getRetryCount() { return retries; }
 
@@ -554,44 +557,73 @@ private:
     static unsigned char retries;
 };
 
-void ClockController::calibrateClockSpeed(SDIODriver *sdmmc)
+bool ClockController::calibrateClockSpeed(SDIODriver *sdmmc)
 {
-    //During calibration we call readBlock() which will call reduceClockSpeed()
-    //so not to invalidate calibration clock reduction must not be available
+    // During calibration we call readBlock(), which can request clock
+    // reduction after transfer errors. Keep it disabled while searching or the
+    // calibration result would become self-invalidating.
     clockReductionAvailable=0;
-    retries=1;
 
     DBG("Automatic speed calibration\n");
-    unsigned int buffer[512/sizeof(unsigned int)];
-    unsigned int minFreq=CLOCK_400KHz;
+    unsigned int reference[512/sizeof(unsigned int)];
+    unsigned int probe[512/sizeof(unsigned int)];    unsigned int minFreq=CLOCK_400KHz;
     unsigned int maxFreq=CLOCK_MAX;
     unsigned int selected;
+    bool success=false;
+    const unsigned char calibrationProbeReads=2;
+
+    // First capture a known-good reference block at 400kHz. Some unstable
+    // speeds can complete a transfer without protocol errors while still
+    // returning corrupted payload, so calibration must validate data too.
+    // This low-speed reference read may use normal retries because it is
+    // not testing the upper bus-speed limit.
+    setClockSpeed(minFreq);
+    retries=MAX_RETRY;
+    if(sdmmc->readBlock(reinterpret_cast<unsigned char*>(reference),512,0)!=512)
+    {
+        clockReductionAvailable=MAX_ALLOWED_REDUCTIONS;
+        return false;
+    }
+
+    // Candidate reads must be single-shot and repeated explicitly: accepting a
+    // speed because one retry succeeded would select a marginal clock, while a
+    // single successful read would not prove that the selected clock is stable.
+    retries=1;
+    auto clockCandidateIsStable=[&]() {
+        for(unsigned int i=0;i<calibrationProbeReads;i++)
+        {
+            if(sdmmc->readBlock(reinterpret_cast<unsigned char*>(probe),512,0)!=512
+            || std::memcmp(probe, reference, sizeof(reference))!=0)
+                return false;
+        }
+        return true;
+    };
+
     while(minFreq-maxFreq>1)
     {
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
         setClockSpeed(selected);
-        //must read 2 times because it blocks just the second time
-        sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0);
-        if(sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
-            minFreq=selected;
+        if(clockCandidateIsStable()) minFreq=selected;
         else maxFreq=selected;
     }
 
     //Last round of algorithm
     setClockSpeed(maxFreq+1);
-    sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0);
-    if(sdmmc->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
+    success=clockCandidateIsStable();
+    if(success)
     {
         DBG("Optimal CLKCR=%d\n",maxFreq+1);
     } else {
         setClockSpeed(minFreq);
-        DBG("Optimal CLKCR=%d\n",minFreq);
+        success=clockCandidateIsStable();
+        if(success) DBG("Optimal CLKCR=%d\n",minFreq);
+        else DBGERR("Automatic speed calibration failed\n");
     }
 
-    //Make clock reduction available
     clockReductionAvailable=MAX_ALLOWED_REDUCTIONS;
     retries=MAX_RETRY;
+    return success;
 }
 
 bool ClockController::reduceClockSpeed()
@@ -688,12 +720,9 @@ static void transferCommonSetup(const unsigned char *buffer)
 {
     //Clear SDMMC interrupt flags
     SDMMC->ICR=ICR_FLAGS_CLR;
-    
-
     transferError=false;
     sdmmcFlags=0;
     waiting=Thread::getCurrentThread();
-
 }
 
 /**
@@ -926,57 +955,61 @@ private:
 
 /**
  * \internal
- * Initialzes the SDMMC peripheral in the STM32
+ * One-time SDMMC setup: clocks, GPIO alternate functions and IRQ registration.
+ */
+static void initSDMMCPeripheralOnce() {
+    //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
+    GlobalIrqLock lock;
+    RCC->AHB4ENR |= RCC_AHB4ENR_GPIOCEN
+                    | RCC_AHB4ENR_GPIODEN
+                    ;
+    RCC_SYNC();
+    #if SD_SDMMC==1
+    RCC->AHB3ENR |= RCC_AHB3ENR_SDMMC1EN;
+    #else
+    RCC->AHB2ENR |= RCC_AHB2ENR_SDMMC2EN;
+    #endif
+    RCC_SYNC();
+    #if SD_SDMMC==2
+    sdD0::mode(Mode::ALTERNATE);
+    sdD0::alternateFunction(11);
+    #ifndef SD_ONE_BIT_DATABUS
+    sdD1::mode(Mode::ALTERNATE);
+    sdD1::alternateFunction(11);
+    sdD2::mode(Mode::ALTERNATE);
+    sdD2::alternateFunction(9);
+    sdD3::mode(Mode::ALTERNATE);
+    sdD3::alternateFunction(9);
+    #endif // SD_ONE_BIT_DATABUS
+    sdCLK::mode(Mode::ALTERNATE);
+    sdCLK::alternateFunction(11);
+    sdCMD::mode(Mode::ALTERNATE);
+    sdCMD::alternateFunction(11);
+    #else
+    sdD0::mode(Mode::ALTERNATE);
+    sdD0::alternateFunction(12);
+    #ifndef SD_ONE_BIT_DATABUS
+    sdD1::mode(Mode::ALTERNATE);
+    sdD1::alternateFunction(12);
+    sdD2::mode(Mode::ALTERNATE);
+    sdD2::alternateFunction(12);
+    sdD3::mode(Mode::ALTERNATE);
+    sdD3::alternateFunction(12);
+    #endif // SD_ONE_BIT_DATABUS
+    sdCLK::mode(Mode::ALTERNATE);
+    sdCLK::alternateFunction(12);
+    sdCMD::mode(Mode::ALTERNATE);
+    sdCMD::alternateFunction(12);
+    #endif
+    IRQregisterIrq(lock,SDMMC_IRQn,SDirqImpl);
+}
+
+/**
+ * \internal
+ * Reset and restart the SDMMC peripheral state machine
  */
 static void initSDMMCPeripheral()
 {
-    {
-        //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
-        GlobalIrqLock lock;
-        RCC->AHB4ENR |= RCC_AHB4ENR_GPIOCEN
-                      | RCC_AHB4ENR_GPIODEN
-                      ;
-        RCC_SYNC();
-        #if SD_SDMMC==1
-        RCC->AHB3ENR |= RCC_AHB3ENR_SDMMC1EN;
-        #else
-        RCC->AHB2ENR |= RCC_AHB2ENR_SDMMC2EN;
-        #endif
-        RCC_SYNC();
-        #if SD_SDMMC==2
-        sdD0::mode(Mode::ALTERNATE);
-        sdD0::alternateFunction(11);
-        #ifndef SD_ONE_BIT_DATABUS
-        sdD1::mode(Mode::ALTERNATE);
-        sdD1::alternateFunction(11);
-        sdD2::mode(Mode::ALTERNATE);
-        sdD2::alternateFunction(9);
-        sdD3::mode(Mode::ALTERNATE);
-        sdD3::alternateFunction(9);
-        #endif // SD_ONE_BIT_DATABUS
-        sdCLK::mode(Mode::ALTERNATE);
-        sdCLK::alternateFunction(11);
-        sdCMD::mode(Mode::ALTERNATE);
-        sdCMD::alternateFunction(11);
-        #else
-        sdD0::mode(Mode::ALTERNATE);
-        sdD0::alternateFunction(12);
-        #ifndef SD_ONE_BIT_DATABUS
-        sdD1::mode(Mode::ALTERNATE);
-        sdD1::alternateFunction(12);
-        sdD2::mode(Mode::ALTERNATE);
-        sdD2::alternateFunction(12);
-        sdD3::mode(Mode::ALTERNATE);
-        sdD3::alternateFunction(12);
-        #endif // SD_ONE_BIT_DATABUS
-        sdCLK::mode(Mode::ALTERNATE);
-        sdCLK::alternateFunction(12);
-        sdCMD::mode(Mode::ALTERNATE);
-        sdCMD::alternateFunction(12);
-        #endif
-        IRQregisterIrq(lock,SDMMC_IRQn,SDirqImpl);
-    }
-    
     SDMMC->POWER=0; //Power off state
     delayUs(1);
     SDMMC->CLKCR=0;
@@ -1166,6 +1199,8 @@ ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
 int SDIODriver::ioctl(int cmd, void* arg)
 {
     DBG("SDIODriver::ioctl()\n");
+    if(cmd==IOCTL_REINIT)
+        return reinitialize(true) ? 0 : -EFAULT;
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
     Lock<KernelMutex> l(mutex);
     //Note: no need to select card, since status can be queried even with card
@@ -1173,7 +1208,7 @@ int SDIODriver::ioctl(int cmd, void* arg)
     return waitForCardReady() ? 0 : -EFAULT;
 }
 
-SDIODriver::SDIODriver() : Device(Device::BLOCK)
+bool SDIODriver::sdioReinitLocked()
 {
     initSDMMCPeripheral();
 
@@ -1184,11 +1219,11 @@ SDIODriver::SDIODriver() : Device(Device::BLOCK)
 
     //Send card reset command
     CmdResult r=Command::send(Command::CMD0,0);
-    if(r.validateError()==false) return;
+    if(r.validateError()==false) return false;
 
     cardType=detectCardType();
-    if(cardType==Invalid) return; //Card detect failed
-    if(cardType==MMC) return; //MMC cards currently unsupported
+    if(cardType==Invalid) return false; //Card detect failed
+    if(cardType==MMC) return false; //MMC cards currently unsupported
 
     // Now give an RCA to the card. In theory we should loop and enumerate all
     // the cards but this driver supports only one card.
@@ -1197,55 +1232,67 @@ SDIODriver::SDIODriver() : Device(Device::BLOCK)
     if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::RespNotMatch)
     {
         r.validateError();
-        return;
+        return false;
     }
     r=Command::send(Command::CMD3,0);
-    if(r.validateR6Response()==false) return;
+    if(r.validateR6Response()==false) return false;
     Command::setRca(r.getResponse()>>16);
     DBG("Got RCA=%u\n",Command::getRca());
     if(Command::getRca()==0)
     {
         //RCA=0 can't be accepted, since it is used to deselect cards
         DBGERR("RCA=0 is invalid\n");
-        return;
+        return false;
     }
 
     //Lastly, try selecting the card and configure the latest bits
     {
         #ifndef SD_KEEP_CARD_SELECTED
         CardSelector selector;
-        if(selector.succeded()==false) return;
+        if(selector.succeded()==false) return false;
         #else //SD_KEEP_CARD_SELECTED
         //Select card here, and keep it selected indefinitely
         r=Command::send(Command::CMD7,Command::getRca()<<16);
-        if(r.validateR1Response()==false) return;
+        if(r.validateR1Response()==false) return false;
         #endif //SD_KEEP_CARD_SELECTED
 
         r=Command::send(Command::CMD13,Command::getRca()<<16);//Get status
-        if(r.validateR1Response()==false) return;
+        if(r.validateR1Response()==false) return false;
         if(r.getState()!=4) //4=Tran state
         {
             DBGERR("CMD7 was not able to select card\n");
-            return;
+            return false;
         }
 
         #ifndef SD_ONE_BIT_DATABUS
         r=Command::send(Command::ACMD6,2);   //Set 4 bit bus width
-        if(r.validateR1Response()==false) return;
+        if(r.validateR1Response()==false) return false;
         #endif //SD_ONE_BIT_DATABUS
 
         if(cardType!=SDHC)
         {
             r=Command::send(Command::CMD16,512); //Set 512Byte block length
-            if(r.validateR1Response()==false) return;
+            if(r.validateR1Response()==false) return false;
         }
     }
 
-    // Now that card is initialized, perform self calibration of maximum
-    // possible read/write speed. This as a side effect enables 4bit bus width.
-    ClockController::calibrateClockSpeed(this);
-
-    DBG("SDMMC init: Success\n");
+    // Reinitialization restores a defined card state. Clock calibration is
+    // left to the caller so it can be requested only when needed.
+    return true;
 }
+
+bool SDIODriver::reinitialize(bool calibrate) 
+{
+    Lock<KernelMutex> l(mutex);
+    if(sdioReinitLocked()==false) return false;
+    if(calibrate) return ClockController::calibrateClockSpeed(this);
+    return true;
+}
+
+SDIODriver::SDIODriver()
+{
+    initSDMMCPeripheralOnce();
+    if(reinitialize(true)) DBG("SDIO Init: Successful\n");
+    else DBGERR("SDIO Init: Failed\n");
 
 } //namespace miosix
