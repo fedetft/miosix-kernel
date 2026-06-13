@@ -54,6 +54,42 @@ extern volatile uint32_t g_fm_active;
  * on un-freeze. */
 extern volatile uint32_t g_rf_freeze;
 
+/* AT1846S chip access + VOX (radio_HD2.cpp, proven bit-bang path). */
+extern void     hd2_at1846s_write(uint8_t reg, uint16_t val);
+extern uint16_t hd2_at1846s_read(uint8_t reg);
+extern void     hd2_vox_enable(uint8_t thHigh, uint8_t thLow);
+extern void     hd2_vox_disable(void);
+extern bool     hd2_vox_detected(void);
+
+/* TX-extras timing, in 30 ms rtx_task passes. */
+#define RTX_TONE_BURST_PASSES 25u   /* 1750 Hz key-up burst   ~0.75 s */
+#define RTX_TAIL_ELIM_PASSES   6u   /* reverse-burst on dekey ~180 ms */
+#define RTX_VOX_HANG_PASSES   30u   /* VOX hangtime           ~0.90 s */
+
+/* Map VOX level 1..5 to an AT1846S reg-0x64 threshold field (VOX sheet);
+ * higher level = more sensitive = lower threshold.  Returns false if off. */
+static bool rtx_voxThresh(uint8_t level, uint8_t *th)
+{
+    static const uint8_t code[5] = { 0x45, 0x48, 0x4C, 0x52, 0x58 };
+    if(level == 0u || level > 5u) return false;
+    *th = code[level - 1];
+    return true;
+}
+
+/* 1750 Hz tone-burst on/off via the AT1846S tone1 generator (reg 0x35 freq,
+ * 0x3A[14:12] source, 0x79[15:14] output). */
+static void rtx_toneBurstStart(void)
+{
+    hd2_at1846s_write(0x35, 17500u);                                    /* 1750.0 Hz */
+    hd2_at1846s_write(0x3A, (hd2_at1846s_read(0x3A) & ~0x7000u) | 0x1000u);
+    hd2_at1846s_write(0x79, (hd2_at1846s_read(0x79) & ~0xF000u) | 0xC000u);
+}
+static void rtx_toneBurstStop(void)
+{
+    hd2_at1846s_write(0x3A, (hd2_at1846s_read(0x3A) & ~0x7000u) | 0x4000u);  /* mic */
+    hd2_at1846s_write(0x79,  hd2_at1846s_read(0x79) & ~0xF000u);             /* off */
+}
+
 static pthread_mutex_t   *cfgMutex;     /* config-handoff mutex (from rtx_init) */
 static const rtxStatus_t *newCnf;       /* pending config from rtx_configure()  */
 static rtxStatus_t        rtxStatus;    /* current rtx driver status            */
@@ -268,6 +304,12 @@ void rtx_task(void)
      */
     static bool     txActive;
     static uint32_t txTicks;
+    static bool     txIsVox;          /* current key started by VOX, not PTT  */
+    static uint32_t voxHang;          /* VOX hangtime countdown (passes)      */
+    static bool     toneBurstOn;      /* 1750 Hz key-up burst sounding        */
+    static uint32_t toneBurstTicks;
+    static bool     tailHolding;      /* reverse-burst hold before dekey      */
+    static uint32_t tailTicks;
 
     bool ptt = platform_getPttStatus();
 
@@ -291,30 +333,86 @@ void rtx_task(void)
         pttRun = 0;
     }
 
+    /* 1750 Hz tone-burst tick-down (sounds for the first ~0.75 s of a key). */
+    if(toneBurstOn && (++toneBurstTicks >= RTX_TONE_BURST_PASSES))
+    {
+        rtx_toneBurstStop();
+        toneBurstOn = false;
+    }
+
     if(txActive)
     {
         txTicks++;
-        if(!ptt || (txTicks > 2000u))
+
+        /* A hardware PTT press during a VOX key converts it to a held PTT key. */
+        if(txIsVox && ptt) txIsVox = false;
+
+        /* VOX-keyed: hold while speech continues, then run the hangtime. */
+        if(txIsVox)
         {
-            radio_disableRtx();          /* dekey + FM_PTT off + chip OFF   */
+            if(hd2_vox_detected()) voxHang = RTX_VOX_HANG_PASSES;
+            else if(voxHang > 0u)  voxHang--;
+        }
+
+        bool drop = txIsVox ? (voxHang == 0u) : (!ptt);
+        if(drop || (txTicks > 2000u))
+        {
+            /* CTCSS/DCS tail elimination: hold the keyed carrier with the
+             * reverse-burst (reg 0x30[11]) for ~180 ms before the real dekey,
+             * so the far-end decoder drops carrier without a squelch tail. */
+            if(rtxStatus.tailElim && rtxStatus.txToneEn && !tailHolding)
+            {
+                hd2_at1846s_write(0x30, (uint16_t)(hd2_at1846s_read(0x30) | 0x0800u));
+                tailHolding = true;
+                tailTicks   = 0;
+            }
+            if(tailHolding && (++tailTicks < RTX_TAIL_ELIM_PASSES))
+            {
+                sleepFor(0u, 30u);
+                return;                  /* keep holding the reverse burst   */
+            }
+
+            if(toneBurstOn) { rtx_toneBurstStop(); toneBurstOn = false; }
+            radio_disableRtx();          /* dekey (0x30=0x4006 clears bit11) */
             platform_ledOff(RED);
-            txActive           = false;
+            txActive    = false;
+            txIsVox     = false;
+            tailHolding = false;
+            tailTicks   = 0;
             rtxStatus.opStatus = OFF;
-            enterRx            = true;   /* retune + re-enter RX next pass  */
+            enterRx            = true;   /* retune + re-enter RX next pass   */
             reinitFilter       = true;
         }
         sleepFor(0u, 30u);
         return;
     }
 
-    if(ptt && cfgApplied && (rtxStatus.txDisable == 0u))
+    /* Key entry: hardware PTT always wins; VOX only when PTT is up, we are
+     * listening, and the squelch is closed (don't key over an incoming
+     * signal or self-trigger off speaker audio). */
+    bool keyByPtt = (ptt && cfgApplied && (rtxStatus.txDisable == 0u));
+    bool keyByVox = false;
+    if(!keyByPtt && cfgApplied && (rtxStatus.txDisable == 0u)
+       && (rtxStatus.vox != 0u) && (rtxStatus.opStatus == RX)
+       && !rtx_rxSquelchOpen())
+        keyByVox = hd2_vox_detected();
+
+    if(keyByPtt || keyByVox)
     {
         rtx_setAudio(false);             /* speaker off while keyed         */
         radio_enableTx();                /* refuses non-FM / out-of-band    */
         if(radio_getStatus() == TX)
         {
-            txActive           = true;
-            txTicks            = 0;
+            txActive = true;
+            txIsVox  = (keyByVox && !keyByPtt);
+            txTicks  = 0;
+            voxHang  = RTX_VOX_HANG_PASSES;
+            if(rtxStatus.toneBurst1750)
+            {
+                rtx_toneBurstStart();
+                toneBurstOn    = true;
+                toneBurstTicks = 0;
+            }
             rtxStatus.opStatus = TX;
             platform_ledOn(RED);
             sleepFor(0u, 30u);
@@ -328,6 +426,14 @@ void rtx_task(void)
         radio_enableRx();
         rtxStatus.opStatus = RX;
         enterRx            = false;
+
+        /* (Re-)arm the VOX detector -- the RX entry's setFuncMode cleared
+         * vox_on (reg 0x30 bit4). */
+        uint8_t vth;
+        if((rtxStatus.txDisable == 0u) && rtx_voxThresh(rtxStatus.vox, &vth))
+            hd2_vox_enable(vth, vth);
+        else
+            hd2_vox_disable();
     }
 
     /* RSSI low-pass filter (15.16 fixed point), only while receiving.
@@ -384,6 +490,17 @@ rssi_t rtx_getRssi(void)
 uint32_t hd2_rtx_getRxFreq(void)
 {
     return (uint32_t)rtxStatus.rxFrequency;
+}
+
+/* Bench/diag activation of the FM TX-extras (diag op 'e').  No settings/UI
+ * toggle exists yet, so this forces the flags live until the next reconfigure.
+ *   flags bit0 = 1750 Hz key-up tone burst, bit1 = CTCSS/DCS tail elimination.
+ *   vox = VOX level 0..5 (0 = off).  VOX is (re)armed on the next RX entry. */
+void hd2_rtx_setFmExtras(uint8_t flags, uint8_t vox)
+{
+    rtxStatus.toneBurst1750 = (flags & 0x01u) ? 1u : 0u;
+    rtxStatus.tailElim      = (flags & 0x02u) ? 1u : 0u;
+    rtxStatus.vox           = (vox > 5u) ? 5u : vox;
 }
 
 bool rtx_rxSquelchOpen(void)

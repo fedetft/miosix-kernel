@@ -76,6 +76,7 @@ extern "C" void     hd2_at1846s_reinit(uint32_t freq_hz);  /* BLOCKS ~700 ms (VC
 extern "C" void     hd2_at1846s_profile(uint32_t profile); /* 0=vendor 1=GD77 gains   */
 extern "C" uint16_t hd2_at1846s_afmute(uint32_t mute);     /* reg0x30 bit7 RMW        */
 extern "C" uint32_t hd2_rtx_getRxFreq(void);               /* current RX freq, Hz     */
+extern "C" void     hd2_rtx_setFmExtras(uint8_t flags, uint8_t vox); /* 'e' op       */
 
 /* CPU->codec-DAC PCM stream experiment (hd2_pcm_stream.cpp).  Streams a sine
  * through the SAHB PCM playback window via the vec-0x3b frame IRQ and reports
@@ -332,6 +333,14 @@ void *diagThreadFunc(void *)
                 uint8_t src, snk;
                 if(!rxByte(src) || !rxByte(snk)) break;
                 tx(hd2_router_disconnect(src, snk) == 0 ? 0x00u : 0xFFu);
+                break;
+            }
+            case 'e':                              // FM extras: <flags u8><vox u8> -> 'k'
+            {                                      // flags bit0=1750 burst, bit1=tail elim; vox 0..5
+                uint8_t flags, vox;
+                if(!rxByte(flags) || !rxByte(vox)) break;
+                hd2_rtx_setFmExtras(flags, vox);
+                tx('k');
                 break;
             }
             case 'S':                              // set routing target: <target u8><val u32 LE> -> u32 LE
