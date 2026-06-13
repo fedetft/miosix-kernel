@@ -41,10 +41,10 @@
 //Note: enabling debugging might cause deadlock when using sleep() or reboot()
 //The bug won't be fixed because debugging is only useful for driver development
 ///\internal Debug macro, for normal conditions
-// #define DBG iprintf
+//#define DBG iprintf
 #define DBG(x,...) do {} while(0)
 ///\internal Debug macro, for errors only
-// #define DBGERR iprintf
+//#define DBGERR iprintf
 #define DBGERR(x,...) do {} while(0)
 
 #if SD_SDMMC==1
