@@ -56,7 +56,10 @@ set(ORTX_HD2
     ${ORTX}/platform/mcu/CSKY_V2/drivers/rtc_hd2.c
     ${ORTX}/platform/targets/HD2/hd2_router.c
     ${ORTX}/platform/targets/HD2/hd2_vendor_import.c
-    ${ORTX}/platform/targets/HD2/hd2_diag.cpp)
+    ${ORTX}/platform/targets/HD2/hd2_diag.cpp
+    ${ORTX}/platform/targets/HD2/hd2_pcm_stream.cpp
+    ${ORTX}/platform/targets/HD2/hd2_gps.cpp
+    ${ORTX}/platform/targets/HD2/hd2_adpcm_sample.c)
 
 # Hardware-agnostic protocol modules (openrtx/src/protocols), structured per
 # OSI layers like M17.  APRS = 1200-baud AFSK + HDLC + AX.25, RX (Decoder) + TX (Encoder).
@@ -119,10 +122,7 @@ add_executable(openrtx_hd2
     ${CMAKE_SOURCE_DIR}/hd2_glue.cpp
     ${CMAKE_SOURCE_DIR}/hd2_stubs.c
     ${CMAKE_SOURCE_DIR}/hd2_rtx.c
-    ${CMAKE_SOURCE_DIR}/hd2_gps.cpp
     ${CMAKE_SOURCE_DIR}/hd2_fm_broadcast.cpp
-    ${CMAKE_SOURCE_DIR}/hd2_pcm_stream.cpp
-    ${CMAKE_SOURCE_DIR}/hd2_adpcm_sample.c
     ${ORTX_CORE} ${ORTX_UI} ${ORTX_HD2} ${ORTX_NVM} ${ORTX_RADIO} ${ORTX_STUBS}
     ${ORTX_VP} ${ORTX_LIBS} ${ORTX_PROTOCOLS})
 
