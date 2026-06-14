@@ -55,7 +55,8 @@ set(ORTX_HD2
     ${ORTX}/platform/mcu/CSKY_V2/drivers/adc_hd2.c
     ${ORTX}/platform/mcu/CSKY_V2/drivers/rtc_hd2.c
     ${ORTX}/platform/targets/HD2/hd2_router.c
-    ${ORTX}/platform/targets/HD2/hd2_vendor_import.c)
+    ${ORTX}/platform/targets/HD2/hd2_vendor_import.c
+    ${ORTX}/platform/targets/HD2/hd2_diag.cpp)
 
 # Hardware-agnostic protocol modules (openrtx/src/protocols), structured per
 # OSI layers like M17.  APRS = 1200-baud AFSK + HDLC + AX.25, RX (Decoder) + TX (Encoder).
@@ -118,7 +119,6 @@ add_executable(openrtx_hd2
     ${CMAKE_SOURCE_DIR}/hd2_glue.cpp
     ${CMAKE_SOURCE_DIR}/hd2_stubs.c
     ${CMAKE_SOURCE_DIR}/hd2_rtx.c
-    ${CMAKE_SOURCE_DIR}/hd2_diag.cpp
     ${CMAKE_SOURCE_DIR}/hd2_gps.cpp
     ${CMAKE_SOURCE_DIR}/hd2_fm_broadcast.cpp
     ${CMAKE_SOURCE_DIR}/hd2_pcm_stream.cpp
@@ -127,6 +127,7 @@ add_executable(openrtx_hd2
     ${ORTX_VP} ${ORTX_LIBS} ${ORTX_PROTOCOLS})
 
 target_include_directories(openrtx_hd2 PRIVATE
+    ${CMAKE_SOURCE_DIR}                   # fork: board-level headers (hd2_crumb.h)
     ${ORTX}/openrtx/include
     ${ORTX}/platform
     ${ORTX}/platform/targets/HD2
@@ -194,6 +195,6 @@ miosix_link_target(openrtx_hd2)
 # the source before every build so its object is always rebuilt with a fresh
 # timestamp. Cheap (one small TU) and keeps the reported version honest.
 add_custom_target(hd2_refresh_version ALL
-    COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_SOURCE_DIR}/hd2_diag.cpp
+    COMMAND ${CMAKE_COMMAND} -E touch ${ORTX}/platform/targets/HD2/hd2_diag.cpp
     COMMENT "Refreshing version timestamp (touch hd2_diag.cpp)")
 add_dependencies(openrtx_hd2 hd2_refresh_version)
