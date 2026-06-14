@@ -60,6 +60,9 @@ extern uint16_t hd2_at1846s_read(uint8_t reg);
 extern void     hd2_vox_enable(uint8_t thHigh, uint8_t thLow);
 extern void     hd2_vox_disable(void);
 extern bool     hd2_vox_detected(void);
+extern bool     hd2_rx_carrier_detected(void);   /* AT1846S sq_cmp (reg 0x1C[0]) */
+
+static void rtx_updateSquelch(void);             /* sq_cmp -> cached s_sqlOpen */
 
 /* TX-extras timing, in 30 ms rtx_task passes. */
 #define RTX_TONE_BURST_PASSES 25u   /* 1750 Hz key-up burst   ~0.75 s */
@@ -400,6 +403,7 @@ void rtx_task(void)
     if(keyByPtt || keyByVox)
     {
         rtx_setAudio(false);             /* speaker off while keyed         */
+        platform_ledOff(GREEN);          /* RX-signal LED off while keying  */
         radio_enableTx();                /* refuses non-FM / out-of-band    */
         if(radio_getStatus() == TX)
         {
@@ -446,9 +450,16 @@ void rtx_task(void)
 
         if(!reinitFilter)
         {
-            int32_t filt = radio_getRssi() * 0xBD70   /* 0.74 */
-                         + rssi            * 0x428F;   /* 0.26 */
-            rssi = (filt + 32768) >> 16;              /* round to nearest */
+            /* Peak-hold (instant rise, slow fall) de-jitters the S-meter: with
+             * NO carrier the chip refreshes reg-0x1B rssi_db only periodically
+             * and reads near-zero in between (HW 2026-06-14), so a plain filter
+             * flickers the bar to 0.  Peak-hold latches the periodic true value
+             * and ignores the stale dips; a real signal drop still falls (2 dB/
+             * tick @ 33 Hz).  With a carrier rssi_db is already stable. */
+            rssi_t raw = radio_getRssi();
+            if(raw >= rssi)              rssi = raw;          /* instant rise   */
+            else if((rssi - raw) > 2)    rssi = (rssi_t)(rssi - 2); /* slow fall */
+            else                         rssi = raw;
         }
         else
         {
@@ -456,24 +467,27 @@ void rtx_task(void)
             reinitFilter = false;
         }
 
-        /* Gate the RX->speaker audio on the RF squelch: route the AT1846S
-         * demod audio while a signal is over threshold, mute when it drops.
-         * Skip the post-retune settling tick (justReinit), where the AT1846S
-         * momentarily reads full-scale and would briefly false-open the path.
+        /* Update the cached squelch state from the AT1846S's own comparator
+         * (sq_cmp) once per tick -- see rtx_rxSquelchOpen().  justReinit skips
+         * the post-retune settling tick (the chip momentarily reads full-scale).
          *
-         * For tone-coded channels (rxToneEn) additionally require the CTCSS/DCS
-         * sub-audio match: RSSI still drives the S-meter/LED via
-         * rtx_rxSquelchOpen(), but the speaker only opens when the programmed
-         * tone is detected -- so an unkeyed-tone carrier reads signal yet stays
-         * muted (true tone squelch). */
+         * Gate the RX->speaker audio on the RF squelch: route the AT1846S demod
+         * audio while sq_cmp is set, mute when it drops.  For tone-coded channels
+         * (rxToneEn) additionally require the CTCSS/DCS sub-audio match, so an
+         * unkeyed-tone carrier reads signal yet stays muted (true tone squelch). */
+        if(!justReinit) rtx_updateSquelch();
         bool sqlOpen = rtx_rxSquelchOpen();
         if(sqlOpen && rtxStatus.rxToneEn)
             sqlOpen = radio_checkRxDigitalSquelch();
-        rtx_setAudio(cfgApplied && !justReinit && sqlOpen);
+        bool audioOn = cfgApplied && !justReinit && sqlOpen;
+        rtx_setAudio(audioOn);
+        /* Green LED = RX signal present (complements the red TX LED). */
+        if(audioOn) platform_ledOn(GREEN); else platform_ledOff(GREEN);
     }
     else
     {
         rtx_setAudio(false);
+        platform_ledOff(GREEN);
     }
 
     sleepFor(0u, 30u);                  /* 33 Hz update rate */
@@ -503,26 +517,30 @@ void hd2_rtx_setFmExtras(uint8_t flags, uint8_t vox)
     rtxStatus.vox           = (vox > 5u) ? 5u : vox;
 }
 
+/* Cached squelch state, updated once per RX tick by rtx_updateSquelch() (rtx
+ * thread only).  rtx_rxSquelchOpen() returns this -- it is also called from the
+ * UI thread (ui.c), so it must NOT touch the I2C bus itself. */
+static volatile bool s_sqlOpen = false;
+
+/* Update the squelch decision from the AT1846S's OWN comparator, reg 0x1C[0]
+ * sq_cmp (RSSI + noise vs the 0x48/0x49 thresholds, with the chip's built-in
+ * hi/lo hysteresis -- set from sqlLevel by radio_config's setSquelchLevel).
+ *
+ * WHY not threshold our raw RSSI like before: reg 0x1B reads ~40 dB low on
+ * ~10-20% of I2C transfers (HW-confirmed 2026-06-14), which the old ±4 dBm
+ * window could not absorb -> the audio gate fluttered closed mid-signal and
+ * chopped the demod audio (broke APRS RX capture; flickered the S-meter to 0).
+ * sq_cmp is the chip's debounced decision and is far steadier; a 3-tick (~90 ms)
+ * close debounce here absorbs the rare corrupt 0x1C read.  Matches the vendor
+ * (rx_squelch_monitor_tick reads 0x1C bit0). */
+static void rtx_updateSquelch(void)
+{
+    static uint8_t closeCnt = 0u;
+    if(hd2_rx_carrier_detected())       { s_sqlOpen = true;  closeCnt = 0u; }
+    else if(s_sqlOpen && ++closeCnt >= 3u) { s_sqlOpen = false; closeCnt = 0u; }
+}
+
 bool rtx_rxSquelchOpen(void)
 {
-    /* RF squelch: map sqlLevel (0..15) to -127..-61 dBm, compare to RSSI.
-     * Drives both the UI/LED and (via rtx_task) the RX->speaker audio gate.
-     *
-     * ±4 dBm hysteresis (8 dBm window), matching the 2026-06-10 cable-noise
-     * lockup fix in OpMode_FM.cpp -- which this build does NOT link, so the
-     * fix never applied here and the ±1 window kept the "RSSI flutter ->
-     * squelch dither -> EVENT_STATUS standby/backlight/redraw thrash ->
-     * lockup" path alive (rf_freeze A/B 2026-06-11: freezing this poll stops
-     * the lockups).  USB-serial ground-loop/RF-pickup flutters the RSSI a few
-     * dB; 8 dBm absorbs it. */
-    static bool open = false;
-    /* Match the AT1846S hardware 0x49 close threshold basis (-127 + 6*level,
-     * level clamped 0..9; see AT1846S::setSquelchLevel) so HW and SW agree at
-     * the close point, while the ±4 dBm window stays the wider audio-gate
-     * authority that absorbs RSSI flutter (the 2026-06-10 lockup fix). */
-    uint8_t lvl   = (rtxStatus.sqlLevel > 9u) ? 9u : rtxStatus.sqlLevel;
-    rssi_t squelch = -127 + 6 * (rssi_t)lvl;
-    if(!open && (rssi > squelch + 4)) open = true;
-    else if(open && (rssi < squelch - 4)) open = false;
-    return open;
+    return s_sqlOpen;
 }
