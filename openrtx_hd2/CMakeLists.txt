@@ -59,7 +59,10 @@ set(ORTX_HD2
     ${ORTX}/platform/targets/HD2/hd2_diag.cpp
     ${ORTX}/platform/targets/HD2/hd2_pcm_stream.cpp
     ${ORTX}/platform/targets/HD2/hd2_gps.cpp
-    ${ORTX}/platform/targets/HD2/hd2_adpcm_sample.c)
+    ${ORTX}/platform/targets/HD2/hd2_adpcm_sample.c
+    # Broadcast-FM OpMode (portable rtx layer; dispatched once HD2 links rtx.cpp
+    # -- compiled now to verify + RDA5802E_HD2.c provides the tuner_* override).
+    ${ORTX}/openrtx/src/rtx/OpMode_FMBroadcast.cpp)
 
 # Hardware-agnostic protocol modules (openrtx/src/protocols), structured per
 # OSI layers like M17.  APRS = 1200-baud AFSK + HDLC + AX.25, RX (Decoder) + TX (Encoder).
