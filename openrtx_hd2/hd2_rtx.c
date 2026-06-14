@@ -111,12 +111,9 @@ static bool               audioOpen;    /* RX->speaker audio path currently rout
 volatile int              g_radio_enabled = 1;
 static bool               radioBroughtUp  = false;
 
-/* Watchdog heartbeat (hard-lock forensics, 2026-06-12): armed ~10 s on the
- * first rtx_task pass and fed every pass.  A system lock stops the feeds ->
- * full-chip WDT reset -> the radio reboots on its own instead of needing the
- * power switch (which doesn't actually cycle the board with the serial cable
- * attached).  Diag op 'X' toggles it (1=on / 2=off) or forces a reboot (0). */
-volatile uint32_t         g_wdt_auto = 1;
+/* Watchdog heartbeat moved to platform/targets/HD2/watchdog_HD2.c (the portable
+ * watchdog_kick() hook, fed from rtx_threadFunc) so the feed survives the
+ * OpMode_FM convergence (rtx.cpp).  g_wdt_auto + the arm/feed live there now. */
 
 static bool               cfgApplied;   /* first real config from the UI arrived.
                                          * Until then the audio gate stays CLOSED:
@@ -217,14 +214,8 @@ rtxStatus_t rtx_getCurrentStatus(void)
 
 void rtx_task(void)
 {
-    /* Watchdog heartbeat -- see g_wdt_auto above.  Armed lazily so the boot
-     * path (codeplug enumeration etc.) can take as long as it likes. */
-    if(g_wdt_auto != 0u)
-    {
-        static bool wdtArmed;
-        if(!wdtArmed) { hd2_wdt_arm(10u); wdtArmed = true; }
-        hd2_wdt_feed();
-    }
+    /* Watchdog is now fed by watchdog_kick() from rtx_threadFunc (see
+     * watchdog_HD2.c) -- no longer this task's job. */
     HD2_CRUMB_STAMP(rtx);          /* hard-lock forensics (hd2_crumb.h) */
     {                              /* + WAKE_CH arm-state snapshot (<=30 ms pre-death) */
         extern void hd2_crumb_wake_state(void);
