@@ -61,8 +61,9 @@ set(ORTX_HD2
     ${ORTX}/platform/targets/HD2/hd2_pcm_stream.cpp
     ${ORTX}/platform/targets/HD2/hd2_gps.cpp
     ${ORTX}/platform/targets/HD2/hd2_adpcm_sample.c
-    # Broadcast-FM OpMode (portable rtx layer; dispatched once HD2 links rtx.cpp
-    # -- compiled now to verify + RDA5802E_HD2.c provides the tuner_* override).
+    # Portable rtx OpModes (dispatched once HD2 links rtx.cpp; compiled now to
+    # verify + the HD2 radio/tuner drivers provide the strong HAL overrides).
+    ${ORTX}/openrtx/src/rtx/OpMode_FM.cpp
     ${ORTX}/openrtx/src/rtx/OpMode_FMBroadcast.cpp)
 
 # Hardware-agnostic protocol modules (openrtx/src/protocols), structured per
