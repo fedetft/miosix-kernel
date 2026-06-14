@@ -264,151 +264,131 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
     snprintf(out + w, (w < (int)outsz) ? outsz - w : 0, "\r\n");
 }
 
-/* vec-0x3b playback ISR for APRS TX: handshake, then fill the SAHB playback
- * window with the encoder's next 80-sample frame (vendor pcm_isr_rd order).
- * Sets g_aprsTxDone once the encoder drains (a fully-silent frame). */
-static volatile bool     g_aprsTxDone   = false;
-static volatile uint32_t g_aprsTxFrames = 0;
-
-static void aprsPlayIsr(void *)
-{
-    SOCSYS_INT_STATUS |= INT_STATUS_PCM_PLAY_ACK;
-    volatile uint16_t *dst = SAHB_PCM_PLAY;
-    bool any = false;
-    for(unsigned i = 0; i < PCM_FRAME_SAMPLES; ++i)
-    {
-        int16_t s = 0;
-        if(g_aprsEnc.nextSample(s)) any = true;
-        dst[i] = static_cast<uint16_t>(s);
-    }
-    ++g_aprsTxFrames;
-    if(!any) g_aprsTxDone = true;
-}
-
 /* APRS TX (diag 'B'): build an AX.25 UI beacon, key the proven analog-FM TX
- * carrier (the same path normal PTT uses -- NOT the modem TX RAM, which is the
- * DMR/digital path and does not modulate analog FM: 2026-06-13 the tx_voice_
- * source RAM bit produced a dead/UNMODULATED carrier), and stream the AFSK as
- * audio through the CODEC PLAYBACK window (SAHB 0x180000a0, vec-0x3b ISR --
- * the vendor voice-prompt-over-air mechanism), routed into the FM modulator.
+ * carrier (the same path normal PTT uses), and modulate the AFSK with the
+ * AT1846S's OWN internal tone generator -- the path HW-verified this project by
+ * DTMF TX and the 1750 Hz burst (rtx_toneBurstStart: reg 0x35 freq*10, 0x3A
+ * [14:12] voice_sel, 0x79[15:12] tone-out enable).  Per NRZI symbol we retune
+ * tone1 (reg 0x35) between mark 1200.0 Hz (12000) and space 2200.0 Hz (22000),
+ * pacing each bit to 833.33 us (1/1200 s) off the 42 MHz timer.  NO modem-PCM /
+ * voice-path / pcm_mode poking -- that's what collapsed the carrier in the
+ * TX-RAM and codec-playback attempts (2026-06-13/14; the modem TX RAM is the
+ * DMR/digital path and the vendor never CPU-PCM-injects into analog FM).
  *
- * The voice-path routing bits at 0x11000080 have conflicting RE/manual
- * meanings, so they're <flags>-selectable for live A/B (no reflash):
- *   bit0 -> 0x01 (PCM bridge / "tx_voice_source")   bit1 -> 0x20 (PLAY)
- *   bit2 -> 0x40 (fm_play_ctrl, "select FM path")    bit3 -> 0x08 (sidetone)
- *   bit4 -> drop PTB3 mic gate (mic OFF -> playback-only modulation)
- * Power follows the UI level (Settings->Radio->TX Power); keep it low (full
- * power at high duty cooked a final 2026-06-13).
- * <preamble u8> leading 0x7E flags (0->48, ~320 ms TXDELAY); <flags u8> routing
- * (0 -> 0x16 = PLAY|fm_play_ctrl|mic-off). */
+ * <preamble u8> leading 0x7E flags (0 -> 48).  <flags u8>: bit0 = "flip" mode
+ * (preset tone1=mark/tone2=space and switch voice_sel 0x3A per bit instead of
+ * retuning 0x35) for live A/B; bit1 = mic gate OFF.  Power follows the UI level
+ * (Settings -> Radio -> TX Power); keep it low (full power at high duty cooked
+ * a final 2026-06-13). */
 extern "C" void hd2_aprs_tx(uint8_t preamble, uint8_t flags, char *out, unsigned outsz)
 {
     if(preamble == 0u) preamble = 48u;
-    if(flags == 0u)    flags = 0x16u;
 
     g_aprsEnc.buildBeacon("APZHD2", 0, "AI5QZ", 7, "WIDE1", 1,
                           "!4807.00N/01131.00E>HD2 APRS TX", preamble);
+    const bool flip   = (flags & 0x01u) != 0u;  /* voice_sel toggle vs 0x35 retune  */
+    const bool steady = (flags & 0x02u) != 0u;  /* DIAG: 2 s continuous tone1        */
 
-    volatile uint32_t *wm       = reinterpret_cast<volatile uint32_t*>(0x11000100u);
-    volatile uint32_t *ptt      = reinterpret_cast<volatile uint32_t*>(0x11000560u);
-    volatile uint32_t *imask    = reinterpret_cast<volatile uint32_t*>(0x1100039cu);
-    volatile uint32_t *audioctl = reinterpret_cast<volatile uint32_t*>(0x11000080u);
-
+    /* ---- Carrier + tone: the BENCH-PROVEN recipe (scripts/tmp_fm_tx_2tone.py,
+     * 2026-06-14, "nice and clean" two-tone warble on 430).  The AFSK is the
+     * AT1846S's OWN tone1 generator; the carrier is keyed by the AT1846S itself
+     * (reg 0x30), riding the current RX tune.  Critical findings baked in here:
+     *   - Do NOT call radio_enableTx / enable the C7000 FM modulator: its MOD-pin
+     *     drive SWAMPS the AT1846S internal tone (carrier up, tone inaudible).
+     *   - Key with reg 0x30 = 0x4046 ONLY -- NOT 0x40c6.  bit7 ("mute") silences
+     *     the AT1846S internal-tone path (the MOD-pin voice path bypasses it,
+     *     which is why radio_enableTx can set 0x40c6 for voice but it kills us).
+     *   - reg 0x0a padrv 0x7C20 (NOT 0x7820 -- that value kills the carrier).
+     *   - Tone gain reg 0x41[6:0]=max + dev reg 0x59=0x0C50 lift it out of noise.
+     * Clean single-tone writes: 0x79=0xC000, 0x7A=0x4000, voice_sel(0x3A)=001. */
     uint32_t freeze0 = g_rf_freeze;
     g_rf_freeze = 1;                        /* rtx thread off the bus while we TX */
-
-    /* ---- Carrier: the proven analog-FM TX path (normal-PTT equivalent) ---- */
-    uint32_t wm0 = *wm, imask0 = *imask, audioctl0 = *audioctl;
-    *imask = 0x0001007fu;                   /* vendor FM SYS_INTERP_MASK          */
-    *wm    = wm0 | 0x80u;                    /* FM analog modulator mode           */
-    *ptt   = 1u;                             /* modem FM TX on                     */
 
     uint16_t apc, padrv;
     hd2_txpower_levels(&apc, &padrv);        /* UI-selected TX power level         */
     uint32_t gpiob0 = GPIOB_DR;
     GPIOB_DR |= (1u << 19);                  /* band-select high (430 MHz)         */
-    if(flags & 0x10u) GPIOB_DR &= ~(1u << 3);/* mic gate OFF (playback-only mod)   */
-    else              GPIOB_DR |=  (1u << 3);/* mic gate ON  (vendor TX parity)    */
+    GPIOB_DR &= ~(1u << 3);                  /* mic gate off (tone path only)      */
     DAC_PD_MODE_EN &= ~0x2u;
     DAC_PD_CTRL    &= ~0x2u;
-    DAC_DATA_B      = apc;
+    DAC_DATA_B      = apc;                    /* APC power DAC (UI level)           */
 
+    uint16_t r35 = hd2_at1846s_read(0x35);
+    uint16_t r36 = hd2_at1846s_read(0x36);
+    uint16_t r3a = hd2_at1846s_read(0x3A);
     uint16_t r40 = hd2_at1846s_read(0x40);
-    uint16_t r0a = hd2_at1846s_read(0x0a);
+    uint16_t r41 = hd2_at1846s_read(0x41);
     uint16_t r59 = hd2_at1846s_read(0x59);
-
-    /* HD2 TX cal offset (+12.5 kHz = +200 freq-word units on 0x29/0x2A). */
+    uint16_t r0a = hd2_at1846s_read(0x0a);
+    uint16_t r79 = hd2_at1846s_read(0x79);
+    uint16_t r7a = hd2_at1846s_read(0x7A);
     uint16_t fhi = hd2_at1846s_read(0x29);
     uint16_t flo = hd2_at1846s_read(0x2A);
-    uint32_t ftx = ((((uint32_t)fhi << 16) | flo) + 200u);
-    hd2_at1846s_write(0x29, (uint16_t)((ftx >> 16) & 0xffffu));
-    hd2_at1846s_write(0x2A, (uint16_t)(ftx & 0xffffu));
 
-    hd2_at1846s_write(0x0a, (uint16_t)((padrv << 11) | 0x0420u));
-    hd2_at1846s_write(0x59, 0x0C50u);       /* wideband FM deviation              */
+    const uint16_t r3a_base = (uint16_t)(r3a & ~0x7000u);
+
     hd2_at1846s_write(0x40, 0x0030u);
+    hd2_at1846s_write(0x0a, (uint16_t)((padrv << 11) | 0x0420u));  /* PA drive (0x7C20) */
+    hd2_at1846s_write(0x59, 0x0C50u);                             /* FM deviation  */
+    hd2_at1846s_write(0x41, (uint16_t)((r41 & ~0x007Fu) | 0x007Fu)); /* tone gain max */
+
+    /* tone generator (clean single-tone writes) */
+    hd2_at1846s_write(0x35, 12000u);                          /* mark = 1200.0 Hz */
+    if(flip || steady) hd2_at1846s_write(0x36, 22000u);       /* space = 2200.0 Hz */
+    hd2_at1846s_write(0x79, 0xC000u);                         /* single tone dir+tx */
+    hd2_at1846s_write(0x7A, 0x4000u);                         /* single_tone enable */
+    hd2_at1846s_write(0x3A, (uint16_t)(r3a_base | 0x1000u));  /* voice_sel = tone1  */
+
+    /* key the carrier (bare AT1846S, ride RX tune -- NO 0x40c6, NO C7000 mod) */
     hd2_at1846s_write(0x30, 0x4006u);
-    hd2_at1846s_write(0x30, 0x4046u);       /* tx_on: key the carrier             */
-    hd2_at1846s_write(0x30, 0x40c6u);       /* + bit7: PA-stage on                */
+    hd2_at1846s_write(0x30, 0x4046u);        /* tx_on (bit7 stays 0 = unmuted)     */
 
-    /* ---- Modulation: stream the AFSK through the codec playback path ---- */
-    uint32_t route = 0u;
-    if(flags & 0x01u) route |= 0x01u;       /* PCM bridge                         */
-    if(flags & 0x02u) route |= 0x20u;       /* VOICE_PATH PLAY                    */
-    if(flags & 0x04u) route |= 0x40u;       /* fm_play_ctrl (select FM path)      */
-    if(flags & 0x08u) route |= 0x08u;       /* fm_sidetone                        */
-    uint32_t pmSave = SOCSYS_PCM_MODE;
-    SOCSYS_SYS_SOFT_RSTN |= SOFT_RSTN_PCM_BITS;
-    SOCSYS_PCM_MODE = 3u;
-    *audioctl = audioctl0 | route;
-
-    g_aprsTxDone = false; g_aprsTxFrames = 0;
+    int n = 0;
+    if(steady)
     {
-        GlobalIrqLock lock;
-        IRQregisterIrq(lock, HD2_IRQ_PCM_PLAY, &aprsPlayIsr, nullptr);
+        /* DIAG: hold ~2 s of 1200 Hz tone1 (Thread::sleep -> no getTime dep). */
+        Thread::sleep(2000);
     }
-    /* Prime the first frame + handshake (vendor modem_pcm_path_enable order). */
+    else
     {
-        volatile uint16_t *dst = SAHB_PCM_PLAY;
-        for(unsigned i = 0; i < PCM_FRAME_SAMPLES; ++i)
+        /* ---- Drive the NRZI symbols, 833.33 us/bit, 42 MHz-timer paced ---- */
+        const long long SPB_NS = 1000000000LL / 1200LL;   /* 833333 ns */
+        long long t0 = getTime();
+        n = g_aprsEnc.numSymbols();
+        for(int i = 0; i < n; ++i)
         {
-            int16_t s = 0; g_aprsEnc.nextSample(s);
-            dst[i] = static_cast<uint16_t>(s);
+            bool mark = g_aprsEnc.symbolIsMark(i);
+            if(flip)
+                hd2_at1846s_write(0x3A, (uint16_t)(r3a_base | (mark ? 0x1000u : 0x2000u)));
+            else
+                hd2_at1846s_write(0x35, mark ? 12000u : 22000u);
+            long long deadline = t0 + (long long)(i + 1) * SPB_NS;
+            while(getTime() < deadline) { /* busy-wait: < WDT, rtx frozen */ }
         }
     }
-    SOCSYS_INT_STATUS |= INT_STATUS_PCM_PLAY_ACK;
 
-    /* Wait for the beacon to clock out (ISR sets done) or a ~3 s safety bound. */
-    int guard;
-    for(guard = 0; guard < 600 && !g_aprsTxDone; ++guard)
-        Thread::sleep(5);
-
-    {
-        GlobalIrqLock lock;
-        IRQunregisterIrq(lock, HD2_IRQ_PCM_PLAY, &aprsPlayIsr, nullptr);
-    }
-
-    /* ---- dekey + restore ---- */
-    hd2_at1846s_write(0x30, 0x4006u);       /* dekey (clears PA bit7)             */
+    /* ---- tone off + dekey + restore ---- */
+    hd2_at1846s_write(0x30, 0x4006u);        /* dekey                              */
+    hd2_at1846s_write(0x7A, r7a);            /* tone off                           */
+    hd2_at1846s_write(0x79, r79);
+    hd2_at1846s_write(0x35, r35);
+    hd2_at1846s_write(0x36, r36);
+    hd2_at1846s_write(0x3A, (uint16_t)(r3a_base | 0x4000u)); /* voice_sel = mic    */
     DAC_DATA_B      = 0u;
     DAC_PD_CTRL    |= 0x2u;
-    *ptt      = 0u;
-    *wm       = wm0;
-    *audioctl = audioctl0;
-    *imask    = imask0;
-    SOCSYS_PCM_MODE = pmSave;
-    GPIOB_DR  = gpiob0;
-    hd2_at1846s_write(0x29, fhi);
-    hd2_at1846s_write(0x2A, flo);
+    GPIOB_DR = gpiob0;
     hd2_at1846s_write(0x59, r59);
+    hd2_at1846s_write(0x41, r41);
     hd2_at1846s_write(0x0a, r0a);
+    hd2_at1846s_write(0x3A, r3a);
     hd2_at1846s_write(0x40, (r40 != 0u) ? r40 : 0x0031u);
-    hd2_at1846s_write(0x30, 0x4826u);       /* back to RX-on                      */
+    hd2_at1846s_write(0x30, 0x4826u);        /* back to RX-on                      */
     g_rf_freeze = freeze0;
 
-    snprintf(out, outsz, "APRSTX pre=%u flags=%02x frames=%lu apc=%03x done=%d\r\n",
-             preamble, flags, (unsigned long)g_aprsTxFrames, (unsigned)apc,
-             g_aprsTxDone ? 1 : 0);
+    snprintf(out, outsz,
+             "APRSTX pre=%u flags=%02x syms=%d apc=%03x f29=%04x f2a=%04x %s%s\r\n",
+             preamble, flags, n, (unsigned)apc, (unsigned)fhi, (unsigned)flo,
+             flip ? "flip" : "retune", steady ? " STEADY" : "");
 }
 
 /* Full-stack stream test: tone via audioPath_request -> audioStream_start ->
