@@ -61,8 +61,11 @@ set(ORTX_HD2
     ${ORTX}/platform/targets/HD2/hd2_pcm_stream.cpp
     ${ORTX}/platform/targets/HD2/hd2_gps.cpp
     ${ORTX}/platform/targets/HD2/hd2_adpcm_sample.c
-    # Portable rtx OpModes (dispatched once HD2 links rtx.cpp; compiled now to
-    # verify + the HD2 radio/tuner drivers provide the strong HAL overrides).
+    # Portable rtx task + OpModes (replaces the HD2 fork's hd2_rtx.c).  rtx.cpp
+    # dispatches OpMode_FM (FM voice + 1750/VOX/tail extras + sq_cmp squelch) and
+    # OpMode_FMBroadcast (RDA5802E tuner); the HD2 radio/tuner drivers provide
+    # the strong HAL overrides (squelch, RSSI peak-hold, TX extras, tuner_*).
+    ${ORTX}/openrtx/src/rtx/rtx.cpp
     ${ORTX}/openrtx/src/rtx/OpMode_FM.cpp
     ${ORTX}/openrtx/src/rtx/OpMode_FMBroadcast.cpp)
 
@@ -126,7 +129,6 @@ add_executable(openrtx_hd2
     ${CMAKE_SOURCE_DIR}/main.cpp
     ${CMAKE_SOURCE_DIR}/hd2_glue.cpp
     ${CMAKE_SOURCE_DIR}/hd2_stubs.c
-    ${CMAKE_SOURCE_DIR}/hd2_rtx.c
     ${CMAKE_SOURCE_DIR}/hd2_fm_broadcast.cpp
     ${ORTX_CORE} ${ORTX_UI} ${ORTX_HD2} ${ORTX_NVM} ${ORTX_RADIO} ${ORTX_STUBS}
     ${ORTX_VP} ${ORTX_LIBS} ${ORTX_PROTOCOLS})

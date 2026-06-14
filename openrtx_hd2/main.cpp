@@ -10,16 +10,19 @@
 
 extern "C" void openrtx_init(void);
 extern "C" void *openrtx_run(void *arg);
+extern "C" void audio_init(void);      // board audio routing init (audio_HD2.c)
 extern "C" void hd2_diag_start(void);  // UART0 peek/poke diag thread (hd2_diag.cpp)
 extern "C" void hd2_gps_start(void); // GPS UART2 RX worker (hd2_gps.cpp)
-extern "C" void hd2_fm_broadcast_start(void);  // FM broadcast RX worker (hd2_fm_broadcast.cpp)
 
 int main()
 {
     openrtx_init();        // platform/state/gfx/kbd/ui/vp + codeplug + splash
+    audio_init();          // amp/route GPIOs (was bundled in hd2_rtx.c's bringup;
+                           // rtx.cpp's rtx_init does not init audio)
     hd2_diag_start();      // bring up the UART0 peek/poke diag thread (post UART init)
     hd2_gps_start(); // GPS UART2 RX worker thread
-    hd2_fm_broadcast_start();  // FM broadcast RX worker (gated by the UI FM screen / SK2)
+    // Broadcast FM is an OpMode now (OPMODE_FM_BCAST via the UI FM screen) --
+    // the old hd2_fm_broadcast worker thread is gone.
     openrtx_run(nullptr);  // create_threads() (ui + rtx) then main_thread loop
     return 0;
 }
