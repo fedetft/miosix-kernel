@@ -194,10 +194,29 @@ extern "C" void hd2_txpower_levels(uint16_t *apc, uint16_t *padrv);  /* UI power
 static Aprs::Decoder g_aprsDec;     /* ~400 B decoder state (not on the stack) */
 static Aprs::Encoder g_aprsEnc;     /* ~1.3 KB encoder state (not on the stack) */
 
+/* Raw-capture dump for host analysis (diag 'w'): the exact int16 samples the
+ * decoder saw, read back with the 'R' op and fed to scripts/aprs_host_decode
+ * (the firmware demod) to iterate the demod off-air.  4000 samples = 0.5 s @
+ * 8 kHz = 8 KB (under the boot-hang limit).
+ *
+ * It is a RING buffer that FREEZES just after a near-complete frame is
+ * assembled, so the 0.5 s window always straddles the real frame plus its
+ * preceding preamble (vs. the old "first 0.5 s from carrier rise", which the
+ * TX preamble/false-squelch-trigger pushed off the frame).  The reply reports
+ * dbg=<addr> dn=<valid> head=<ring write index> so the host can linearize. */
+static int16_t  g_aprsDbg[4000];
+static volatile uint32_t g_aprsDbgN = 0;     /* valid samples (capped at ring) */
+static volatile uint32_t g_aprsDbgHead = 0;  /* ring write index (mod size)    */
+
 extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
 {
     if(frames == 0u || frames > 600u) frames = 200u;   /* default ~2 s decode  */
 
+    /* NOTE: do NOT rf_freeze here -- the captured demod audio passes through the
+     * squelch audio gate that rtx_task opens on carrier detect; freezing rtx
+     * leaves the gate closed -> muted capture (pp~240, squelch-muted level).
+     * rtx must keep running for the gate, even though it also periodically
+     * rewrites reg 0x58 (filter bypass) -- handled by re-asserting 0x58 below. */
     uint32_t vpSave = SOCSYS_VOICE_PATH;
     SOCSYS_SYS_SOFT_RSTN |= SOFT_RSTN_PCM_BITS;
     SOCSYS_PCM_MODE = 3u;
@@ -210,27 +229,38 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
     uint16_t r58 = hd2_at1846s_read(0x58);
     hd2_at1846s_write(0x58, (uint16_t)(r58 | 0x00E0u));
 
-    /* RSSI baseline (AT1846S reg 0x1B upper byte; dBm = -137 + x). */
-    int base = 0;
-    for(int i = 0; i < 8; ++i) { base += (int)(hd2_at1846s_read(0x1B) >> 8); Thread::sleep(5); }
-    base /= 8;
-
-    /* Wait up to ~8 s for a carrier (RSSI jump >= ~8 dB). */
+    /* Wait up to ~8 s for a carrier via SNR = rssi_db - noise_db (reg 0x1B:
+     * [15:8]=rssi_db, [7:0]=noise_db).  A carrier QUIETS the noise, so SNR
+     * jumps from ~-50 (idle) to ~+50..+80 -- a clean ~100 dB margin (HW-measured
+     * 2026-06-14).  Far more reliable than thresholding raw rssi_db, which idles
+     * jittery + only periodically-refreshed with no carrier. */
     bool trig = false;
     for(int t = 0; t < 1600; ++t)
     {
-        if((int)(hd2_at1846s_read(0x1B) >> 8) > base + 8) { trig = true; break; }
+        uint16_t v = hd2_at1846s_read(0x1B);
+        int snr = (int)((v >> 8) & 0xFFu) - (int)(v & 0xFFu);
+        if(snr > 10) { trig = true; break; }
         Thread::sleep(5);
     }
+
+    /* Re-assert the filter bypass right before capturing (belt-and-suspenders
+     * now that rtx is frozen) and read it back for the reply. */
+    hd2_at1846s_write(0x58, (uint16_t)(r58 | 0x00E0u));
+    uint16_t r58now = hd2_at1846s_read(0x58);
 
     /* Stream-decode the demod audio, frame by frame.  buf/line are static to
      * keep the diag thread's small stack out of trouble. */
     g_aprsDec.reset();
+    g_aprsDbgN = 0;
+    g_aprsDbgHead = 0;
+    const uint32_t DBG_CAP = sizeof g_aprsDbg / sizeof g_aprsDbg[0];
     volatile uint16_t *src = SAHB_PCM_CAP;
     static int16_t buf[PCM_FRAME_SAMPLES];
     static char    line[256];
     bool     got = false;
     int16_t  lo = 32767, hi = -32768;
+    int      tailFrames = -1;   /* >=0 once a frame closes, counts down to freeze */
+    int      prevCur = 0;       /* previous in-progress frame length (frame-close detect) */
     uint16_t f;
     for(f = 0; f < frames && !got; ++f)
     {
@@ -241,10 +271,29 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
             buf[i] = s;
             if(s < lo) lo = s;
             if(s > hi) hi = s;
+            /* Ring buffer frozen just after a near-complete frame CLOSES, so the
+             * 4000-sample window holds the whole frame + its preamble (carrier-
+             * trigger is decoupled from the beacon under open squelch).  A full
+             * 64 B frame is ~3700 samples, so it fits with room to spare. */
+            if(tailFrames != 0)
+            {
+                g_aprsDbg[g_aprsDbgHead] = s;
+                g_aprsDbgHead = (g_aprsDbgHead + 1u) % DBG_CAP;
+                if(g_aprsDbgN < DBG_CAP) g_aprsDbgN++;
+            }
         }
         SOCSYS_INT_STATUS |= INT_STATUS_PCM_CAP_ACK;
         if(g_aprsDec.process(buf, PCM_FRAME_SAMPLES, line, (int)sizeof line))
             got = true;
+
+        /* Frame close = the in-progress length was high, then dropped (a closing
+         * flag reset it).  Freeze 2 frames later, keeping the full frame + FCS. */
+        int cur = g_aprsDec.curFrameLen();
+        if(tailFrames < 0 && prevCur >= 45 && cur < prevCur)
+            tailFrames = 2;
+        else if(tailFrames > 0 && --tailFrames == 0)
+            break;
+        prevCur = cur;
     }
 
     hd2_at1846s_write(0x58, r58);          /* restore the voice filters */
@@ -252,11 +301,14 @@ extern "C" void hd2_aprs_rx(uint16_t frames, char *out, unsigned outsz)
     if(got) { snprintf(out, outsz, "APRS: %s\r\n", line); return; }
 
     /* Near-miss diagnosis: status + hex of the longest assembled frame, so the
-     * host can diff it against the known packet to localise the bit errors. */
+     * host can diff it against the known packet to localise the bit errors.
+     * r58=<live 0x58> confirms the filter bypass held (bits 5/6/7 set). */
     int w = snprintf(out, outsz,
-                     "APRS none (trig=%d pp=%d flags=%d max=%d) F=",
+                     "APRS none (trig=%d pp=%d flags=%d max=%d r58=%04x dbg=%p dn=%lu head=%lu) F=",
                      trig ? 1 : 0, (int)(hi - lo),
-                     g_aprsDec.flagsSeen(), g_aprsDec.maxFrameLen());
+                     g_aprsDec.flagsSeen(), g_aprsDec.maxFrameLen(),
+                     (unsigned)r58now, (void *)g_aprsDbg, (unsigned long)g_aprsDbgN,
+                     (unsigned long)g_aprsDbgHead);
     const uint8_t *fr = g_aprsDec.lastRawFrame();
     int frlen = g_aprsDec.lastRawLen();
     for(int i = 0; i < frlen && w < (int)outsz - 3; ++i)
