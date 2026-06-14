@@ -439,24 +439,10 @@ void rtx_task(void)
     {
         bool justReinit = reinitFilter;
 
-        if(!reinitFilter)
-        {
-            /* Peak-hold (instant rise, slow fall) de-jitters the S-meter: with
-             * NO carrier the chip refreshes reg-0x1B rssi_db only periodically
-             * and reads near-zero in between (HW 2026-06-14), so a plain filter
-             * flickers the bar to 0.  Peak-hold latches the periodic true value
-             * and ignores the stale dips; a real signal drop still falls (2 dB/
-             * tick @ 33 Hz).  With a carrier rssi_db is already stable. */
-            rssi_t raw = radio_getRssi();
-            if(raw >= rssi)              rssi = raw;          /* instant rise   */
-            else if((rssi - raw) > 2)    rssi = (rssi_t)(rssi - 2); /* slow fall */
-            else                         rssi = raw;
-        }
-        else
-        {
-            rssi         = radio_getRssi();
-            reinitFilter = false;
-        }
+        /* radio_getRssi() now does the peak-hold de-jitter (HD2 reg-0x1B is
+         * periodically-stale with no carrier); just take its value. */
+        rssi = radio_getRssi();
+        reinitFilter = false;
 
         /* Update the cached squelch state from the AT1846S's own comparator
          * (sq_cmp) once per tick -- see rtx_rxSquelchOpen().  justReinit skips
