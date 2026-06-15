@@ -57,6 +57,7 @@ set(ORTX_HD2
     ${ORTX}/platform/mcu/CSKY_V2/drivers/rtc_hd2.c
     ${ORTX}/platform/targets/HD2/hd2_router.c
     ${ORTX}/platform/targets/HD2/hd2_cps_codeplug_import.c
+    ${ORTX}/platform/targets/HD2/hd2_cps_codeplug_export.c
     ${ORTX}/platform/targets/HD2/hd2_cps_settings_export.c
     ${ORTX}/platform/targets/HD2/watchdog_HD2.c
     ${ORTX}/platform/targets/HD2/hd2_diag.cpp
