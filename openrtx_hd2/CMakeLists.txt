@@ -31,6 +31,7 @@ set(ORTX_CORE
     ${ORTX}/openrtx/src/core/openrtx.c
     ${ORTX}/openrtx/src/core/data_conversion.c
     ${ORTX}/openrtx/src/core/nvmem_access.c
+    ${ORTX}/openrtx/src/core/vendor_cps_settings.c
     ${ORTX}/openrtx/src/core/audio_path.cpp
     ${ORTX}/openrtx/src/core/audio_stream.c
     ${ORTX}/openrtx/src/core/voicePromptUtils.c)
@@ -55,7 +56,8 @@ set(ORTX_HD2
     ${ORTX}/platform/mcu/CSKY_V2/drivers/adc_hd2.c
     ${ORTX}/platform/mcu/CSKY_V2/drivers/rtc_hd2.c
     ${ORTX}/platform/targets/HD2/hd2_router.c
-    ${ORTX}/platform/targets/HD2/hd2_vendor_import.c
+    ${ORTX}/platform/targets/HD2/hd2_cps_codeplug_import.c
+    ${ORTX}/platform/targets/HD2/hd2_cps_settings_export.c
     ${ORTX}/platform/targets/HD2/watchdog_HD2.c
     ${ORTX}/platform/targets/HD2/hd2_diag.cpp
     ${ORTX}/platform/targets/HD2/hd2_pcm_stream.cpp
@@ -154,17 +156,13 @@ if(HD2_GPS_DEBUG)
     target_compile_definitions(openrtx_hd2 PRIVATE HD2_GPS_DEBUG=1)
 endif()
 
-# Radio-bus (AT1846S/RDA5802E) I2C transport.  Default = the HW DesignWare
-# I2C1 controller (2026-06-13: full Test-A checklist HW-verified on it -- RX,
-# TX, PTT, codeplug, FM broadcast incl. the RDA5802E 64-byte init burst).
-# The historical "wedge" was platform_init stealing the pad mux
-# (docs/TASK_hw_i2c_migration.md); the post-boot hard lock was the missing
-# no-PendSV drain in PKrestartKernelAndWaitImpl (same doc).  The bit-bang
-# transport is kept as a fallback: cmake -DHD2_I2C_BITBANG=ON .
-option(HD2_I2C_BITBANG "Use software bit-bang I2C for the radio bus (fallback; default = HW I2C1)" OFF)
-if(HD2_I2C_BITBANG)
-    target_compile_definitions(openrtx_hd2 PRIVATE HD2_I2C_BITBANG=1)
-endif()
+# Radio-bus (AT1846S/RDA5802E) transport: the HW DesignWare I2C1 controller
+# (i2c_csky.c).  Full Test-A checklist HW-verified -- RX, TX, PTT, codeplug, FM
+# broadcast incl. the RDA5802E 64-byte init burst (2026-06-13).  The historical
+# "wedge" was platform_init stealing the pad mux (docs/TASK_hw_i2c_migration.md);
+# the post-boot hard lock was the missing no-PendSV drain in
+# PKrestartKernelAndWaitImpl (same doc).  The old software bit-bang transport was
+# removed once HW I2C1 proved reliable.
 
 # LCD transport: default = the HW i8080 controller @0x12000000 (live-verified
 # 2026-06-13, red-stripe test; ~6 AHB cycles/byte vs hundreds for the GPIO
