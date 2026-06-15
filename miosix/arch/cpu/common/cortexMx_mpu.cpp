@@ -175,8 +175,8 @@ void IRQenableMPU()
     #else
     //Quirk: despite the 0x00000000-0x20000000 memory region is reserved by ARM
     //for *code* execution, stm32f4 have a *data* TCM at 0x10000000...
-    IRQconfigureMPURegion(region++,0x00000000,0x10000000,true);
-    IRQconfigureMPURegion(region++,0x10000000,0x10000000,false);
+    IRQconfigureMPURegion(region++,0x00000000,0x10000000,AccessPermission::RX);
+    IRQconfigureMPURegion(region++,0x10000000,0x10000000,AccessPermission::RW);
     #endif
     //ARM Default memory map: region 0x20000000-0x40000000 for data
     IRQconfigureMPURegion(region++,0x20000000,0x20000000,AccessPermission::RW);
