@@ -197,6 +197,10 @@ class IrqStatus {
 
 /**
  * Initialize the Ethernet hardware (MAC and DMA).
+ * \note MII/RMII *must* be selected prior to calling this function. If the
+ * incorrect configuration is selected, the ETH peripheral will be enabled but
+ * won't be able to communicate with the PHY: no RX buffers will be filled, and
+ * no TX buffers will be sent out.
  * \param rxDesc pointer to the RX DMA descriptor list
  * \param txDesc pointer to the TX DMA descriptor list
  * \param hwaddr hardware MAC address

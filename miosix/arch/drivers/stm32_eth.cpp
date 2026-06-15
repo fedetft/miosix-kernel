@@ -81,10 +81,9 @@ void STM32Ethernet::IrqStatus::clearTx() {
 void STM32Ethernet::init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc,
                          uint8_t *hwaddr, EthernetIrqHandler irqHandler,
                          void *irqArg) {
-    SYSCFG->PMC = 0; // Select MII interface, must be done before enabling ETH
-
     {
         miosix::FastGlobalIrqLock dLock;
+        // Enable ETH clock
         RCC->AHB1ENR |= RCC_AHB1ENR_ETHMACEN | RCC_AHB1ENR_ETHMACRXEN |
                         RCC_AHB1ENR_ETHMACTXEN |
                         RCC_AHB1ENR_ETHMACPTPEN; // TODO: do we need it?

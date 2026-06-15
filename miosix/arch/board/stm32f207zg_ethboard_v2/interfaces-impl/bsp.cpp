@@ -56,21 +56,31 @@ namespace miosix {
 // Initialization
 //
 
-void IRQbspInit()
+void configureEthernet()
 {
-    //Configure MCO to output 25MHz clock
+    // Select MII
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+    SYSCFG->PMC &= ~SYSCFG_PMC_MII_RMII_SEL;
+    // Configure MCO to output 50MHz clock
     RCC->CFGR |= RCC_CFGR_MCO1_1;
-    
-    ledOn();
-    delayMs(100);
-    ledOff();
-    
+
     mii::res::high();
     mii::mdc::alternateFunction(11);
     mii::mdc::mode(Mode::ALTERNATE);
     mii::mdio::alternateFunction(11);
     mii::mdio::mode(Mode::ALTERNATE);
-    
+}
+
+void IRQbspInit()
+{  
+    #ifdef WITH_NETWORKING
+    configureEthernet();
+    #endif //WITH_NETWORKING
+
+    ledOn();
+    delayMs(100);
+    ledOff();
+        
     IRQsetDefaultConsole(intrusive_ref_ptr<Device>(
     #ifndef STDOUT_REDIRECTED_TO_DCC
         STM32SerialBase::get<defaultSerialTxPin,defaultSerialRxPin,
