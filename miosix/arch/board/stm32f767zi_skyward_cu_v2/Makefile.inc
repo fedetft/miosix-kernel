@@ -12,6 +12,8 @@ CPU_FLAGS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
 BOARD_SRC :=                         \
+arch/drivers/stm32_eth.cpp           \
+arch/drivers/stm32_uid.cpp           \
 $(BOARD_INC)/boot.cpp                \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 

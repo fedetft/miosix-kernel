@@ -47,9 +47,11 @@
 #include "interfaces/arch_registers.h"
 #include "interfaces/delays.h"
 #include "interfaces/poweroff.h"
+#include "interfaces-impl/hwmapping.h"
 #include "kernel/thread.h"
 #include "kernel/logging.h"
 #include "kernel/sync.h"
+#include "network/network.h"
 
 namespace miosix
 {
@@ -221,6 +223,32 @@ void configureSdram()
 
 }
 
+void configureEthernet()
+{
+    // Select RMII (not enough exposed pins for MII on Skyward CU v2)
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+    SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
+
+    eth::mdc::alternateFunction(11);
+    eth::mdc::mode(Mode::ALTERNATE);
+    eth::mdio::alternateFunction(11);
+    eth::mdio::mode(Mode::ALTERNATE);
+    eth::ref_clk::alternateFunction(11);
+    eth::ref_clk::mode(Mode::ALTERNATE);
+    eth::crs_dv::alternateFunction(11);
+    eth::crs_dv::mode(Mode::ALTERNATE);
+    eth::rxd0::alternateFunction(11);
+    eth::rxd0::mode(Mode::ALTERNATE);
+    eth::rxd1::alternateFunction(11);
+    eth::rxd1::mode(Mode::ALTERNATE);
+    eth::txen::alternateFunction(11);
+    eth::txen::mode(Mode::ALTERNATE);
+    eth::txd0::alternateFunction(11);
+    eth::txd0::mode(Mode::ALTERNATE);
+    eth::txd1::alternateFunction(11);
+    eth::txd1::mode(Mode::ALTERNATE);
+}
+
 void IRQbspInit()
 {
     // Enable USART1 pins port
@@ -230,6 +258,10 @@ void IRQbspInit()
     userLed2::mode(Mode::OUTPUT);
     userLed3::mode(Mode::OUTPUT);
     userLed4::mode(Mode::OUTPUT);
+
+#ifdef WITH_NETWORKING
+    configureEthernet();
+#endif //WITH_NETWORKING
 
     ledOn();
     delayMs(100);
@@ -247,6 +279,10 @@ void bspInit2()
 #ifdef WITH_FILESYSTEM
     basicFilesystemSetup(SDIODriver::instance());
 #endif  // WITH_FILESYSTEM
+#ifdef WITH_NETWORKING
+    Thread::create(network::netStackThread,MAIN_STACK_SIZE,DEFAULT_PRIORITY,
+        nullptr,Thread::DETACHED);
+#endif //WITH_NETWORKING
 }
 
 //
