@@ -361,7 +361,14 @@ void PriorityScheduler::IRQrunScheduler()
     #endif //WITH_CPU_TIME_COUNTER
 }
 
+// The __attribute__s here force the memory layout to have readyThreads first
+// followed by notReadyThreads.
+// This is used by the OpenOCD Miosix RTOS support to be able to detect
+// NUM_PRIORITIES by looking at the difference between the addresses of
+// notReadyThreads and readyThreads.
+__attribute__((section(".bss.threadList"))) __attribute__((no_reorder))
 IntrusiveList<Thread> PriorityScheduler::readyThreads[NUM_PRIORITIES];
+__attribute__((section(".bss.threadList"))) __attribute__((no_reorder))
 IntrusiveList<Thread> PriorityScheduler::notReadyThreads;
 Thread *PriorityScheduler::idle[CPU_NUM_CORES]={nullptr};
 
