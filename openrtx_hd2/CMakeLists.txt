@@ -99,6 +99,7 @@ set(ORTX_NVM
 # loader protocol.
 set(ORTX_RADIO
     ${ORTX}/platform/drivers/baseband/radio_HD2.cpp
+    ${ORTX}/platform/drivers/baseband/dmr_HD2.cpp
     ${ORTX}/platform/drivers/baseband/AT1846S_HD2.cpp
     ${ORTX}/platform/drivers/baseband/RDA5802E_HD2.c
     ${ORTX}/platform/drivers/audio/audio_HD2.c
@@ -155,6 +156,15 @@ target_compile_definitions(openrtx_hd2 PRIVATE
 option(HD2_GPS_DEBUG "Echo raw GPS NMEA to the console UART" OFF)
 if(HD2_GPS_DEBUG)
     target_compile_definitions(openrtx_hd2 PRIVATE HD2_GPS_DEBUG=1)
+endif()
+
+# DMR TX live RF.  OFF by default: the DMR op-mode is a scaffold (the software
+# AMBE vocoder + the per-slot pump are still being brought up), so a default
+# build configures the modem/AT1846S for DMR but never keys a carrier.  Turn
+# ON only for hardware bring-up:  cmake -DHD2_DMR_TX_LIVE=ON .
+option(HD2_DMR_TX_LIVE "Enable live DMR TX keying (PA + slot engine + TS_TX ISR)" OFF)
+if(HD2_DMR_TX_LIVE)
+    target_compile_definitions(openrtx_hd2 PRIVATE HD2_DMR_TX_LIVE=1)
 endif()
 
 # Radio-bus (AT1846S/RDA5802E) transport: the HW DesignWare I2C1 controller
