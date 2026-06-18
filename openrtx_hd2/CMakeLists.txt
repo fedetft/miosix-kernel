@@ -68,6 +68,7 @@ set(ORTX_HD2
     # the strong HAL overrides (squelch, RSSI peak-hold, TX extras, tuner_*).
     ${ORTX}/openrtx/src/rtx/rtx.cpp
     ${ORTX}/openrtx/src/rtx/OpMode_FM.cpp
+    ${ORTX}/openrtx/src/rtx/OpMode_DMR.cpp
     ${ORTX}/openrtx/src/rtx/OpMode_FMBroadcast.cpp)
 
 # Hardware-agnostic protocol modules (openrtx/src/protocols), structured per
@@ -146,6 +147,7 @@ target_include_directories(openrtx_hd2 PRIVATE
 
 target_compile_definitions(openrtx_hd2 PRIVATE
     PLATFORM_HD2 _MIOSIX FONT_UBUNTU_REGULAR timegm=mktime
+    CONFIG_DMR
     "GIT_VERSION=\"openrtx-hd2-miosix\"")
 
 # Optional debug: echo raw GPS NMEA from UART2 to the console UART0 (visible in
