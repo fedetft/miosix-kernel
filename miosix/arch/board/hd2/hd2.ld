@@ -8,8 +8,15 @@
  *          straight from the slot, no remap). Base 0x0300d000, length 614400
  *          (600*1024) so the padded .bin slots into the same YMODEM envelope
  *          (scripts/fw_crypto.py); see feedback_hd2_flash_pad_size.
- *   ram    on-chip SRAM. We take 0x20000..0x50000 (192 KiB), leaving the low
- *          IRAM (0x10000..0x20000, the IAP/BOOTROM VBR + early use) untouched.
+ *   ram    on-chip SRAM. We take 0x33000..0x4f000 (112 KiB). The window
+ *          0x1bfe0..0x327e8 just below is RESERVED for the device-resident
+ *          software AMBE+2 voice codec, which is not position-independent and
+ *          must run at its native VMA (copied in at runtime by the DMR-voice
+ *          driver; build-ambe/ blob, never committed). Below that, the low IRAM
+ *          (0x10000..0x20000, IAP/BOOTROM VBR + early use) stays untouched
+ *          EXCEPT the codec's first ~8 KiB (0x1bfe0..0x20000) overlaps it --
+ *          relies on the IAP only using that region during boot/flash, as the
+ *          vendor firmware does (the vendor runs this same codec there).
  *
  * The generic Miosix script defines all sections/symbols (_etext,_data,
  * _bss_start/_end, init arrays, ctors, _heap_end, _irq_stack_top, and
@@ -30,7 +37,13 @@ MEMORY
      * survive a watchdog reset, so it sits outside .bss/heap AND below the
      * region the IAP scribbles on every boot (~0x4fe00..0x50000, measured
      * 2026-06-13 via a signature ladder across a real WDT crash cycle). */
-    ram(wx)   : ORIGIN = 0x00020000, LENGTH = 0x2F000   /* 192 KiB - 4 KiB */
+    ram(wx)   : ORIGIN = 0x00033000, LENGTH = 0x1C000   /* 112 KiB: 0x33000..0x4f000 */
 }
+
+/* The AMBE+2 codec's native code window (0x1bfe0..0x327e8) sits just below
+ * ORIGIN(ram); the linker places nothing there -- the DMR-voice driver copies
+ * the carved blob to these VMAs at runtime. */
+_ambe_code_vma = 0x0001bfe0;
+_ambe_code_end = 0x000327e8;
 
 INCLUDE ldscripts/miosix-flash-ram.ld
