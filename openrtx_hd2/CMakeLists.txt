@@ -206,7 +206,7 @@ endif()
 # build uses but the earlier HD2 build had dropped.
 option(HD2_M17 "Link Codec2-mod (M17 3200 fork) + M17 bring-up self-test" OFF)
 if(HD2_M17)
-    set(C2M ${ORTX}/../Codec2-mod)        # sibling of OpenRTX under vendor/
+    set(C2M ${ORTX}/../Codec2-mod)   # sibling of OpenRTX; C2_FIXED = real fixed-point path
     add_library(codec2_hd2 STATIC
         ${C2M}/src/analysis.c   ${C2M}/src/codec2_mod.c ${C2M}/src/delta_lsp_cb.c
         ${C2M}/src/interp.c     ${C2M}/src/kiss_fft.c   ${C2M}/src/kiss_fftr.c
@@ -220,11 +220,10 @@ if(HD2_M17)
     target_compile_options(codec2_hd2 PRIVATE
         -w -ffunction-sections -fdata-sections
         -fsingle-precision-constant -fno-math-errno)
-    # C2_PROFILE: per-stage encode timing (diag op 'i' prints analyse/lsp/quant us).
-    target_compile_definitions(codec2_hd2 PRIVATE C2_PROFILE=1)
+    target_compile_definitions(codec2_hd2 PRIVATE C2_FIXED)
     target_link_libraries(openrtx_hd2 PRIVATE codec2_hd2)
     target_include_directories(openrtx_hd2 PRIVATE ${C2M}/inc)
-    target_compile_definitions(openrtx_hd2 PRIVATE HD2_M17=1 C2_PROFILE=1)
+    target_compile_definitions(openrtx_hd2 PRIVATE HD2_M17=1)
 endif()
 
 # M17 packet-mode physical-layer bring-up (no vocoder, no codec2).  Embeds a
