@@ -211,14 +211,33 @@ if(HD2_M17)
         ${C2M}/src/analysis.c   ${C2M}/src/codec2_mod.c ${C2M}/src/delta_lsp_cb.c
         ${C2M}/src/interp.c     ${C2M}/src/kiss_fft.c   ${C2M}/src/kiss_fftr.c
         ${C2M}/src/lpc.c        ${C2M}/src/nlp.c        ${C2M}/src/quantise.c
-        ${C2M}/src/synthesis.c  ${C2M}/src/util.c)
+        ${C2M}/src/synthesis.c  ${C2M}/src/util.c
+        ${C2M}/src/fft_fixed.c)  # int32 fixed-point FFT bridge
+    # Keep codec2 at the build's -O2 for an accurate encode-speed benchmark, but
+    # build the rest of the app -Os to fit flash (the BFP analysis grew .text).
+    target_compile_options(openrtx_hd2 PRIVATE -Os)
     target_include_directories(codec2_hd2 PRIVATE ${C2M}/inc)
     target_compile_options(codec2_hd2 PRIVATE
         -w -ffunction-sections -fdata-sections
         -fsingle-precision-constant -fno-math-errno)
+    # C2_PROFILE: per-stage encode timing (diag op 'i' prints analyse/lsp/quant us).
+    target_compile_definitions(codec2_hd2 PRIVATE C2_PROFILE=1)
     target_link_libraries(openrtx_hd2 PRIVATE codec2_hd2)
     target_include_directories(openrtx_hd2 PRIVATE ${C2M}/inc)
-    target_compile_definitions(openrtx_hd2 PRIVATE HD2_M17=1)
+    target_compile_definitions(openrtx_hd2 PRIVATE HD2_M17=1 C2_PROFILE=1)
+endif()
+
+# M17 packet-mode physical-layer bring-up (no vocoder, no codec2).  Embeds a
+# host-generated M17 baseband test frame (m17_frame.raw) and adds diag op 'f' to
+# play it on loop through the FM-TX-RAM pump, so an external m17-demod can lock
+# on our over-the-air LSF and confirm the TX physical layer (sync + RRC +
+# deviation).  Independent of HD2_M17/codec2.  cmake -DHD2_M17_TXTEST=ON .
+option(HD2_M17_TXTEST "Embed an M17 baseband frame + diag op 'f' to TX it (packet PHY bring-up)" OFF)
+if(HD2_M17_TXTEST)
+    target_sources(openrtx_hd2 PRIVATE ${ORTX}/platform/targets/HD2/m17_blob_HD2.S)
+    set_source_files_properties(${ORTX}/platform/targets/HD2/m17_blob_HD2.S
+        PROPERTIES COMPILE_OPTIONS "-Wa,-I${ORTX}/platform/targets/HD2")
+    target_compile_definitions(openrtx_hd2 PRIVATE HD2_M17_TXTEST=1)
 endif()
 
 # Radio-bus (AT1846S/RDA5802E) transport: the HW DesignWare I2C1 controller
