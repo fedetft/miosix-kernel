@@ -167,6 +167,29 @@ if(HD2_DMR_TX_LIVE)
     target_compile_definitions(openrtx_hd2 PRIVATE HD2_DMR_TX_LIVE=1)
 endif()
 
+# DMR voice: the device-resident software AMBE+2 codec, copied to its native
+# VMA at runtime and driven by hd2_ambe.c.  OFF by default and NOT in the repo:
+# the AMBE blob is DVSI-patented, so it is carved from the user's own firmware
+# at build time (scripts/ambe_carve.py -> build-ambe/, gitignored) and the .S
+# .incbin's it from there.  Enable for voice bring-up:
+#   python3 scripts/ambe_carve.py && cmake -DHD2_DMR_VOICE=ON .
+option(HD2_DMR_VOICE "Link the carved AMBE+2 voice codec (needs build-ambe/)" OFF)
+if(HD2_DMR_VOICE)
+    set(AMBE_BLOB_DIR ${CMAKE_SOURCE_DIR}/../../../build-ambe)
+    if(NOT EXISTS ${AMBE_BLOB_DIR}/ambe_lo.bin)
+        message(FATAL_ERROR
+            "HD2_DMR_VOICE=ON but ${AMBE_BLOB_DIR}/ambe_lo.bin is missing -- "
+            "run: python3 scripts/ambe_carve.py")
+    endif()
+    target_sources(openrtx_hd2 PRIVATE
+        ${ORTX}/platform/targets/HD2/hd2_ambe.c
+        ${ORTX}/platform/targets/HD2/ambe_blob_HD2.S)
+    # GAS resolves .incbin "ambe_lo.bin" via -I (blob lives in build-ambe/).
+    set_source_files_properties(${ORTX}/platform/targets/HD2/ambe_blob_HD2.S
+        PROPERTIES COMPILE_OPTIONS "-Wa,-I${AMBE_BLOB_DIR}")
+    target_compile_definitions(openrtx_hd2 PRIVATE HD2_DMR_VOICE=1)
+endif()
+
 # Radio-bus (AT1846S/RDA5802E) transport: the HW DesignWare I2C1 controller
 # (i2c_csky.c).  Full Test-A checklist HW-verified -- RX, TX, PTT, codeplug, FM
 # broadcast incl. the RDA5802E 64-byte init burst (2026-06-13).  The historical
