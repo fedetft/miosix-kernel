@@ -190,6 +190,44 @@ if(HD2_DMR_VOICE)
     target_compile_definitions(openrtx_hd2 PRIVATE HD2_DMR_VOICE=1)
 endif()
 
+# M17 digital voice -- Phase 1.  Links the vendored Codec2 (3200/1600 modes) so
+# its soft-float encode cost can be MEASURED on-target via the diag self-test op
+# 'i' (the team previously found codec2 too slow for voice-prompt decode -- see
+# ORTX_VP -- so the per-frame timing decides M17-voice viability).  Codec2 builds
+# portably on the kiss_fft path (no CMSIS/FPU; target is -mcpu=ck803 soft-float).
+# The OpenRTX M17 protocol stack + the SINK_RTX baseband sink are later phases.
+#   cmake -DHD2_M17=ON .
+option(HD2_M17 "Link Codec2 + M17 bring-up (Phase 1: codec2 self-test)" OFF)
+if(HD2_M17)
+    set(C2 ${ORTX}/subprojects/codec2)
+    # 3200-ONLY minimal source set.  M17 voice uses Codec2 3200, whose encode
+    # path is speech_to_uq_lsps -> encode_lspds_scalar (the differential scalar
+    # codebook lsp_cbd in codebookd.c) -- it needs NONE of the big NEWAMP/JVM
+    # tables (codebooknewamp1.c = 80 KB, codebookjvm.c = 40 KB) that the 700C /
+    # 450 / 2400 / 1300 modes pull in.  Those modes are disabled at compile time
+    # (CODEC2_MODE_*_EN=0 via CODEC2_MODE_EN_DEFAULT=0), so their code is dead and
+    # -ffunction/-fdata-sections + the link's --gc-sections collect it -- as long
+    # as we don't force-link the newamp/jvm/mbest TUs (which would root them).
+    # This keeps the firmware inside the 600 KiB flash region. (1600 voice+data
+    # is a later phase; re-enable + add its files then.)
+    add_library(codec2_hd2 STATIC
+        ${C2}/src/dump.c      ${C2}/src/lpc.c       ${C2}/src/nlp.c
+        ${C2}/src/phase.c     ${C2}/src/quantise.c  ${C2}/src/postfilter.c
+        ${C2}/src/codec2.c    ${C2}/src/codec2_fft.c ${C2}/src/lsp.c
+        ${C2}/src/sine.c      ${C2}/src/interp.c    ${C2}/src/kiss_fft.c
+        ${C2}/src/kiss_fftr.c ${C2}/src/codebook.c  ${C2}/src/codebookd.c
+        ${C2}/src/pack.c)
+    target_include_directories(codec2_hd2 PRIVATE ${C2} ${C2}/src)
+    target_compile_definitions(codec2_hd2 PRIVATE
+        USE_KISS_FFT
+        CODEC2_MODE_EN_DEFAULT=0 CODEC2_MODE_3200_EN=1
+        FREEDV_MODE_EN_DEFAULT=0)
+    target_compile_options(codec2_hd2 PRIVATE -w -ffunction-sections -fdata-sections)
+    target_link_libraries(openrtx_hd2 PRIVATE codec2_hd2)
+    target_include_directories(openrtx_hd2 PRIVATE ${C2} ${C2}/src)  # ${C2} for "codec2/version.h"
+    target_compile_definitions(openrtx_hd2 PRIVATE HD2_M17=1)
+endif()
+
 # Radio-bus (AT1846S/RDA5802E) transport: the HW DesignWare I2C1 controller
 # (i2c_csky.c).  Full Test-A checklist HW-verified -- RX, TX, PTT, codeplug, FM
 # broadcast incl. the RDA5802E 64-byte init burst (2026-06-13).  The historical

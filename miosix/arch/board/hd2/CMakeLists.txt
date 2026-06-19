@@ -9,6 +9,9 @@ set(MIOSIX_CHIP_INC ${CMAKE_CURRENT_SOURCE_DIR}/arch/chip/hr_c7000)
 # requires; those are added to the command line when the script is selected.
 set(MIOSIX_LINKER_SCRIPT_LIST
     hd2.ld
+    hd2_m17.ld    # low RAM origin (0x20000): reclaims the AMBE window as heap for
+                  # the M17/Codec2 build (HD2_DMR_VOICE must be OFF). Select with
+                  # -DMIOSIX_LINKER_SCRIPT=hd2_m17.ld
 )
 set(MIOSIX_DEFAULT_LINKER_SCRIPT hd2.ld)
 
