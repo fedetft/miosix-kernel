@@ -204,6 +204,20 @@ endif()
 # -fsingle-precision-constant stops float literals from promoting whole
 # expressions to (much slower) double soft-float -- a free win the upstream STM32
 # build uses but the earlier HD2 build had dropped.
+# M17 digital VOICE TX -- the full on-device chain: our fixed-point Codec2
+# (C2_FIXED, 15 ms/frame) -> OpenRTX M17 FrameEncoder + Modulator -> a PLATFORM_HD2
+# baseband tap that decimates 48 kHz -> 8 kHz -> the FM-TX-RAM ping-pong pump
+# (the proven HD2_M17_TXTEST keying path).  Exposed as diag op 'g'.  Implies
+# HD2_M17 (pulls in the codec2 lib) and, like it, needs the low-RAM linker script
+# with DMR voice OFF:
+#   cmake -DHD2_M17_VOICE=ON -DMIOSIX_LINKER_SCRIPT=hd2_m17.ld .
+option(HD2_M17_VOICE "Full on-device M17 voice TX (codec2 -> M17 -> FM-TX-RAM pump, diag op 'g')" OFF)
+if(HD2_M17_VOICE)
+    # Normal variable set before the option() below -> with CMP0077 NEW the
+    # option() is a no-op, so HD2_M17 stays ON and the codec2 lib links in.
+    set(HD2_M17 ON)
+endif()
+
 option(HD2_M17 "Link Codec2-mod (M17 3200 fork) + M17 bring-up self-test" OFF)
 if(HD2_M17)
     set(C2M ${ORTX}/../Codec2-mod)   # sibling of OpenRTX; C2_FIXED = real fixed-point path
@@ -224,6 +238,28 @@ if(HD2_M17)
     target_link_libraries(openrtx_hd2 PRIVATE codec2_hd2)
     target_include_directories(openrtx_hd2 PRIVATE ${C2M}/inc)
     target_compile_definitions(openrtx_hd2 PRIVATE HD2_M17=1)
+endif()
+
+if(HD2_M17_VOICE)
+    # OpenRTX M17 stack (hardware-agnostic).  ConvolutionalEncoder / Interleaver /
+    # CodePuncturing / Decorrelator / StreamFrame / PacketFrame are header-only;
+    # crc.c (crc_m17) is already compiled in ORTX_CORE.  Modulator.cpp's
+    # PLATFORM_HD2 branch decimates 48 kHz -> 8 kHz into the diag op's sink.
+    set(ORTX_M17
+        ${ORTX}/openrtx/src/protocols/M17/FrameEncoder.cpp
+        ${ORTX}/openrtx/src/protocols/M17/LinkSetupFrame.cpp
+        ${ORTX}/openrtx/src/protocols/M17/Callsign.cpp
+        ${ORTX}/openrtx/src/protocols/M17/Golay.cpp
+        ${ORTX}/openrtx/src/protocols/M17/Modulator.cpp
+        ${ORTX}/openrtx/src/protocols/M17/DSP.cpp)
+    target_sources(openrtx_hd2 PRIVATE ${ORTX_M17})
+    # CONFIG_M17 is scoped to the M17 sources ONLY.  DSP.cpp gates the rrc_48k FIR
+    # behind it, but ui*.c / rtx.cpp also test CONFIG_M17 (M17 op-mode menu +
+    # dispatch) and OpMode_M17 is NOT linked here -- a global define would drag in
+    # an unlinked op-mode.  hd2_diag.cpp keys on HD2_M17_VOICE instead.
+    set_source_files_properties(${ORTX_M17}
+        PROPERTIES COMPILE_DEFINITIONS "CONFIG_M17")
+    target_compile_definitions(openrtx_hd2 PRIVATE HD2_M17_VOICE=1)
 endif()
 
 # M17 packet-mode physical-layer bring-up (no vocoder, no codec2).  Embeds a
