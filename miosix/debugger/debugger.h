@@ -56,6 +56,8 @@ typedef enum {
     OK = 0,
     SPAWN_FAIL,
     ATTACH_FAIL,
+    RUN_FAIL,
+    PARSE_FAIL,
     MEMORY_WRITE_FAIL,
     MEMORY_READ_FAIL,
     REGISTER_READ_FAIL,
@@ -182,7 +184,7 @@ private:
     unsigned int head;
 
     static_assert(size > RegisterFile::sizeBytes * 2,
-        "StubBuffers must be large enough to store all registers with hex encoding (2 hex per byte)");
+        "GDBBuffers must be large enough to store all registers with hex encoding (2 hex per byte)");
 };
 
 enum class StopReason {
@@ -596,7 +598,7 @@ public:
         }
     }
 
-    // NOTE: This is a reminder to add handler BreakpointUnit insithe the
+    // NOTE: This is a reminder to add handle BreakpointUnit inside the
     // scheduler module if a new one is implemented
     // - Call BreakpointUnit::IRQhandleResched(prev, next) inside
     //   IRQrunScheduler passing pointers to the previously scheduled thread and

@@ -325,6 +325,11 @@ static inline void parseBigEndian32(char* readPtr, char* valPtr) {
 
 void Debugger::handleCommand_gG() {
 
+    if (attached.process == nullptr) {
+        buffer.setReturnCode(PARSE_FAIL);
+        return;
+    }
+
     const auto read = buffer.getData()[0] == 'g';
     char valPtr[MAX_REGISTER_SIZE_BYTES];
 
@@ -378,6 +383,11 @@ void Debugger::handleCommand_gG() {
 
 void Debugger::handleCommand_pP() {
 
+    if (attached.process == nullptr) {
+        buffer.setReturnCode(PARSE_FAIL);
+        return;
+    }
+
     const auto read = buffer.getData()[0] == 'p';
     char* separator;
     const auto entry = strtoul(buffer.getData() + 1, &separator, 16);
@@ -416,6 +426,12 @@ void Debugger::handleCommand_mM() {
     char* separator;
     const auto baseAddress = reinterpret_cast<char*>(strtoul(buffer.getData() + 1, &separator, 16));
     const auto len = strtoul(separator + 1, &separator, 16);
+
+    // Again, this should not happen with a proper client
+    if (attached.process == nullptr) {
+        buffer.setReturnCode(PARSE_FAIL);
+        return;
+    }
 
     if (read) {
         if (! attached.process->mpu.withinForReading(baseAddress, len)) {
@@ -460,22 +476,39 @@ void Debugger::handleCommand_mM() {
 }
 
 void Debugger::handleCommand_cs() {
+
+    if (attached.process == nullptr) {
+        // No process is currently attached, attempting to resume execution,
+        // return an error
+        // While this should never happen with a proper client, it might lock
+        // the server if not handled properly
+        buffer.setReturnCode(RUN_FAIL);
+        return;
+    }
+
     // Prepare struct to wake up thread
     attached.running = true;
     // NOTE: It's mandatory to set stopreason to NONE as only the first thread
     // which triggers an event can set attached.reason, this is done by checking
     // on the stopreason
     attached.reason = StopReason::NONE;
-    attached.thread->debugStatus = (buffer.getData()[0] == 'c')
-                                 ? DebugStatus::RUN
-                                 : DebugStatus::STEP
-                                 ;
-    if(attached.thread) attached.thread->debugWakeup();
+    if(attached.thread) {
+        attached.thread->debugStatus = (buffer.getData()[0] == 'c')
+                                     ? DebugStatus::RUN
+                                     : DebugStatus::STEP
+                                     ;
+        attached.thread->debugWakeup();
+    }
 
     stopReply();
 }
 
 void Debugger::handleCommand_D() {
+    if (attached.process == nullptr) {
+        buffer.setReturnCode(ATTACH_FAIL);
+        return;
+    }
+
     // Stop debugging process and wake up its only (assuming single thread
     // execution)
     {
@@ -546,7 +579,7 @@ void Debugger::handleCommand_q() {
         // communicated as being part of flash, since rev.1 hw breakpoints
         // cannot address it anyway (mask is 0x1ffffff4) rev.2 bp can address
         // outside of this space, in which case  it's possible to tell gdb to
-        // use hardware breakpoints, the stub will prevent insertion attempts
+        // use hardware breakpoints, the server will prevent insertion attempts
         // outside of addressable space
         const unsigned int _hwbp_valid_length    = 0x20000000 - _hwbp_valid_start;
         // TODO: This is not the proper way to communicate memory layout, it
@@ -626,6 +659,10 @@ void Debugger::vrun() {
     // TODO: I should, and then I can inline it in handleV
 
     char* const str = strchr(buffer.getData(), ';');
+    if (str == NULL) {
+        buffer.setReturnCode(PARSE_FAIL);
+        return;
+    }
 
     // Starting from first character of the buffer after ; (vRun;2f62696e2f666f6f;626172)
     //                                                           ^

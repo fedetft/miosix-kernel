@@ -279,6 +279,9 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
 }
 
 const char targetXMLString[] = 
+// Not necessary for a proper response, save on space
+//"<?xml version=\"1.0\"?>"
+//"<!DOCTYPE target SYSTEM \"gdb-target.dtd\">"
 "<target>"
     "<architecture>"
         GDB_ARCH
