@@ -216,7 +216,7 @@ public:
     pid_t           pid;
     int             ec;
 
-    void clear() {
+    inline void IRQclear() {
         process     = nullptr;
         name        = nullptr;
         thread      = nullptr;

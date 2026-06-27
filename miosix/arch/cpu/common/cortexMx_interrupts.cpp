@@ -758,7 +758,6 @@ void DebugMon_Handler()
     extern char _process_pool_end   asm("_process_pool_end");
 
     // Validate stack pointer
-    // FIXME: Does it include off & watermark?
     if (psp<reinterpret_cast<unsigned int>(&_process_pool_start)
      || psp>reinterpret_cast<unsigned int>(&_process_pool_end)-off-sizeof(unsigned int)) {
         IRQerrorLog("\r\n*** Corrupted user stack pointer");

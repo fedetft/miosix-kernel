@@ -245,7 +245,8 @@ void Debugger::stopReply() {
         FastGlobalIrqLock dLock;
         // While process is running
         while(attached.running) {
-            // Set thread to notify
+            // TODO: to implement process kill, should peek one character from
+            // gdbserial if available, matching 0x03
             Thread::IRQglobalIrqUnlockAndWait(dLock);
         }
     }
@@ -254,6 +255,11 @@ void Debugger::stopReply() {
 
     // NOTE: on all exit condition (fault, execve, fault) set attached.process
     // before the wait, to prevent it triggering with reclaimed memory on clear
+    // NOTE: attached.IRQclear should be guarded by a GlobalIrqLock, but this
+    // whole code secion executes as the attached process already stopped, any
+    // debug event triggered in this section is not associated with debugged
+    // process (escalates to HardFault rather than being handled by
+    // DebugMonitor)
     switch (attached.reason) {
     case StopReason::NONE: {
         BUF_FORMAT(buffer, "W" "00");
@@ -266,7 +272,7 @@ void Debugger::stopReply() {
         attached.process = nullptr;
         attached.pid = wait(&attached.ec);
         BUF_FORMAT(buffer, "W" "%02x", attached.code & 0xff);
-        attached.clear();
+        attached.IRQclear();
         BreakpointUnit::clear();
     } break;
     case StopReason::FAULT: {
@@ -279,7 +285,7 @@ void Debugger::stopReply() {
                                 hexToAscii(attached.code & 0xf),
                                 '\0'};
         buffer.appendBytes(retCode);
-        attached.clear();
+        attached.IRQclear();
         BreakpointUnit::clear();
         sendPacket();
         BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
@@ -293,7 +299,7 @@ void Debugger::stopReply() {
         } else {
             attached.process = nullptr;
             attached.pid = wait(&attached.ec);
-            attached.clear();
+            attached.IRQclear();
             BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
         }
     };
@@ -486,18 +492,22 @@ void Debugger::handleCommand_cs() {
         return;
     }
 
-    // Prepare struct to wake up thread
-    attached.running = true;
-    // NOTE: It's mandatory to set stopreason to NONE as only the first thread
-    // which triggers an event can set attached.reason, this is done by checking
-    // on the stopreason
-    attached.reason = StopReason::NONE;
-    if(attached.thread) {
-        attached.thread->debugStatus = (buffer.getData()[0] == 'c')
-                                     ? DebugStatus::RUN
-                                     : DebugStatus::STEP
-                                     ;
-        attached.thread->debugWakeup();
+    {
+        FastGlobalIrqLock dLock;
+        // Prepare struct to wake up thread
+        attached.running = true;
+        // NOTE: It's mandatory to set stopreason to NONE as only the first thread
+        // which triggers an event can set attached.reason, this is done by checking
+        // on the stopreason
+        attached.reason = StopReason::NONE;
+        if(attached.thread) {
+            attached.thread->debugStatus = (buffer.getData()[0] == 'c')
+                                         ? DebugStatus::RUN
+                                         : DebugStatus::STEP
+                                         ;
+            attached.thread->debugWakeup();
+        }
+        attached.IRQclear();
     }
 
     stopReply();
@@ -515,8 +525,8 @@ void Debugger::handleCommand_D() {
         FastGlobalIrqLock dLock;
         attached.process = nullptr;
         if(attached.thread) attached.thread->IRQdebugWakeup();
+        attached.IRQclear();
     }
-    attached.clear();
     BreakpointUnit::clear();
     buffer.setReturnCode(OK);
 }
