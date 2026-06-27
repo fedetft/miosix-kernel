@@ -879,15 +879,25 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 
                             // Execve must be handled AFTER load
                             #ifdef PROCESS_DEBUGGER
-                            if (this == Debugger::attached.process) {
+                            {
                                 FastGlobalIrqLock dLock;
+                                if (this == Debugger::attached.process) {
                                     Debugger::attached.name = path;
-                                    // TODO: determine current thread
                                     Debugger::attached.IRQset(Thread::IRQgetCurrentThread(),
                                         StopReason::EXECVE, 0);
-                                    // On execve, whole process is substituted
-                                    Debugger::attached.running = false;
-                                    if (Debugger::thread) Debugger::thread->IRQwakeup();
+                                    // NOTE: Do not stop immediately but set pending debug
+                                    // exception, which allows context switch inside the process
+                                    // This is necessary as a client not
+                                    // supporting execve would receive a simple
+                                    // stop reply and might attempt to read
+                                    // process registers which have not been
+                                    // initialized.
+                                    Thread::IRQgetCurrentThread()->debugStatus = DebugStatus::PEND;
+                                    Debugger::attached.running = true;
+
+                                    // Debugger::attached.running = false;
+                                    // if (Debugger::thread) Debugger::thread->IRQwakeup();
+                                }
                             }
                             #endif
 
