@@ -295,6 +295,7 @@ void Debugger::stopReply() {
         if (features.supported(GDBFeatures::EXEC_EVENTS)) {
             BUF_FORMAT(buffer, "T" "%02x" "exec:", SIGTRAP);
             buffer.appendBytes(Debugger::attached.name);
+            buffer.appendChar(';');
             Debugger::attached.name = nullptr;
         } else {
             attached.process = nullptr;
@@ -331,7 +332,8 @@ static inline void parseBigEndian32(char* readPtr, char* valPtr) {
 
 void Debugger::handleCommand_gG() {
 
-    if (attached.process == nullptr) {
+    if (attached.process == nullptr
+     || attached.thread == nullptr) {
         buffer.setReturnCode(PARSE_FAIL);
         return;
     }
@@ -507,7 +509,6 @@ void Debugger::handleCommand_cs() {
                                          ;
             attached.thread->debugWakeup();
         }
-        attached.IRQclear();
     }
 
     stopReply();

@@ -769,7 +769,7 @@ void DebugMon_Handler()
     // running
     // Set running flag
     // TODO: with the assumption of single-thread, the first thread hitting a
-    // breakpoint is the only one reporting the haltint reason, all other
+    // breakpoint is the only one reporting the halting reason, all other
     // threads stop without reporting their halting reason
     if (Debugger::attached.reason == StopReason::NONE) {
         Debugger::attached.IRQset(thread, StopReason::DEBUGEVENT, 0);
@@ -778,6 +778,12 @@ void DebugMon_Handler()
     // set to false, With the support of multithread this must be set only by
     // the last trhead which happens to stop, by either performing a context
     // switch, a resched, or hitting another breakpoint
+    //
+    // TODO: Implementing multithread it might be better to change
+    // representation, allowing each thread to append their own stopreason
+    // (i.e.: IntrusiveListNode debugInfo in Thread class)
+    // Even if this might require more memory (needs to be included for each
+    // thread, regardless of them being kernel or user)
     Debugger::attached.running = false;
     // Wakeup debugger thread if waiting
     if (Debugger::thread != nullptr) {
