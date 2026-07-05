@@ -41,7 +41,6 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "interfaces/serial.h"
-#include "drivers/stm32_rtc.h"
 #include "board_settings.h"
 
 using namespace std;
@@ -162,7 +161,7 @@ void IRQbspInit()
     redLed::mode(Mode::OUTPUT);
     yellowLed::mode(Mode::OUTPUT);
     ledOn();
-    Rtc::instance(); //Starting the 32KHz oscillator takes time
+    delayMs(100);
     ledOff();
 
     configureLowVoltageDetect();

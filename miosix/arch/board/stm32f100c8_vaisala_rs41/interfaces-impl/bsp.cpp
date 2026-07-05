@@ -41,7 +41,6 @@
 #include "filesystem/file_access.h"
 #include "filesystem/console/console_device.h"
 #include "interfaces/serial.h"
-#include "drivers/stm32_rtc.h"
 #include "board_settings.h"
 #include "hwmapping.h"
 

@@ -31,6 +31,13 @@
 #include <kernel/timeconversion.h>
 #include "miosix_settings.h"
 
+//NOTE: This driver is considered legacy and conflicts with WITH_RTC_AS_OS_TIMER
+//Starting from Miosix 3 the 1+N timing subsystem was introduced that also
+//allows using the RTC as OS timer without slowing down context switch code.
+//For new application, in STM32F1 boards with a 32kHz crystal but no HSE crystal
+//or when deep sleep is used and there is a need to keep track of time in deep
+//sleep, consider defining WITH_RTC_AS_OS_TIMER and just using the
+//Miosix/posix/C++11 time primitives instead of relying on this driver.
 #ifndef WITH_RTC_AS_OS_TIMER
 
 namespace miosix {
