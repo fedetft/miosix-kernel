@@ -55,8 +55,17 @@ private:
      * Constructor
      */
     SPISDDriver();
+
+     /**
+     * Reinitialize the card.
+     * The mutex is recursive, so calibration can call readBlock() without
+     * deadlocking even when reinitialize() is already holding it.
+     */
+    bool reinitialize();
+
+    bool sdioReinitLocked();
     
-    KernelMutex mutex;
+    KernelMutex mutex{MutexOptions::RECURSIVE};
 };
 
 } //namespace miosix

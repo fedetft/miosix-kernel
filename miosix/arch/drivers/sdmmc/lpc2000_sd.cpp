@@ -476,6 +476,8 @@ ssize_t SPISDDriver::writeBlock(const void* buffer, size_t size, off_t where)
 int SPISDDriver::ioctl(int cmd, void* arg)
 {
     DBG("SPISDDriver::ioctl()\n");
+    if (cmd==IOCTL_REINIT)
+        return reinitialize() ? 0 : -EFAULT;
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
     Lock<KernelMutex> l(mutex);
     CS_LOW();
@@ -485,7 +487,7 @@ int SPISDDriver::ioctl(int cmd, void* arg)
     else return -EFAULT;
 }
 
-SPISDDriver::SPISDDriver() : Device(Device::BLOCK)
+bool SPISDDriver::sdioReinitLocked()
 {
     const int MAX_RETRY=20;//Maximum command retry before failing
     spi_1_init(); /* init at low speed */
@@ -503,7 +505,7 @@ SPISDDriver::SPISDDriver() : Device(Device::BLOCK)
         print_error_code(resp);
         DBGERR("Init failed\n");
         CS_HIGH();
-        return; //Error
+        return false; //Error
     }
     unsigned char n, cmd, ty=0, ocr[4];
     // Enter Idle state
@@ -565,7 +567,7 @@ SPISDDriver::SPISDDriver() : Device(Device::BLOCK)
     if(ty==0)
     {
         CS_HIGH();
-        return; //Error
+        return false; //Error
     }
     cardType=ty;
 
@@ -573,7 +575,7 @@ SPISDDriver::SPISDDriver() : Device(Device::BLOCK)
     {
         DBGERR("Status error\n");
         CS_HIGH();
-        return; //Error
+        return false; //Error
     }
 
     CS_HIGH();
@@ -582,6 +584,18 @@ SPISDDriver::SPISDDriver() : Device(Device::BLOCK)
     SSPCPSR=SPI_PRESCALE_MIN;
 
     DBG("Init done...\n");
+    return true;
+}
+
+bool SPISDDriver::reinitialize()
+{
+    Lock<KernelMutex> l(mutex);
+    return sdioReinitLocked();
+}
+
+SPISDDriver::SPISDDriver() : Device(Device::BLOCK)
+{
+    if(reinitialize()) DBG("SDIO init: Success\n");
 }
 
 } //namespace miosix
