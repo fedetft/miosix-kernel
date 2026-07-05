@@ -33,8 +33,8 @@
 
 #ifdef WITH_RTC_AS_OS_TIMER
 
-// Defined in system_stm32f1xx.c TODO replace with miosix-specific PLL code
-extern "C" void SetSysClock();
+// Defined in system_stm32f1xx.cpp TODO replace with miosix-specific PLL code
+void SetSysClock();
 
 // NOTE: using the RTC as OS timer is currently only supported on STM32F1, the
 // stm32f2/f4 RTC design makes this impossible. TODO: check stm32l4 RTC
@@ -217,6 +217,7 @@ static bool IRQdeepSleepImpl(bool withTimeout)
     unsigned int lowerTickBefore=timer.IRQgetTimerCounter();
     static_assert(oscillatorType==OscillatorType::HSE || oscillatorType==OscillatorType::HSI,
                       "Unsupported oscillator type");
+    long long irqTick;
     if(oscillatorType==OscillatorType::HSE)
     {
         // The HSI oscillator, even with PLL, starts so fast that it does not impact
@@ -226,7 +227,6 @@ static bool IRQdeepSleepImpl(bool withTimeout)
         // enter deep sleep. If the sleep is longer, we wakeup in advance and then
         // sleep the rest of the time. Tested with tools/delay_test/os_timer_test.cpp
         const unsigned int minTicks=13;//TODO: increasing it further does not improve
-        long long irqTick;
         if(withTimeout)
         {
             long long tick=timer.IRQgetTimeTickFromCounter(lowerTickBefore);
