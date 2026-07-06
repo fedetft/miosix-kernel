@@ -360,6 +360,56 @@ static bool tx_datablock (const unsigned char *buf, unsigned char token)
     return true;
 }
 
+
+static off_t getCardSize() {
+
+    if (cardType=1) {
+        return 0;  // MMC not supported
+    }
+
+    uint32_t buff[4];
+    buff[0] = send_cmd(CMD9, 0x0);
+    buff[1] = spi_1_send(0xff);
+    buff[2] = spi_1_send(0xff);
+    buff[3] = spi_1_send(0xff);
+
+    if (buff[0] == 0xff) {
+        return 0;
+    } 
+
+
+    
+    auto csdStructure = (buff[3] & 0xC0000000) >> 30;
+    switch (csdStructure) {
+        case 0: {
+            DBG("CSD structure version 1.0\n");
+            auto cSize  = ((buff[2] & 0x000003ff)) << 2 | ((buff[1] & 0xC0000000) >> 30);
+            DBG("C_SIZE=%8X\n", cSize);
+            auto cSizeMult = (buff[1] & 0x00038000) >> 15;
+            DBG("C_SIZE_MULT=%8X\n", cSizeMult);
+            auto readBlLen = (buff[2] & 0x000F0000) >> 16;
+            DBG("READ_BL_LEN=%8X\n", readBlLen);
+            return (cSize + 1) * (1 << (cSizeMult + 2)) * (1 << readBlLen); // (C_SIZE + 1) * 2^(C_SIZE_MULT + 2) * 2^READ_BL_LEN
+        }
+        case 1: {
+            DBG("CSD structure version 2.0\n");
+            off_t cSize = (buff[1] & 0xffff0000) >> 16 | ((buff[2] & 0x0000001f) << 16);
+            DBG("C_SIZE=%16llX\n", cSize);
+            return (cSize + 1) * (512 * 1024); // (C_SIZE + 1) * 512KB, since C_SIZE is in units of 512KB for CSD version 2.0
+        }
+        case 2: {
+            DBG("CSD structure version 3.0\n");
+            off_t cSize = (buff[1] & 0xffff0000) >> 16 | ((buff[2] & 0x000007ff) << 16);
+            DBG("C_SIZE=%16llX\n", cSize);
+            return (cSize + 1) * (512 * 1024); // Same formula as CSD version 2.0, but with a larger C_SIZE field
+        }
+        default:
+            DBGERR("Unsupported CSD structure version: %d\n", csdStructure);
+            return 0;
+    }
+
+}
+
 //
 // class SPISDDriver
 //
@@ -570,6 +620,15 @@ bool SPISDDriver::sdioReinitLocked()
         return false; //Error
     }
     cardType=ty;
+
+    // Get the CSD and the card size from it
+    cardSize = getCardSize();
+    if (cardSize == 0)
+    {
+        DBGERR("Failed to get card size or card is empty\n");
+    } else {
+        DBG("Card size: %llu bytes\n", cardSize);
+    }
 
     if(sd_status()<0)
     {
