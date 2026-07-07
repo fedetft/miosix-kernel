@@ -1037,7 +1037,8 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 }
 
 #ifdef PROCESS_DEBUGGER
-// FIXME: Ugly semi static function
+// FIXME: Ugly semi static function (needs no reference to "this" but cannot be
+// defined static without exposing stuff)
 Process* Process::debugGetByPid(pid_t pid) const {
     // pid 0 is reservd to kernel, never try to search for it
     if (pid == 0) return nullptr;

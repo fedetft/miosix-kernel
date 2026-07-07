@@ -230,6 +230,11 @@ public:
         this->reason = reason;
         this->code = code;
     }
+
+    inline bool valid() {
+        return process != nullptr
+            && thread != nullptr;
+    }
 };
 
 /**

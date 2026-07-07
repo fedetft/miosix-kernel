@@ -1,6 +1,7 @@
 #include "debug_registers.h"
 #include "debugger_interface.h"
 #include "debugger.h"
+#include "interfaces-impl/cpu_const_impl.h"
 #include "kernel/thread.h"
 
 #ifdef PROCESS_DEBUGGER
@@ -45,9 +46,11 @@ bool Breakpoint::enabled() { return this->value & FP_Comp_ENABLE_MASK; }
 bool Breakpoint::eq(const Breakpoint& other) const { return this->value == other.value; }
 
 Watchpoint::Watchpoint(unsigned int address, unsigned int kind, WatchpointType type) {
+
     const auto tz = __builtin_ctz(kind);
 
     // Just checking, GDB should know about this
+    // Make sure that required kind can be expressed by mask register
     if (kind != static_cast<unsigned int>(1 << tz)) return;
 
     this->address   = address;
@@ -77,6 +80,12 @@ int RegisterFile::getSize(int i) {
                                     return 4;
 }
 
+// CTXSAVE_ON_STACK does not respect alignment, thus + 4
+// If alignment is not respected, gdb will fail to backtrace call frames
+static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK + 4;
+    static_assert(ctxSaveOnStackAligned % CTXSAVE_STACK_ALIGNMENT == 0,
+            "CTXSAVE_ON_STACK does not respect stack alignment");
+
 bool RegisterFile::read(Thread* t, int regNum, char *ref) {
     if (t == nullptr) return false;
     if (getSize(regNum) == 0) return false;
@@ -88,15 +97,12 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
     unsigned int* const stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
 
     bool fpuPresent = true;
-    static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK + 4;
-    static_assert(ctxSaveOnStackAligned % CTXSAVE_STACK_ALIGNMENT == 0,
-            "CTXSAVE_ON_STACK does not respect stack alignment");
     auto offset = ctxSaveOnStackAligned;
     if (ctx[9] & (1 << 4)) {
         fpuPresent = false;
         offset = 32;
     }
-    
+
     if (regNum <= r3) {
         // r0-r3
         *dest = stackPtr[regNum];
@@ -126,9 +132,15 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
         *dest = reinterpret_cast<unsigned int>(stackPtr) + offset;
         return true;
     }
-    // lr,pc
-    if (regNum <= pc) {
-        *dest = stackPtr[regNum - 14 + 5];
+    // FIXME: if architecture does not provide floating point registers: report
+    // lr since gdb wants it, do not access it in context
+    // pc
+    if (regNum == lr) {
+        *dest = stackPtr[5];
+        return true;
+    }
+    if (regNum == pc) {
+        *dest = stackPtr[6];
         return true;
     }
     if (regNum == psr) {
@@ -175,40 +187,52 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
     const auto value = *reinterpret_cast<unsigned int*>(ref);
 
     unsigned int* const ctx = t->userCtxsave;
-    
+
     // Already validated in debugmon excepiton
     unsigned int* const stackPtr = reinterpret_cast<unsigned int*>(ctx[STACK_OFFSET_IN_CTXSAVE]);
 
     bool fpuPresent = true;
-
-    // NOTE: As the stackpointer is now never written, there is no point in
-    // computing offset here
-    // static const unsigned int ctxSaveOnStackAligned = CTXSAVE_ON_STACK;
-    // #if ctxSaveOnStackAligned % 8
-    //     #error "CTXSAVE_ON_STACK does not respect stack alignment");
-    // #endif
-    // auto offset = ctxSaveOnStackAligned;
+    auto offset = ctxSaveOnStackAligned;
     if (ctx[9] & (1 << 4)) {
          fpuPresent = false;
-    //     offset = 32;
+         offset = 32;
     }
 
-    // The stack pointer has already been validated in debugmon handler, however
-    // subsequent write could avoid this check. User is allowed to write
-    // anything on the stack pointer (they might crash the process), but since
-    // the pointer is dereferenced to write on registers on stack, validate that
-    // the current stack pointer is valid, otherwise malicious code could:
-    // Write 0xbadadd in sp -> stackPtr
-    // Write 0xdead   in r0 -> *badStackPtr
-    // So before attempting to dereference the stack pointer, make sure it's a
-    // valid process address
+    // NOTE:
+    // Stack pointer has already been validated in debugmon handler, however
+    // a write of sp might invalidate it, giving write access to arbitrary
+    // memory area, a sequence of these commands gives arbitrary memory region
+    // write:
+    // - 'P[sp]=badadd' -> writes to sp (userCtxSave[sp]=0xbadadd)
+    // - 'P[r0]=dead'   -> writes to r0 (*sp = 0xdead)
     //
-    // NOTE: Instead of validating stack pointer before writing, just
-    // forbid to change this value alltogether, as it's later used to
-    // resotre context and any attempt at modifying it WILL result in a
-    // process crash
-    // if (!validStackPtr(t, stackPtr, offset)) return false;
-    
+    // Before attempting to write the stack pointer, make sure its new value and
+    // whole context is within process memory, then copy the context to new
+    // location
+    //
+    // TODO:
+    // if (regNum == sp):  // Writing stackpointer
+    //     // verify that region [sp, sp + offset] resides within process memory
+    //     //   boundaries
+    //     // memcpy context to new location
+    //     // write new sp as already implemented, considering context offset
+    //
+    // NOTE:
+    // Writing on lr, specifically changing "fpuPresent" bit, would give write
+    // permissions outside process memory area if architecture supports fpu:
+    // - 'P[lr]=0xffffffff'  -> make sure context does not include fpu registers
+    //                          (ctx size == 32)
+    // - 'P[sp]=[stackbase]' -> move sp to point to stack base (will be moved to
+    //                          stackbase + ctx size, whole context moved
+    // - 'P[lr]=0xfffffffd'  -> include fpu registers (ctx size == 104)
+    // - 'P[d0]=0xdead       -> writes outside stack *(processbase - 8 = 0xdead)
+    //
+    // TODO:
+    // if (regNum == lr):
+    //     // check write preserves whole context withing proess memory
+    //     //     boundaries
+    //
+
     if (regNum <= r3) {
         // r0-r3
         stackPtr[regNum] = value;
@@ -234,18 +258,22 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
         // Write proper stack pointer (before it gets moved by context switch,
         // position depends on size of context, which is different when float
         // registers are saved/omitted
-        // ctx[STACK_OFFSET_IN_CTXSAVE] = value - offset;
-        // return true;
-        return false;
+        ctx[STACK_OFFSET_IN_CTXSAVE] = value - offset;
+        return true;
+        // return false;
     }
-    // lr,pc
-    if (regNum <= pc) {
-        stackPtr[regNum - 14 + 5] = value;
+    // FIXME: if architecture does not provide floating point registers: report
+    // lr since gdb wants it, do not access it in context
+    if (regNum == lr) {
+        return true;
+    }
+    // pc
+    if (regNum == pc) {
+        stackPtr[6] = value;
         return true;
     }
     if (regNum == psr) {
-        // TODO: write psr
-        //stackPtr[7] = value;
+        stackPtr[7] = value;
         return true;
     }
 

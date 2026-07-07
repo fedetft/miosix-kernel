@@ -20,13 +20,19 @@ RegisterFile Debugger::registerFile;
 bool Debugger::failed = false;
 Thread* Debugger::thread = nullptr;
 
+// TODO: might improve, thees are a bit hacky
+// Shorthand combining sniprintf on gdbbufer and setLen for the same
 #define BUF_FORMAT(x, ...) x.setLen(sniprintf(x.getData(), x.size, __VA_ARGS__))
 
-#define layoutMacro(m,p)\
+// Shorthand to import extern definition for process_pool_start and process_pool_end
+#define IMPORT_SYMBOL(m,p)\
     extern char __##m##_##p asm("_"#m"_"#p); \
     const auto _##m##_##p = reinterpret_cast<const unsigned int>(&__##m##_##p)
 
-// Accessory functions only used here
+// printf can format in hexadecimal, but some messages require reverted endianess or may refer to wide memory
+// area (memory read usually takes up to 64 bytes at time
+
+// Accessory functions only used here: convert ascii 0-9,a-f to int
 // Only makes sense with characters 0-9 and a-f
 unsigned char asciiToHex(char character) {
     return (character <= '9')
@@ -40,6 +46,12 @@ char hexToAscii(unsigned char value) {
     return asciiMap[value & 0xf];
 }
 
+// GDBBuffer:
+// - functions "setXX" reset the buffer content
+// - functions "appendXX" append content to the end of already existing buffer
+//                        require buffer.clear() to write from beginning
+
+// Append a single character, preserves null-termination
 int GDBBuffer::appendChar(char character) {
     if (available() <= 1) return 0;
     data[head++] = character;
@@ -47,6 +59,7 @@ int GDBBuffer::appendChar(char character) {
     return 1;
 }
 
+// Append multiple characters, preserves null-termination
 int GDBBuffer::appendString(const char* str, unsigned int len) {
     if (available() <= static_cast<int>(len)) return 0;
     memcpy(&data[head], str, len);
@@ -55,11 +68,14 @@ int GDBBuffer::appendString(const char* str, unsigned int len) {
     return len;
 }
 
+// Set return code
 int GDBBuffer::setReturnCode(GDBReturnCode code) {
     const auto len = (code == GDBReturnCode::OK)
         ? sniprintf(data, size, "OK")
         : sniprintf(data, size, "E%02x", code)
         ;
+    // This check is to keep implementation equal to all other, it is never
+    // taken: buffer is always longer than 3 characters
     if (available() <= len) return 0;
     head = len;
     return len;
@@ -91,6 +107,8 @@ int GDBBuffer::appendBytes(const unsigned int* addr, unsigned int size) {
     return len;
 }
 
+// At any moment in loop: if "failed" is set skip any additional operation and
+// return to caller (not using exceptions)
 void Debugger::listen(int serial) {
     failed = false;
     this->serial = serial;
@@ -150,13 +168,18 @@ void Debugger::recvPacket() {
         CHECKSUM_1
     } state = BEGIN;
 
+    // FSM:
+    // - ack on 0xf0 and 0x03 (reset and Ctrl-C)
+    // - discard any character until '$' is found (beginning of frame)
+    // - read until '#'
+    // - read checksumbytes and compare with message checksum, send ack and return/retry
     while(!failed) {
         if(read(serial, &cc, 1) <= 0) {
             perror("read");
             fail();
             return;
         }
-        
+
         // Handle special characters
         if(cc == ((char) 0x03)) {
             write(serial, "+", 1); continue;
@@ -197,6 +220,7 @@ void Debugger::recvPacket() {
 
 void Debugger::sendPacket() {
     if (failed) return;
+    // Compute checksum for message, send and retry until positive ack is received
     const auto sum = buffer.checksum();
     const char strSum[2] = {
         hexToAscii(sum >> 4),
@@ -367,10 +391,19 @@ void Debugger::handleCommand_gG() {
 
         auto readPtr = buffer.getData();
         for(int i = 0; i < registerFile.entries ; i ++) {
+            // In place (input buffer):
+            // - get size of register i
+            // - save character after last one of register and substitute with
+            //   '\0' (for strtoul)
+            // - write register
+            // - restore character
+            // - move to next register
             const auto size = registerFile.getSize(i);
             const auto readSize = size * 2;
             const auto oldChar = readPtr[readSize];
             readPtr[readSize] = '\0';
+            // These guards are only to skip check on architecture with no
+            // floating point support
             #if FPU_REGISTERS == 1
             if (size == 8)
                 parseBigEndian64(readPtr, valPtr);
@@ -409,6 +442,8 @@ void Debugger::handleCommand_pP() {
                 buffer.appendChar('x');
             return;
         }
+        // These guards are only to skip check on architecture with no
+        // floating point support
         #if FPU_REGISTERS == 1
         if (size == 8)
             appendBigEndian64(buffer, valPtr);
@@ -458,10 +493,14 @@ void Debugger::handleCommand_mM() {
         // * Cannot simply use
         // if (! attached.process->mpu.withinForWriting(baseAddress, len)) {
         // * as it would fail on an attempt to write inside code section
-        layoutMacro(process_pool, start);
-        layoutMacro(process_pool, end);
+        IMPORT_SYMBOL(process_pool, start);
+        IMPORT_SYMBOL(process_pool, end);
         const bool inProcessMem = attached.process->mpu.withinForReading(baseAddress, len);
         const auto base = reinterpret_cast<unsigned int>(baseAddress);
+        // - Could avoid third check (overflow protection) as it's implicit
+        //   from inProcessMem (this check is included in mpu methods)
+        // - Could use an inFlash variable and refuse if writing is within
+        // memory
         const bool inProcessPool =  base        >= _process_pool_start
                                  && base + len  <= _process_pool_end
                                  && base + len  >= base;
@@ -485,7 +524,8 @@ void Debugger::handleCommand_mM() {
 
 void Debugger::handleCommand_cs() {
 
-    if (attached.process == nullptr) {
+    if (attached.process == nullptr
+     || attached.thread == nullptr) {
         // No process is currently attached, attempting to resume execution,
         // return an error
         // While this should never happen with a proper client, it might lock
@@ -502,13 +542,11 @@ void Debugger::handleCommand_cs() {
         // which triggers an event can set attached.reason, this is done by checking
         // on the stopreason
         attached.reason = StopReason::NONE;
-        if(attached.thread) {
-            attached.thread->debugStatus = (buffer.getData()[0] == 'c')
-                                         ? DebugStatus::RUN
-                                         : DebugStatus::STEP
-                                         ;
-            attached.thread->debugWakeup();
-        }
+        attached.thread->debugStatus = (buffer.getData()[0] == 'c')
+                                     ? DebugStatus::RUN
+                                     : DebugStatus::STEP
+                                     ;
+        attached.thread->IRQdebugWakeup();
     }
 
     stopReply();
@@ -577,11 +615,8 @@ void Debugger::handleCommand_q() {
         buffer.appendString((char*)&targetXMLString[qMessage.offset], qMessage.length);
     } break;
     case QMessage::MEMORY_MAP: {
-        // layoutMacro(flash,          origin);
-        // layoutMacro(flash,          length);
-        // layoutMacro(flash,          erasesize);
-        layoutMacro(process_pool,   start);
-        layoutMacro(process_pool,   end);
+        IMPORT_SYMBOL(process_pool,   start);
+        IMPORT_SYMBOL(process_pool,   end);
         const auto _process_pool_length = _process_pool_end - _process_pool_start;
         // FIXME: Flagging whole sectoin as flash (gdb is not intended to access
         // this memory area anyway)
@@ -679,10 +714,12 @@ void Debugger::vrun() {
     //                                                           ^
     // If character is a semi ';' terminate string '\0'
     // Transform hex pairs into characters 2f62696e -> "/bin"
-    // TODO: make use of the whole buffer
     int argsNum = 0;
     const char* str_end = buffer.getData() + buffer.len();
-    char* w_ptr = str;
+    // TODO: make use of the whole buffer
+    char* w_ptr = str; // = buffer.getData();
+    // TODO: make use of the whole buffer
+    // r_ptr = str + 1;
     for(char* r_ptr = str; r_ptr < str_end - 1 && *r_ptr; w_ptr ++) {
         if (*r_ptr == ';') {
             *w_ptr = '\0';
@@ -694,10 +731,11 @@ void Debugger::vrun() {
             *w_ptr = cc;
             r_ptr += 2;
         }
-    }   
+    }
     *w_ptr = '\0';
+    // TODO: make use of the whole buffer
     char** args = new char*[argsNum+1];
-    char* ptr = str+1;
+    char* ptr = str+1; // buffer.getData()+1;
     args[argsNum] = nullptr;
     for (int i = 0; i < argsNum; i++) {
         args[i] = ptr;
@@ -742,9 +780,14 @@ void Debugger::vattach() {
 
     if (proc->program.isCopiedInRam() &&
             (!proc->priv)) {
+        // FIXME: Relax condition: 
+        // if (makePrivate()) {
         BUF_FORMAT(buffer,
                 "E.Cannot attach to process with code inside RAM unless the debugger spawned it");
         return;
+        // }
+        // // w/makePrivate() : if memory used by only one process: flag memory
+        // as private and return 0, otherwise return 1
     }
 
     {
@@ -764,12 +807,17 @@ void Debugger::vattach() {
             return;
         }
 
+        attached.process                    = proc;
+        attached.running                    = true;
+        attached.pid                        = pid;
+        // attached.thread is set by debug event
+
         // If it's not waiting due to a debug event, wake it up, otherwise keep
-        // it in debug wait and continue (preserving attached info)
+        // it in debug wait and continue (preserving attached info), this should
+        // always happen, unless a client (erroneously) calls multiple attach
+        // without detaching from previous processes, in which case both the
+        // newly and previous attached process are halted due to a debug event
         if (! th->flags.isWaitingDebug()) {
-            attached.process                = proc;
-            attached.running                = true;
-            attached.pid                    = pid;
             th->debugStatus                 = DebugStatus::PEND;
             th->IRQwakeup();
         }
