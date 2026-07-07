@@ -27,7 +27,7 @@ void tryMBR() {
 
     auto mbrReader = *mbrReaderResult;
 
-    if (mbrReader.isValidMBR()) {
+    if (!mbrReader.isValidMBR()) {
         printf("Invalid MBR. Expected: 0xAA55, Got: 0x%04X\n", mbrReader.mbrSignature());
         return;
     }
