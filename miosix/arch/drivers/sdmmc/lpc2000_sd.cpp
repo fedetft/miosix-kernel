@@ -363,7 +363,7 @@ static bool tx_datablock (const unsigned char *buf, unsigned char token)
 
 static off_t getCardSize() {
 
-    if (cardType=1) {
+    if (cardType==1) {
         return 0;  // MMC not supported
     }
 
