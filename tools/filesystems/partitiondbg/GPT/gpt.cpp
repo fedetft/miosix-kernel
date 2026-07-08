@@ -12,36 +12,36 @@ std::expected<GPTReader, ReaderResult> GPTReader::readGPT(miosix::intrusive_ref_
 
     auto mbrReader = *mbrResult;
 
-    printf("Check mbr validity\n");
+    iprintf("Check mbr validity\n");
     if (!mbrReader.isValidMBR()) {
         return std::unexpected{ReaderResult::ErrorInvalidMBR};
     }
 
-    printf("Check if mbr is protective\n");
+    iprintf("Check if mbr is protective\n");
     if(!mbrReader.isProtectiveMBR()) {
         return std::unexpected{ReaderResult::ErrorMBRIsNotProtective};
     }
  
-    printf("Reading first LBA block\n");
+    iprintf("Reading first LBA block\n");
     auto result = device->readBlock(&reader.primaryHeader, sizeof(GPTHeader), MAIN_GPT_POSITION_LBA * 512);
     if (result < 0) {
         return std::unexpected{ReaderResult::ErrorReadingPrimaryHeader};
     }
 
-    printf("Reading last LBA block\n");
+    iprintf("Reading last LBA block\n");
     result = device->readBlock(&reader.backupHeader, sizeof(GPTHeader), reader.primaryHeader.alternateLBA * 512);
     if (result < 0) {
         return std::unexpected{ReaderResult::ErrorReadingBackupHeader};
     }
 
     if (reader.primaryHeader.numberOfPartitionEntries < MAX_GPT_PARTITIONS) {
-        printf("Too little partitions %ld of size %ld\n", 
+        iprintf("Too little partitions %ld of size %ld\n", 
             reader.primaryHeader.numberOfPartitionEntries, 
             reader.primaryHeader.partitionEntrySize);
         return std::unexpected{ReaderResult::ErrorExceededMaxPartitions};
     }
 
-    printf("Reading Partition Tables\n");
+    iprintf("Reading Partition Tables\n");
     auto readerResult = reader.readPartitionTables(device);
 
     if (readerResult != ReaderResult::Ok) {

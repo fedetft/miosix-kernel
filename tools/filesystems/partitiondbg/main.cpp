@@ -10,30 +10,30 @@ using namespace miosix;
 
 void tryMBR() {
 
-    printf("Trying MBR\n");
+    iprintf("Trying MBR\n");
     auto mbrReaderResult = MBR::MBRReader::readMBR(SDIODriver::instance());
     size_t retryCount = 0;
     while(!mbrReaderResult && retryCount < 5) {
-        printf("Error while reading from device\n");
+        iprintf("Error while reading from device\n");
         mbrReaderResult = MBR::MBRReader::readMBR(SDIODriver::instance());
         retryCount++;
         Thread::sleep(1);
     }
 
     if (!mbrReaderResult) {
-        printf("Excedeed the retry count while reading the device.\n");
+        iprintf("Excedeed the retry count while reading the device.\n");
         return;
     }
 
     auto mbrReader = *mbrReaderResult;
 
     if (!mbrReader.isValidMBR()) {
-        printf("Invalid MBR. Expected: 0xAA55, Got: 0x%04X\n", mbrReader.mbrSignature());
+        iprintf("Invalid MBR. Expected: 0xAA55, Got: 0x%04X\n", mbrReader.mbrSignature());
         return;
     }
     
     mbrReader.printMBRInfo();
-    printf("Finished MBR\n");
+    iprintf("Finished MBR\n");
 }
 
 int main()
@@ -46,8 +46,7 @@ int main()
 
     iprintf("SDIO device size: %llu bytes\n", cardSize);
     tryMBR();
-    printf("Trying GPT from main\n");
-    printf("Trying GPT\n");
+    iprintf("Trying GPT\n");
     auto gptReaderResult = GPT::GPTReader::readGPT(SDIODriver::instance());
     // auto gptReader = std::move(gptReaderResult.second);
     // if (gptReaderResult.first != GPT::ReaderResult::Ok) {
