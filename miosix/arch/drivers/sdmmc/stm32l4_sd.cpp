@@ -79,6 +79,40 @@ typedef Gpio<PC,11> sdD3;
 typedef Gpio<PC,12> sdCLK;
 typedef Gpio<PD,2>  sdCMD;
 
+// 
+// enum CommandType
+// 
+
+/**
+ * \internal
+ * SD/MMC commands
+ * - bit #7 is @ 1 if a command is an ACMDxx. send() will send the
+ *   sequence CMD55, CMDxx
+ * - bit from #0 to #5 indicate command index (CMD0..CMD63)
+ * - bit #6 is don't care
+ */
+enum class CommandType
+{
+    CMD0=0,           //GO_IDLE_STATE
+    CMD2=2,           //ALL_SEND_CID
+    CMD3=3,           //SEND_RELATIVE_ADDR
+    ACMD6=0x80 | 6,   //SET_BUS_WIDTH
+    CMD7=7,           //SELECT_DESELECT_CARD
+    ACMD41=0x80 | 41, //SEND_OP_COND (SD)
+    CMD8=8,           //SEND_IF_COND
+    CMD9=9,           //SEND_CSD
+    CMD12=12,         //STOP_TRANSMISSION
+    CMD13=13,         //SEND_STATUS
+    CMD16=16,         //SET_BLOCKLEN
+    CMD17=17,         //READ_SINGLE_BLOCK
+    CMD18=18,         //READ_MULTIPLE_BLOCK
+    ACMD23=0x80 | 23, //SET_WR_BLK_ERASE_COUNT (SD)
+    CMD24=24,         //WRITE_BLOCK
+    CMD25=25,         //WRITE_MULTIPLE_BLOCK
+    CMD55=55          //APP_CMD
+};
+
+
 //
 // Class CmdResult
 //
@@ -108,7 +142,7 @@ public:
      * \internal
      * Default constructor
      */
-    CmdResult(): cmd(0), error(Ok), response(0) {}
+    CmdResult(): cmd(CommandType::CMD0), error(Ok), response{0,0,0,0} {}
 
     /**
      * \internal
@@ -116,8 +150,17 @@ public:
      * \param cmd command index of command that was sent
      * \param result result of command
      */
-    CmdResult(unsigned char cmd, Error error): cmd(cmd), error(error),
-            response(SDMMC1->RESP1) {}
+    CmdResult(CommandType cmd, Error error): cmd(cmd), error(error) 
+    {
+        if (cmd==CommandType::CMD9) {
+            response[0]=SDMMC1->RESP4;
+            response[1]=SDMMC1->RESP3;
+            response[2]=SDMMC1->RESP2;
+            response[3]=SDMMC1->RESP1;
+        } else {
+            response[0]=SDMMC1->RESP1;
+        }
+    }
 
     /**
      * \internal
@@ -125,13 +168,18 @@ public:
      * May not be valid if getError()!=Ok or the command does not send a
      * response, such as CMD0
      */
-    unsigned int getResponse() { return response; }
+    unsigned int getShortResponse() { return response[0]; }
 
     /**
      * \internal
-     * \return command index
+     * \param part one of the four 32 bit parts of the 128 bit response
+     * \return the part selected with the part parameter or 0 if out of bounds
      */
-    unsigned char getCmdIndex() { return cmd; }
+    unsigned int getLongResponsePart(size_t part)
+    {
+        if(part>=4) return 0;
+        return response[part];
+    }
 
     /**
      * \internal
@@ -148,11 +196,18 @@ public:
 
     /**
      * \internal
-     * interprets this->getResponse() as an R1 response, and checks if there are
+     * interprets this->getShortResponse() as an R1 response, and checks if there are
      * errors, or everything is ok
      * \return true on success, false on failure
      */
     bool validateR1Response();
+
+    /**
+     * \internal checks if there was an error during long response exchange.
+     * R2 responses can never generate RespNotMatch error.
+     * \return true on success, false on any error
+     */
+    bool validateR2Response();
 
     /**
      * \internal
@@ -163,22 +218,22 @@ public:
 
     /**
      * \internal
-     * interprets this->getResponse() as an R6 response, and checks if there are
-     * errors, or everything is ok
+     * interprets this->getShortResponse() as an R6 response, and checks if 
+     * there are errors, or everything is ok.
      * \return true on success, false on failure
      */
     bool validateR6Response();
 
     /**
      * \internal
-     * \return the card state from an R1 or R6 resonse
+     * \return the card state from an R1 or R6 response
      */
     unsigned char getState();
 
 private:
-    unsigned char cmd; ///<\internal Command index that was sent
+    CommandType cmd; ///<\internal Command index that was sent
     Error error; ///<\internal possible error that occurred
-    unsigned int response; ///<\internal 32bit response
+    unsigned int response[4]; ///<\internal 32bit response
 };
 
 bool CmdResult::validateError()
@@ -188,16 +243,16 @@ bool CmdResult::validateError()
         case Ok:
             return true;
         case Timeout:
-            DBGERR("CMD%d: Timeout\n",cmd);
+            DBGERR("CMD%u: Timeout\n",static_cast<unsigned char>(cmd));
             break;
         case CRCFail:
-            DBGERR("CMD%d: CRC Fail\n",cmd);
+            DBGERR("CMD%u: CRC Fail\n",static_cast<unsigned char>(cmd));
             break;
         case RespNotMatch:
-            DBGERR("CMD%d: Response does not match\n",cmd);
+            DBGERR("CMD%u: Response does not match\n",static_cast<unsigned char>(cmd));
             break;
         case ACMDFail:
-            DBGERR("CMD%d: ACMD Fail\n",cmd);
+            DBGERR("CMD%u: ACMD Fail\n",static_cast<unsigned char>(cmd));
             break;
     }
     return false;
@@ -209,50 +264,55 @@ bool CmdResult::validateR1Response()
     //Note: this number is obtained with all the flags of R1 which are errors
     //(flagged as E in the SD specification), plus CARD_IS_LOCKED because
     //locked card are not supported by this software driver
-    if((response & 0xfff98008)==0) return true;
-    DBGERR("CMD%d: R1 response error(s):\n",cmd);
-    if(response & (1<<31)) DBGERR("Out of range\n");
-    if(response & (1<<30)) DBGERR("ADDR error\n");
-    if(response & (1<<29)) DBGERR("BLOCKLEN error\n");
-    if(response & (1<<28)) DBGERR("ERASE SEQ error\n");
-    if(response & (1<<27)) DBGERR("ERASE param\n");
-    if(response & (1<<26)) DBGERR("WP violation\n");
-    if(response & (1<<25)) DBGERR("card locked\n");
-    if(response & (1<<24)) DBGERR("LOCK_UNLOCK failed\n");
-    if(response & (1<<23)) DBGERR("command CRC failed\n");
-    if(response & (1<<22)) DBGERR("illegal command\n");
-    if(response & (1<<21)) DBGERR("ECC fail\n");
-    if(response & (1<<20)) DBGERR("card controller error\n");
-    if(response & (1<<19)) DBGERR("unknown error\n");
-    if(response & (1<<16)) DBGERR("CSD overwrite\n");
-    if(response & (1<<15)) DBGERR("WP ERASE skip\n");
-    if(response & (1<<3)) DBGERR("AKE_SEQ error\n");
+    if((response[0] & 0xfff98008)==0) return true;
+    DBGERR("CMD%u: R1 response error(s):\n",static_cast<unsigned int>(cmd));
+    if(response[0] & (1<<31)) DBGERR("Out of range\n");
+    if(response[0] & (1<<30)) DBGERR("ADDR error\n");
+    if(response[0] & (1<<29)) DBGERR("BLOCKLEN error\n");
+    if(response[0] & (1<<28)) DBGERR("ERASE SEQ error\n");
+    if(response[0] & (1<<27)) DBGERR("ERASE param\n");
+    if(response[0] & (1<<26)) DBGERR("WP violation\n");
+    if(response[0] & (1<<25)) DBGERR("card locked\n");
+    if(response[0] & (1<<24)) DBGERR("LOCK_UNLOCK failed\n");
+    if(response[0] & (1<<23)) DBGERR("command CRC failed\n");
+    if(response[0] & (1<<22)) DBGERR("illegal command\n");
+    if(response[0] & (1<<21)) DBGERR("ECC fail\n");
+    if(response[0] & (1<<20)) DBGERR("card controller error\n");
+    if(response[0] & (1<<19)) DBGERR("unknown error\n");
+    if(response[0] & (1<<16)) DBGERR("CSD overwrite\n");
+    if(response[0] & (1<<15)) DBGERR("WP ERASE skip\n");
+    if(response[0] & (1<<3)) DBGERR("AKE_SEQ error\n");
     return false;
 }
 
 bool CmdResult::IRQvalidateR1Response()
 {
     if(error!=Ok) return false;
-    if(response & 0xfff98008) return false;
+    if(response[0] & 0xfff98008) return false;
+    return true;
+}
+
+bool CmdResult::validateR2Response() {
+    if(error!=Ok) return validateError();
     return true;
 }
 
 bool CmdResult::validateR6Response()
 {
     if(error!=Ok) return validateError();
-    if((response & 0xe008)==0) return true;
-    DBGERR("CMD%d: R6 response error(s):\n",cmd);
-    if(response & (1<<15)) DBGERR("command CRC failed\n");
-    if(response & (1<<14)) DBGERR("illegal command\n");
-    if(response & (1<<13)) DBGERR("unknown error\n");
-    if(response & (1<<3)) DBGERR("AKE_SEQ error\n");
+    if((response[0] & 0xe008)==0) return true;
+    DBGERR("CMD%u: R6 response error(s):\n",static_cast<unsigned int>(cmd));
+    if(response[0] & (1<<15)) DBGERR("command CRC failed\n");
+    if(response[0] & (1<<14)) DBGERR("illegal command\n");
+    if(response[0] & (1<<13)) DBGERR("unknown error\n");
+    if(response[0] & (1<<3)) DBGERR("AKE_SEQ error\n");
     return false;
 }
 
 unsigned char CmdResult::getState()
 {
-    unsigned char result=(response>>9) & 0xf;
-    DBG("CMD%d: State: ",cmd);
+    unsigned char result=(response[0]>>9) & 0xf;
+    DBG("CMD%d: State: ",static_cast<unsigned int>(cmd));
     switch(result)
     {
         case 0:  DBG("Idle\n");  break;
@@ -281,36 +341,6 @@ unsigned char CmdResult::getState()
 class Command
 {
 public:
-
-    /**
-     * \internal
-     * SD/MMC commands
-     * - bit #7 is @ 1 if a command is an ACMDxx. send() will send the
-     *   sequence CMD55, CMDxx
-     * - bit from #0 to #5 indicate command index (CMD0..CMD63)
-     * - bit #6 is don't care
-     */
-    enum CommandType
-    {
-        CMD0=0,           //GO_IDLE_STATE
-        CMD2=2,           //ALL_SEND_CID
-        CMD3=3,           //SEND_RELATIVE_ADDR
-        ACMD6=0x80 | 6,   //SET_BUS_WIDTH
-        CMD7=7,           //SELECT_DESELECT_CARD
-        ACMD41=0x80 | 41, //SEND_OP_COND (SD)
-        CMD8=8,           //SEND_IF_COND
-        CMD9=9,           //SEND_CSD
-        CMD12=12,         //STOP_TRANSMISSION
-        CMD13=13,         //SEND_STATUS
-        CMD16=16,         //SET_BLOCKLEN
-        CMD17=17,         //READ_SINGLE_BLOCK
-        CMD18=18,         //READ_MULTIPLE_BLOCK
-        ACMD23=0x80 | 23, //SET_WR_BLK_ERASE_COUNT (SD)
-        CMD24=24,         //WRITE_BLOCK
-        CMD25=25,         //WRITE_MULTIPLE_BLOCK
-        CMD55=55          //APP_CMD
-    };
-
     /**
      * \internal
      * Send a command.
@@ -343,38 +373,39 @@ CmdResult Command::send(CommandType cmd, unsigned int arg)
     //Handle ACMDxx as CMD55, CMDxx
     if(cc & 0x80)
     {
-        DBG("ACMD%d\n",cc & 0x3f);
-        CmdResult r=send(CMD55,(static_cast<unsigned int>(rca))<<16);
+        cc &= 0x3f;
+        cmd=static_cast<CommandType>(cc);
+        DBG("ACMD%u\n",cc);
+        CmdResult r=send(CommandType::CMD55,(static_cast<unsigned int>(rca))<<16);
         if(r.validateR1Response()==false)
-            return CmdResult(cc & 0x3f,CmdResult::ACMDFail);
+            return CmdResult(cmd,CmdResult::ACMDFail);
         //Bit 5 @ 1 = next command will be interpreted as ACMD
-        if((r.getResponse() & (1<<5))==0)
-            return CmdResult(cc & 0x3f,CmdResult::ACMDFail);
-    } else DBG("CMD%d\n",cc & 0x3f);
+        if((r.getShortResponse() & (1<<5))==0)
+            return CmdResult(cmd,CmdResult::ACMDFail);
+    } else DBG("CMD%u\n",cc & 0x3f);
 
     //Send command
-    cc &= 0x3f;
     unsigned int command= SDMMC_CMD_CPSMEN | static_cast<unsigned int>(cc);
-    if(cc!=CMD0) command |= SDMMC_CMD_WAITRESP_0; //CMD0 has no response
-    if(cc==CMD2) command |= SDMMC_CMD_WAITRESP_1; //CMD2 has long response
-    if(cc==CMD9) command |= SDMMC_CMD_WAITRESP_1; //CMD9 has long response
+    if(cmd!=CommandType::CMD0) command |= SDMMC_CMD_WAITRESP_0; //CMD0 has no response
+    if(cmd==CommandType::CMD2) command |= SDMMC_CMD_WAITRESP_1; //CMD2 has long response
+    if(cmd==CommandType::CMD2) command |= SDMMC_CMD_WAITRESP_1; //CMD9 has long response
     SDMMC1->ARG = arg;
     SDMMC1->CMD = command;
 
     //CMD0 has no response, so wait until it is sent
-    if(cc==CMD0)
+    if(cmd==CommandType::CMD0)
     {
         for(int i=0;i<500;i++)
         {
             if(SDMMC1->STA & SDMMC_STA_CMDSENT)
             {
                 SDMMC1->ICR=0x1fe00fff;//Clear flags
-                return CmdResult(cc,CmdResult::Ok);
+                return CmdResult(cmd,CmdResult::Ok);
             }
             delayUs(1);
         }
         SDMMC1->ICR = 0x1fe00fff;//Clear flags
-        return CmdResult(cc,CmdResult::Timeout);
+        return CmdResult(cmd,CmdResult::Timeout);
     }
 
     //Command is not CMD0, so wait a reply
@@ -383,20 +414,26 @@ CmdResult Command::send(CommandType cmd, unsigned int arg)
         unsigned int status=SDMMC1->STA;
         if(status & SDMMC_STA_CMDREND)
         {
+            auto responseCmd = SDMMC1->RESPCMD;
             SDMMC1->ICR=0x1fe00fff;//Clear flags
-            if(SDMMC1->RESPCMD==cc) return CmdResult(cc,CmdResult::Ok);
-            else return CmdResult(cc,CmdResult::RespNotMatch);
+            if(responseCmd==cc || cmd==CommandType::CMD2 || cmd==CommandType::CMD9) 
+            {
+                return CmdResult(cmd,CmdResult::Ok);
+            } else {
+                DBGERR("CMD%u: Response index does not match. Got %lu\n",cc,responseCmd);
+                return CmdResult(cmd,CmdResult::RespNotMatch);
+            }
         }
         if(status & SDMMC_STA_CCRCFAIL)
         {
             SDMMC1->ICR=SDMMC_ICR_CCRCFAILC;
-            return CmdResult(cc,CmdResult::CRCFail);
+            return CmdResult(cmd,CmdResult::CRCFail);
         }
         if(status & SDMMC_STA_CTIMEOUT) break;
         delayUs(1);
     }
     SDMMC1->ICR=SDMMC_ICR_CTIMEOUTC;
-    return CmdResult(cc,CmdResult::Timeout);
+    return CmdResult(cmd,CmdResult::Timeout);
 }
 
 unsigned short Command::rca=0;
@@ -434,18 +471,22 @@ public:
     /**
      * \internal
      * Automatically select the data speed. This routine selects the highest
-     * sustainable data transfer speed. This is done by binary search until
-     * the highest clock speed that causes no errors is found.
-     * This function as a side effect enables 4bit bus width, and clock
+     * sustainable data transfer speed by binary search and accepts a candidate
+     * speed only if repeated block reads succeed and return the expected
+     * payload.
+     *
+     * As a side effect, this function enables 4bit bus width and clock
      * powersave.
      */
-    static void calibrateClockSpeed(SDIODriver *sdio);
+    static bool calibrateClockSpeed(SDIODriver *sdio);
 
     /**
      * \internal
-     * Since clock speed is set dynamically by binary search at runtime, a
-     * corner case might be that of a clock speed which results in unreliable
-     * data transfer, that sometimes succeeds, and sometimes fail.
+     * Reduce the SDIO clock slightly after calibration.
+     * This helper is only used later, during normal operation, if a transfer
+     * error suggests that the selected speed is marginally too high.
+     * Since clock speed is chosen dynamically at runtime, a corner case might
+     * be that of a speed which works most of the time but occasionally fails.
      * For maximum robustness, this function is provided to reduce the clock
      * speed slightly in case a data transfer should fail after clock
      * calibration. To avoid inadvertently considering other kind of issues as
@@ -458,10 +499,9 @@ public:
 
     /**
      * \internal
-     * Read and write operation do retry during normal use for robustness, but
-     * during clock claibration they must not retry for speed reasons. This
-     * member function returns 1 during clock claibration and MAX_RETRY during
-     * normal use.
+     * Read and write operations retry during normal use for robustness. During
+     * speed probing each read uses a single attempt, so calibration does not
+     * accept a marginal clock just because a later retry happened to succeed.
      */
     static unsigned char getRetryCount() { return retries; }
 
@@ -503,41 +543,74 @@ private:
     static unsigned char retries;
 };
 
-void ClockController::calibrateClockSpeed(SDIODriver *sdio)
+bool ClockController::calibrateClockSpeed(SDIODriver *sdio)
 {
 
-    //During calibration we call readBlock() which will call reduceClockSpeed()
-    //so not to invalidate calibration clock reduction must not be available
+    // During calibration we call readBlock(), which can request clock
+    // reduction after transfer errors. Keep it disabled while searching or the
+    // calibration result would become self-invalidating.
     clockReductionAvailable=0;
-    retries=1;
 
     DBG("Automatic speed calibration\n");
-    unsigned int buffer[512/sizeof(unsigned int)];
+    unsigned int reference[512/sizeof(unsigned int)];
+    unsigned int probe[512/sizeof(unsigned int)];
     unsigned int minFreq=CLOCK_400KHz;
     unsigned int maxFreq=CLOCK_MAX;
     unsigned int selected;
+    bool success=false;
+    const unsigned char calibrationProbeReads=2;
+
+    // First capture a known-good reference block at 400kHz. Some unstable
+    // speeds can complete a transfer without protocol errors while still
+    // returning corrupted payload, so calibration must validate data too.
+    // This low-speed reference read may use normal retries because it is
+    // not testing the upper bus-speed limit.
+    setClockSpeed(minFreq);
+    retries=MAX_RETRY;
+    if(sdio->readBlock(reinterpret_cast<unsigned char*>(reference),512,0)!=512)
+    {
+        clockReductionAvailable=MAX_ALLOWED_REDUCTIONS;
+        return false;
+    }
+
+    // Candidate reads must be single-shot and repeated explicitly: accepting a
+    // speed because one retry succeeded would select a marginal clock, while a
+    // single successful read would not prove that the selected clock is stable.
+    retries=1;
+    auto clockCandidateIsStable=[&]() {
+        for(unsigned int i=0;i<calibrationProbeReads;i++)
+        {
+            if(sdio->readBlock(reinterpret_cast<unsigned char*>(probe),512,0)!=512
+            || std::memcmp(probe, reference, sizeof(reference))!=0)
+                return false;
+        }
+        return true;
+    };
+
     while(minFreq-maxFreq>1)
     {
         selected=(minFreq+maxFreq)/2;
         DBG("Trying CLKCR=%d\n",selected);
         setClockSpeed(selected);
-        if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
-            minFreq=selected;
+        if(clockCandidateIsStable()) minFreq=selected;
         else maxFreq=selected;
     }
     //Last round of algorithm
     setClockSpeed(maxFreq);
-    if(sdio->readBlock(reinterpret_cast<unsigned char*>(buffer),512,0)==512)
+    success=clockCandidateIsStable();
+    if(success)
     {
         DBG("Optimal CLKCR=%d\n",maxFreq);
     } else {
         setClockSpeed(minFreq);
-        DBG("Optimal CLKCR=%d\n",minFreq);
+        success=clockCandidateIsStable();
+        if(success) DBG("Optimal CLKCR=%d\n",minFreq);
+        else DBGERR("Automatic speed calibration failed\n");
     }
 
-    //Make clock reduction available
     clockReductionAvailable=MAX_ALLOWED_REDUCTIONS;
     retries=MAX_RETRY;
+    return success;
 }
 
 bool ClockController::reduceClockSpeed()
@@ -599,10 +672,10 @@ static bool waitForCardReady()
     #endif
     long long timeout=getTime()+1500000000; //Timeout 1.5 second
     do {
-        CmdResult cr=Command::send(Command::CMD13,Command::getRca()<<16);
+        CmdResult cr=Command::send(CommandType::CMD13,Command::getRca()<<16);
         if(cr.validateR1Response()==false) return false;
         //Bit 8 in R1 response means ready for data.
-        if(cr.getResponse() & (1<<8)) return true;
+        if(cr.getShortResponse() & (1<<8)) return true;
         Thread::nanoSleep(sleepTime);
     } while(getTime()<timeout);
     DBGERR("Timeout waiting card ready\n");
@@ -683,7 +756,7 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
         DBGERR("Premature wakeup\n");
         transferError=true;
     }
-    CmdResult cr=Command::send(nblk>1 ? Command::CMD18 : Command::CMD17,lba);
+    CmdResult cr=Command::send(nblk>1 ? CommandType::CMD18 : CommandType::CMD17,lba);
     if(cr.validateR1Response())
     {
         //Block size 512 bytes, block data xfer, from card to controller
@@ -705,12 +778,12 @@ static bool multipleBlockRead(unsigned char *buffer, unsigned int nblk,
     // unfinished read in case of errors
     if(nblk>1 || transferError) 
     {
-        cr=Command::send(Command::CMD12,0);
+        cr=Command::send(CommandType::CMD12,0);
         if(transferError)
         {
             // CMD13 is sent to check the real status of the sdio after CMD12
             // and to reset the card in case if it gets stuck in a illegal state
-            cr=Command::send(Command::CMD13, Command::getRca()<<16);
+            cr=Command::send(CommandType::CMD13, Command::getRca()<<16);
         }
     }
     if(transferError || cr.validateR1Response()==false)
@@ -747,7 +820,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
     if(nblk>1)
     {
-        CmdResult cr=Command::send(Command::ACMD23,nblk);
+        CmdResult cr=Command::send(CommandType::ACMD23,nblk);
         if(cr.validateR1Response()==false) return false;
     }
     
@@ -769,7 +842,7 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
         DBGERR("Premature wakeup\n");
         transferError=true;
     }
-    CmdResult cr=Command::send(nblk>1 ? Command::CMD25 : Command::CMD24,lba);
+    CmdResult cr=Command::send(nblk>1 ? CommandType::CMD25 : CommandType::CMD24,lba);
     if(cr.validateR1Response())
     {
         //Block size 512 bytes, block data xfer, from card to controller
@@ -782,12 +855,12 @@ static bool multipleBlockWrite(const unsigned char *buffer, unsigned int nblk,
     // unfinished write in case of errors
     if(nblk>1 || transferError) 
     {
-        cr=Command::send(Command::CMD12,0);
+        cr=Command::send(CommandType::CMD12,0);
         if(transferError)
         {
             // CMD13 is sent to check the real status of the sdio after CMD12
             // and to reset the card in case if it gets stuck in a illegal state
-            cr=Command::send(Command::CMD13, Command::getRca()<<16);
+            cr=Command::send(CommandType::CMD13, Command::getRca()<<16);
         }
     }
     if(transferError || cr.validateR1Response()==false)
@@ -821,7 +894,7 @@ public:
     explicit CardSelector()
     {
         success=Command::send(
-                Command::CMD7,Command::getRca()<<16).validateR1Response();
+                CommandType::CMD7,Command::getRca()<<16).validateR1Response();
     }
 
     /**
@@ -836,7 +909,7 @@ public:
      */
     ~CardSelector()
     {
-        Command::send(Command::CMD7,0); //Deselect card. This will timeout
+        Command::send(CommandType::CMD7,0); //Deselect card. This will timeout
     }
 
 private:
@@ -850,38 +923,41 @@ private:
 
 /**
  * \internal
- * Initialzes the SDIO peripheral in the STM32
+ * One-time SDIO setup: clocks, GPIO alternate functions and IRQ registration.
  */
-static void initSDIOPeripheral()
+static void initSDIOPeripheralOnce()
 {
-    {
-        //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
-        GlobalIrqLock lock;         
-        RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN  
-                      | RCC_AHB2ENR_GPIODEN
-                      | RCC_AHB2ENR_SDMMC1EN;
+    //Doing read-modify-write on RCC->APBENR2 and gpios, better be safe
+    GlobalIrqLock lock;         
+    RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN  
+                    | RCC_AHB2ENR_GPIODEN
+                    | RCC_AHB2ENR_SDMMC1EN;
+    //RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
+    RCC->CCIPR |= RCC_CCIPR_CLK48SEL_1;
+    //RCC_SYNC();
+    //RCC_SYNC();
+    sdD0::mode(Mode::ALTERNATE);
+    sdD0::alternateFunction(12);
+    #ifndef SD_ONE_BIT_DATABUS
+    sdD1::mode(Mode::ALTERNATE);
+    sdD1::alternateFunction(12);
+    sdD2::mode(Mode::ALTERNATE);
+    sdD2::alternateFunction(12);
+    sdD3::mode(Mode::ALTERNATE);
+    sdD3::alternateFunction(12);
+    #endif //SD_ONE_BIT_DATABUS
+    sdCLK::mode(Mode::ALTERNATE);
+    sdCLK::alternateFunction(12);
+    sdCMD::mode(Mode::ALTERNATE);
+    sdCMD::alternateFunction(12);
+    IRQregisterIrq(lock,SDMMC1_IRQn,SDMMCirqImpl);
+}
 
-        //RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
-        RCC->CCIPR |= RCC_CCIPR_CLK48SEL_1;
-        //RCC_SYNC();
-        //RCC_SYNC();
-        sdD0::mode(Mode::ALTERNATE);
-        sdD0::alternateFunction(12);
-        #ifndef SD_ONE_BIT_DATABUS
-        sdD1::mode(Mode::ALTERNATE);
-        sdD1::alternateFunction(12);
-        sdD2::mode(Mode::ALTERNATE);
-        sdD2::alternateFunction(12);
-        sdD3::mode(Mode::ALTERNATE);
-        sdD3::alternateFunction(12);
-        #endif //SD_ONE_BIT_DATABUS
-        sdCLK::mode(Mode::ALTERNATE);
-        sdCLK::alternateFunction(12);
-        sdCMD::mode(Mode::ALTERNATE);
-        sdCMD::alternateFunction(12);
-        IRQregisterIrq(lock,SDMMC1_IRQn,SDMMCirqImpl);
-    }
-    
+/**
+ * \internal
+ * Reset and restart the SDIO peripheral state machine.
+ */
+static void initSDIOPeripheral(){
     SDMMC1->POWER=0; //Power off state
     delayUs(1);
     SDMMC1->CLKCR=0;
@@ -912,11 +988,11 @@ static void initSDIOPeripheral()
 static CardType detectCardType()
 {
     const int INIT_TIMEOUT=200; //200*10ms= 2 seconds
-    CmdResult r=Command::send(Command::CMD8,0x1aa);
+    CmdResult r=Command::send(CommandType::CMD8,0x1aa);
     if(r.validateError())
     {
         //We have an SDv2 card connected
-        if(r.getResponse()!=0x1aa)
+        if(r.getShortResponse()!=0x1aa)
         {
             DBGERR("CMD8 validation: voltage range fail\n");
             return Invalid;
@@ -924,25 +1000,25 @@ static CardType detectCardType()
         for(int i=0;i<INIT_TIMEOUT;i++)
         {
             //Bit 30 @ 1 = tell the card we like SDHCs
-            r=Command::send(Command::ACMD41,(1<<30) | sdVoltageMask);
+            r=Command::send(CommandType::ACMD41,(1<<30) | sdVoltageMask);
             //ACMD41 sends R3 as response, whose CRC is wrong.
             if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::CRCFail)
             {
                 r.validateError();
                 return Invalid;
             }
-            if((r.getResponse() & (1<<31))==0) //Busy bit
+            if((r.getShortResponse() & (1<<31))==0) //Busy bit
             {
                 Thread::sleep(10);
                 continue;
             }
-            if((r.getResponse() & sdVoltageMask)==0)
+            if((r.getShortResponse() & sdVoltageMask)==0)
             {
                 DBGERR("ACMD41 validation: voltage range fail\n");
                 return Invalid;
             }
             DBG("ACMD41 validation: looped %d times\n",i);
-            if(r.getResponse() & (1<<30))
+            if(r.getShortResponse() & (1<<30))
             {
                 DBG("SDHC\n");
                 return SDHC;
@@ -955,7 +1031,7 @@ static CardType detectCardType()
         return Invalid;
     } else {
         //We have an SDv1 or MMC
-        r=Command::send(Command::ACMD41,sdVoltageMask);
+        r=Command::send(CommandType::ACMD41,sdVoltageMask);
         //ACMD41 sends R3 as response, whose CRC is wrong.
         if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::CRCFail)
         {
@@ -973,14 +1049,14 @@ static CardType detectCardType()
                     r.validateError();
                     return Invalid;
                 }
-                if((r.getResponse() & (1<<31))==0) //Busy bit
+                if((r.getShortResponse() & (1<<31))==0) //Busy bit
                 {
                     Thread::sleep(10);
                     //Send again command
-                    r=Command::send(Command::ACMD41,sdVoltageMask);
+                    r=Command::send(CommandType::ACMD41,sdVoltageMask);
                     continue;
                 }
-                if((r.getResponse() & sdVoltageMask)==0)
+                if((r.getShortResponse() & sdVoltageMask)==0)
                 {
                     DBGERR("ACMD41 validation: voltage range fail\n");
                     return Invalid;
@@ -994,6 +1070,44 @@ static CardType detectCardType()
     }
 }
 
+static off_t getCardSize() {
+
+    CmdResult r=Command::send(CommandType::CMD9,Command::getRca()<<16);    //Get CSD 
+    if(r.validateR2Response()==false) return 0;
+    auto csdStructure = (r.getLongResponsePart(3) & 0xC0000000) >> 30;
+    switch (csdStructure) {
+        case 0: {
+            DBG("CSD structure version 1.0\n");
+            auto cSize  = ((r.getLongResponsePart(2) & 0x000003ff)) << 2 | ((r.getLongResponsePart(1) & 0xC0000000) >> 30);
+            DBG("C_SIZE=%8X\n", cSize);
+            auto cSizeMult = (r.getLongResponsePart(1) & 0x00038000) >> 15;
+            DBG("C_SIZE_MULT=%8X\n", cSizeMult);
+            auto readBlLen = (r.getLongResponsePart(2) & 0x000F0000) >> 16;
+            DBG("READ_BL_LEN=%8X\n", readBlLen);
+            return (cSize + 1) * (1 << (cSizeMult + 2)) * (1 << readBlLen); // (C_SIZE + 1) * 2^(C_SIZE_MULT + 2) * 2^READ_BL_LEN
+        }
+        case 1: {
+            DBG("CSD structure version 2.0\n");
+            off_t cSize = (r.getLongResponsePart(1) & 0xffff0000) >> 16 | ((r.getLongResponsePart(2) & 0x0000001f) << 16);
+            DBG("C_SIZE=%16llX\n", cSize);
+            return (cSize + 1) * (512 * 1024); // (C_SIZE + 1) * 512KB, since C_SIZE is in units of 512KB for CSD version 2.0
+        }
+        case 2: {
+            DBG("CSD structure version 3.0\n");
+            off_t cSize = (r.getLongResponsePart(1) & 0xffff0000) >> 16 | ((r.getLongResponsePart(2) & 0x000007ff) << 16);
+            DBG("C_SIZE=%16llX\n", cSize);
+            return (cSize + 1) * (512 * 1024); // Same formula as CSD version 2.0, but with a larger C_SIZE field
+        }
+        default:
+            DBGERR("Unsupported CSD structure version: %d\n", csdStructure);
+            return 0;
+    }
+
+}
+
+//
+// class SDIODriver
+//
 
 intrusive_ref_ptr<SDIODriver> SDIODriver::instance()
 {
@@ -1061,6 +1175,8 @@ ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
 int SDIODriver::ioctl(int cmd, void* arg)
 {
     DBG("SDIODriver::ioctl()\n");
+    if(cmd==IOCTL_REINIT)
+        return reinitialize(true) ? 0 : -EFAULT;
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
     Lock<KernelMutex> l(mutex);
     //Note: no need to select card, since status can be queried even with card
@@ -1068,7 +1184,7 @@ int SDIODriver::ioctl(int cmd, void* arg)
     return waitForCardReady() ? 0 : -EFAULT;
 }
 
-SDIODriver::SDIODriver() : Device(Device::BLOCK)
+bool SDIODriver::sdioReinitLocked()
 {
 
     initSDIOPeripheral();
@@ -1079,70 +1195,90 @@ SDIODriver::SDIODriver() : Device(Device::BLOCK)
     Command::setRca(0);
 
     //Send card reset command
-    CmdResult r=Command::send(Command::CMD0,0);
-    if(r.validateError()==false) return;
+    CmdResult r=Command::send(CommandType::CMD0,0);
+    if(r.validateError()==false) return false;
 
     cardType=detectCardType();
-    if(cardType==Invalid) return; //Card detect failed
-    if(cardType==MMC) return; //MMC cards currently unsupported
+    if(cardType==Invalid) return false; //Card detect failed
+    if(cardType==MMC) return false; //MMC cards currently unsupported
 
     // Now give an RCA to the card. In theory we should loop and enumerate all
     // the cards but this driver supports only one card.
-    r=Command::send(Command::CMD2,0);
+    r=Command::send(CommandType::CMD2,0);
     //CMD2 sends R2 response, whose CMDINDEX field is wrong
     if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::RespNotMatch)
     {
         r.validateError();
-        return;
+        return false;
     }
-    r=Command::send(Command::CMD3,0);
-    if(r.validateR6Response()==false) return;
-    Command::setRca(r.getResponse()>>16);
+    r=Command::send(CommandType::CMD3,0);
+    if(r.validateR6Response()==false) return false;
+    Command::setRca(r.getShortResponse()>>16);
     DBG("Got RCA=%u\n",Command::getRca());
     if(Command::getRca()==0)
     {
         //RCA=0 can't be accepted, since it is used to deselect cards
         DBGERR("RCA=0 is invalid\n");
-        return;
+        return false;
+    }
+
+    // Here we should be able to get the card's CSD
+    cardSize = getCardSize();
+    if (cardSize == 0)
+    {
+        DBGERR("Failed to get card size or card is empty\n");
+    } else {
+        DBG("Card size: %llu bytes\n", cardSize);
     }
 
     //Lastly, try selecting the card and configure the latest bits
     {
         #ifndef SD_KEEP_CARD_SELECTED
         CardSelector selector;
-        if(selector.succeded()==false) return;
+        if(selector.succeded()==false) return false;
         #else //SD_KEEP_CARD_SELECTED
         //Select card here, and keep it selected indefinitely
-        r=Command::send(Command::CMD7,Command::getRca()<<16);
-        if(r.validateR1Response()==false) return;
+        r=Command::send(CommandType::CMD7,Command::getRca()<<16);
+        if(r.validateR1Response()==false) return false;
         #endif //SD_KEEP_CARD_SELECTED
 
-        r=Command::send(Command::CMD13,Command::getRca()<<16);//Get status
-        if(r.validateR1Response()==false) return;
+        r=Command::send(CommandType::CMD13,Command::getRca()<<16);//Get status
+        if(r.validateR1Response()==false) return false;
         if(r.getState()!=4) //4=Tran state
         {
             DBGERR("CMD7 was not able to select card\n");
-            return;
+            return false;
         }
 
         #ifndef SD_ONE_BIT_DATABUS
-        r=Command::send(Command::ACMD6,2);   //Set 4 bit bus width
-        if(r.validateR1Response()==false) return;
+        r=Command::send(CommandType::ACMD6,2);   //Set 4 bit bus width
+        if(r.validateR1Response()==false) return false;
         #endif //SD_ONE_BIT_DATABUS
 
         if(cardType!=SDHC)
         {
-            r=Command::send(Command::CMD16,512); //Set 512Byte block length
-            if(r.validateR1Response()==false) return;
+            r=Command::send(CommandType::CMD16,512); //Set 512Byte block length
+            if(r.validateR1Response()==false) return false;
         }
     }
 
-    // Now that card is initialized, perform self calibration of maximum
-    // possible read/write speed. This as a side effect enables 4bit bus width.
-    ClockController::calibrateClockSpeed(this);
+    // Reinitialization restores a defined card state. Clock calibration is
+    // left to the caller so it can be requested only when needed.
+    return true;
+}
 
+bool SDIODriver::reinitialize(bool calibrate)
+{
+    Lock<KernelMutex> l(mutex);
+    if(sdioReinitLocked()==false) return false;
+    if(calibrate == false) return true;
+    return ClockController::calibrateClockSpeed(this);
+}
 
-    DBG("SDIO init: Success\n");
+SDIODriver::SDIODriver() : Device(Device::BLOCK)
+{
+    initSDIOPeripheralOnce();
+    if(reinitialize(true)) DBG("SDIO init: Success\n");
 }
 
 } //namespace miosix
