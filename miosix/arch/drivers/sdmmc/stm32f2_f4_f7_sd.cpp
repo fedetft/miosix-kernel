@@ -1649,13 +1649,31 @@ ssize_t SDIODriver::writeBlock(const void* buffer, size_t size, off_t where)
 int SDIODriver::ioctl(int cmd, void* arg)
 {
     DBG("SDIODriver::ioctl()\n");
-    if(cmd==IOCTL_REINIT)
+    switch (cmd) {
+    case IOCTL_REINIT: {
+        DBG("IOCTL_REINIT\n");
         return reinitialize(true) ? 0 : -EFAULT;
-    if(cmd!=IOCTL_SYNC) return -ENOTTY;
-    Lock<KernelMutex> l(mutex);
-    //Note: no need to select card, since status can be queried even with card
-    //not selected.
-    return waitForCardReady() ? 0 : -EFAULT;
+    }
+    case IOCTL_GET_VOLUME_SIZE: {
+        DBG("IOCTL_GET_VOLUME_SIZE\n");
+        off_t* sizePtr=static_cast<off_t*>(arg);
+        if (sizePtr==nullptr) {
+            return -EINVAL;
+        }
+        Lock<KernelMutex> l(mutex);
+        *sizePtr=cardSize;
+        return 0;
+    }
+    case IOCTL_SYNC: {
+        DBG("IOCTL_SYNC\n");
+        Lock<KernelMutex> l(mutex);
+        // Note: no need to select card, since status can be queried even with card
+        // not selected.
+        return waitForCardReady() ? 0 : -EFAULT;
+    }
+    default:
+        return -ENOTTY;
+    }
 }
 
 bool SDIODriver::sdioReinitLocked()

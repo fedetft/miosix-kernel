@@ -526,15 +526,34 @@ ssize_t SPISDDriver::writeBlock(const void* buffer, size_t size, off_t where)
 int SPISDDriver::ioctl(int cmd, void* arg)
 {
     DBG("SPISDDriver::ioctl()\n");
-    if (cmd==IOCTL_REINIT)
+    switch (cmd) {
+    case IOCTL_REINIT: {
+        DBG("IOCTL_REINIT\n");
         return reinitialize() ? 0 : -EFAULT;
-    if(cmd!=IOCTL_SYNC) return -ENOTTY;
-    Lock<KernelMutex> l(mutex);
-    CS_LOW();
-    unsigned char result=wait_ready();
-    CS_HIGH();
-    if(result==0xff) return 0;
-    else return -EFAULT;
+    }
+    case IOCTL_GET_VOLUME_SIZE: {
+        DBG("IOCTL_GET_VOLUME_SIZE\n");
+        off_t* sizePtr=static_cast<off_t*>(arg);
+        if (sizePtr==nullptr) {
+            return -EINVAL;
+        }
+        Lock<KernelMutex> l(mutex);
+        *sizePtr=cardSize;
+        return 0;
+    }
+    case IOCTL_SYNC: {
+        DBG("IOCTL_SYNC\n");
+        Lock<KernelMutex> l(mutex);
+        CS_LOW();
+        unsigned char result=wait_ready();
+        CS_HIGH();
+        if(result==0xff) return 0;
+        else return -EFAULT;
+    }
+    default:
+        return -ENOTTY;
+    }
+    
 }
 
 bool SPISDDriver::sdioReinitLocked()
