@@ -297,6 +297,40 @@ void BufferConverter::deallocateBuffer()
 unsigned char *BufferConverter::originalBuffer=0;
 unsigned int *BufferConverter::wordAlignedBuffer=0;
 
+// 
+// enum CommandType
+// 
+
+/**
+ * \internal
+ * SD/MMC commands
+ * - bit #7 is @ 1 if a command is an ACMDxx. send() will send the
+ *   sequence CMD55, CMDxx
+ * - bit from #0 to #5 indicate command index (CMD0..CMD63)
+ * - bit #6 is don't care
+ */
+enum class CommandType
+{
+    CMD0=0,           //GO_IDLE_STATE
+    CMD2=2,           //ALL_SEND_CID
+    CMD3=3,           //SEND_RELATIVE_ADDR
+    ACMD6=0x80 | 6,   //SET_BUS_WIDTH
+    CMD7=7,           //SELECT_DESELECT_CARD
+    ACMD41=0x80 | 41, //SEND_OP_COND (SD)
+    CMD8=8,           //SEND_IF_COND
+    CMD9=9,           //SEND_CSD
+    CMD12=12,         //STOP_TRANSMISSION
+    CMD13=13,         //SEND_STATUS
+    CMD16=16,         //SET_BLOCKLEN
+    CMD17=17,         //READ_SINGLE_BLOCK
+    CMD18=18,         //READ_MULTIPLE_BLOCK
+    ACMD23=0x80 | 23, //SET_WR_BLK_ERASE_COUNT (SD)
+    CMD24=24,         //WRITE_BLOCK
+    CMD25=25,         //WRITE_MULTIPLE_BLOCK
+    CMD55=55          //APP_CMD
+};
+
+
 //
 // Class CmdResult
 //
@@ -326,7 +360,7 @@ public:
      * \internal
      * Default constructor
      */
-    CmdResult(): cmd(0), error(Ok), response(0), response2{0, 0, 0, 0} {}
+    CmdResult(): cmd(CommandType::CMD0), error(Ok), response{0, 0, 0, 0} {}
 
     /**
      * \internal
@@ -334,10 +368,18 @@ public:
      * \param cmd command index of command that was sent
      * \param result result of command
      */
-    CmdResult(unsigned char cmd, Error error): cmd(cmd), error(error),
-            response(SDIO->RESP1), response2{SDIO->RESP4, SDIO->RESP3, SDIO->RESP2, 0} {
-                response2[3] = response;
-            }
+    CmdResult(CommandType cmd, Error error): cmd(cmd), error(error) 
+    {
+        if(cmd==CommandType::CMD9) 
+        {
+            response[0]=SDIO->RESP4;
+            response[1]=SDIO->RESP3;
+            response[2]=SDIO->RESP2;
+            response[3]=SDIO->RESP1;
+        } else {
+            response[0]=SDIO->RESP1;           
+        }
+    }
 
     /**
      * \internal
@@ -345,23 +387,18 @@ public:
      * May not be valid if getError()!=Ok or the command does not send a
      * response, such as CMD0
      */
-    unsigned int getResponse() { return response; }
+    unsigned int getShortResponse() { return response; }
 
     /**
      * \internal
      * \param part one of the four 32 bit parts of the 128 bit response
      * \return the part selected with the part parameter or 0 if out of bounds
      */
-    unsigned int getResponse2Part(size_t part) {
+    unsigned int getLongResponsePart(size_t part) 
+    {
         if (part >= 4) return 0;
         return response2[part];
     }
-
-    /**
-     * \internal
-     * \return command index
-     */
-    unsigned char getCmdIndex() { return cmd; }
 
     /**
      * \internal
@@ -378,7 +415,7 @@ public:
 
     /**
      * \internal
-     * interprets this->getResponse() as an R1 response, and checks if there are
+     * interprets this->getShortResponse() as an R1 response, and checks if there are
      * errors, or everything is ok
      * \return true on success, false on failure
      */
@@ -392,16 +429,15 @@ public:
     bool IRQvalidateR1Response();
 
     /**
-     * \internal
-     * interprets this->getResponse() as an R2 response, and checks if there are
-     * errors, or everything is ok
-     * \return true on success, false on failure
+     * \internal checks if there was an error during long response exchange.
+     * R2 responses can never generate RespNotMatch error.
+     * \return true on success, false on any error
      */
     bool validateR2Response();
 
     /**
      * \internal
-     * interprets this->getResponse() as an R6 response, and checks if there are
+     * interprets this->getShortResponse() as an R6 response, and checks if there are
      * errors, or everything is ok
      * \return true on success, false on failure
      */
@@ -409,15 +445,14 @@ public:
 
     /**
      * \internal
-     * \return the card state from an R1 or R6 resonse
+     * \return the card state from an R1 or R6 response
      */
     unsigned char getState();
 
 private:
-    unsigned char cmd; ///<\internal Command index that was sent
+    CommandType cmd; ///<\internal Command index that was sent
     Error error; ///<\internal possible error that occurred
-    unsigned int response; ///<\internal 32bit response
-    unsigned int response2[4]; ///<\internal 128bit response, only valid for R2 responses
+    unsigned int response[4]; ///<\internal 32bit/128bit response
 };
 
 bool CmdResult::validateError()
@@ -427,16 +462,16 @@ bool CmdResult::validateError()
         case Ok:
             return true;
         case Timeout:
-            DBGERR("CMD%d: Timeout\n",cmd);
+            DBGERR("CMD%u: Timeout\n",static_cast<unsigned char>(cmd));
             break;
         case CRCFail:
-            DBGERR("CMD%d: CRC Fail\n",cmd);
+            DBGERR("CMD%u: CRC Fail\n",static_cast<unsigned char>(cmd));
             break;
         case RespNotMatch:
-            DBGERR("CMD%d: Response does not match\n",cmd);
+            DBGERR("CMD%u: Response does not match\n",static_cast<unsigned char>(cmd));
             break;
         case ACMDFail:
-            DBGERR("CMD%d: ACMD Fail\n",cmd);
+            DBGERR("CMD%u: ACMD Fail\n",static_cast<unsigned char>(cmd));
             break;
     }
     return false;
@@ -448,38 +483,36 @@ bool CmdResult::validateR1Response()
     //Note: this number is obtained with all the flags of R1 which are errors
     //(flagged as E in the SD specification), plus CARD_IS_LOCKED because
     //locked card are not supported by this software driver
-    if((response & 0xfff98008)==0) return true;
-    DBGERR("CMD%d: R1 response error(s):\n",cmd);
-    if(response & (1<<31)) DBGERR("Out of range\n");
-    if(response & (1<<30)) DBGERR("ADDR error\n");
-    if(response & (1<<29)) DBGERR("BLOCKLEN error\n");
-    if(response & (1<<28)) DBGERR("ERASE SEQ error\n");
-    if(response & (1<<27)) DBGERR("ERASE param\n");
-    if(response & (1<<26)) DBGERR("WP violation\n");
-    if(response & (1<<25)) DBGERR("card locked\n");
-    if(response & (1<<24)) DBGERR("LOCK_UNLOCK failed\n");
-    if(response & (1<<23)) DBGERR("command CRC failed\n");
-    if(response & (1<<22)) DBGERR("illegal command\n");
-    if(response & (1<<21)) DBGERR("ECC fail\n");
-    if(response & (1<<20)) DBGERR("card controller error\n");
-    if(response & (1<<19)) DBGERR("unknown error\n");
-    if(response & (1<<16)) DBGERR("CSD overwrite\n");
-    if(response & (1<<15)) DBGERR("WP ERASE skip\n");
-    if(response & (1<<3)) DBGERR("AKE_SEQ error\n");
+    if((response[0] & 0xfff98008)==0) return true;
+    DBGERR("CMD%u: R1 response error(s):\n",static_cast<unsigned int>(cmd));
+    if(response[0] & (1<<31)) DBGERR("Out of range\n");
+    if(response[0] & (1<<30)) DBGERR("ADDR error\n");
+    if(response[0] & (1<<29)) DBGERR("BLOCKLEN error\n");
+    if(response[0] & (1<<28)) DBGERR("ERASE SEQ error\n");
+    if(response[0] & (1<<27)) DBGERR("ERASE param\n");
+    if(response[0] & (1<<26)) DBGERR("WP violation\n");
+    if(response[0] & (1<<25)) DBGERR("card locked\n");
+    if(response[0] & (1<<24)) DBGERR("LOCK_UNLOCK failed\n");
+    if(response[0] & (1<<23)) DBGERR("command CRC failed\n");
+    if(response[0] & (1<<22)) DBGERR("illegal command\n");
+    if(response[0] & (1<<21)) DBGERR("ECC fail\n");
+    if(response[0] & (1<<20)) DBGERR("card controller error\n");
+    if(response[0] & (1<<19)) DBGERR("unknown error\n");
+    if(response[0] & (1<<16)) DBGERR("CSD overwrite\n");
+    if(response[0] & (1<<15)) DBGERR("WP ERASE skip\n");
+    if(response[0] & (1<<3)) DBGERR("AKE_SEQ error\n");
     return false;
 }
 
 bool CmdResult::IRQvalidateR1Response()
 {
     if(error!=Ok) return false;
-    if(response & 0xfff98008) return false;
+    if(response[0] & 0xfff98008) return false;
     return true;
 }
 
-
 bool CmdResult::validateR2Response() {
-    // R2 responses do not contain cmd index so it is always wrong
-    if(error!=Ok && error!=RespNotMatch) return validateError();
+    if(error!=Ok) return validateError();
 
     return true;
 }
@@ -487,19 +520,19 @@ bool CmdResult::validateR2Response() {
 bool CmdResult::validateR6Response()
 {
     if(error!=Ok) return validateError();
-    if((response & 0xe008)==0) return true;
-    DBGERR("CMD%d: R6 response error(s):\n",cmd);
-    if(response & (1<<15)) DBGERR("command CRC failed\n");
-    if(response & (1<<14)) DBGERR("illegal command\n");
-    if(response & (1<<13)) DBGERR("unknown error\n");
-    if(response & (1<<3)) DBGERR("AKE_SEQ error\n");
+    if((response[0] & 0xe008)==0) return true;
+    DBGERR("CMD%u: R6 response error(s):\n",static_cast<unsigned int>(cmd));
+    if(response[0] & (1<<15)) DBGERR("command CRC failed\n");
+    if(response[0] & (1<<14)) DBGERR("illegal command\n");
+    if(response[0] & (1<<13)) DBGERR("unknown error\n");
+    if(response[0] & (1<<3)) DBGERR("AKE_SEQ error\n");
     return false;
 }
 
 unsigned char CmdResult::getState()
 {
-    unsigned char result=(response>>9) & 0xf;
-    DBG("CMD%d: State: ",cmd);
+    unsigned char result=(response[0]>>9) & 0xf;
+    DBG("CMD%d: State: ",static_cast<unsigned int>(cmd));
     switch(result)
     {
         case 0:  DBG("Idle\n");  break;
@@ -528,36 +561,6 @@ unsigned char CmdResult::getState()
 class Command
 {
 public:
-
-    /**
-     * \internal
-     * SD/MMC commands
-     * - bit #7 is @ 1 if a command is an ACMDxx. send() will send the
-     *   sequence CMD55, CMDxx
-     * - bit from #0 to #5 indicate command index (CMD0..CMD63)
-     * - bit #6 is don't care
-     */
-    enum CommandType
-    {
-        CMD0=0,           //GO_IDLE_STATE
-        CMD2=2,           //ALL_SEND_CID
-        CMD3=3,           //SEND_RELATIVE_ADDR
-        ACMD6=0x80 | 6,   //SET_BUS_WIDTH
-        CMD7=7,           //SELECT_DESELECT_CARD
-        ACMD41=0x80 | 41, //SEND_OP_COND (SD)
-        CMD8=8,           //SEND_IF_COND
-        CMD9=9,           //SEND_CSD
-        CMD12=12,         //STOP_TRANSMISSION
-        CMD13=13,         //SEND_STATUS
-        CMD16=16,         //SET_BLOCKLEN
-        CMD17=17,         //READ_SINGLE_BLOCK
-        CMD18=18,         //READ_MULTIPLE_BLOCK
-        ACMD23=0x80 | 23, //SET_WR_BLK_ERASE_COUNT (SD)
-        CMD24=24,         //WRITE_BLOCK
-        CMD25=25,         //WRITE_MULTIPLE_BLOCK
-        CMD55=55          //APP_CMD
-    };
-
     /**
      * \internal
      * Send a command.
@@ -567,12 +570,6 @@ public:
      */
     static CmdResult send(CommandType cmd, unsigned int arg)
     {
-        if(static_cast<unsigned char>(cmd) & 0x80)
-        {
-            DBG("ACMD%d\n",static_cast<unsigned char>(cmd) & 0x3f);
-        } else {
-            DBG("CMD%d\n",static_cast<unsigned char>(cmd) & 0x3f);
-        }
         return IRQsend(cmd,arg);
     }
 
@@ -609,37 +606,39 @@ CmdResult Command::IRQsend(CommandType cmd, unsigned int arg)
     //Handle ACMDxx as CMD55, CMDxx
     if(cc & 0x80)
     {
-        CmdResult r=IRQsend(CMD55,(static_cast<unsigned int>(rca))<<16);
+        cc &= 0x3f;
+        cmd = static_cast<CommandType>(cc);
+        DBG("ACMD%u\n",cc);
+        CmdResult r=IRQsend(CommandType::CMD55,(static_cast<unsigned int>(rca))<<16);
         if(r.IRQvalidateR1Response()==false)
-            return CmdResult(cc & 0x3f,CmdResult::ACMDFail);
+            return CmdResult(cmd,CmdResult::ACMDFail);
         //Bit 5 @ 1 = next command will be interpreted as ACMD
-        if((r.getResponse() & (1<<5))==0)
-            return CmdResult(cc & 0x3f,CmdResult::ACMDFail);
-    }
+        if((r.getShortResponse() & (1<<5))==0)
+            return CmdResult(cmd,CmdResult::ACMDFail);
+    } else DBG("CMD%u\n",cc);
 
     //Send command
-    cc &= 0x3f;
     unsigned int command=SDIO_CMD_CPSMEN | static_cast<unsigned int>(cc);
-    if(cc!=CMD0) command |= SDIO_CMD_WAITRESP_0; //CMD0 has no response
-    if(cc==CMD2) command |= SDIO_CMD_WAITRESP_1; //CMD2 has long response
-    if(cc==CMD9) command |= SDIO_CMD_WAITRESP_1; //CMD9 has long response
+    if(cmd!=CommandType::CMD0) command |= SDIO_CMD_WAITRESP_0; //CMD0 has no response
+    if(cmd==CommandType::CMD2) command |= SDIO_CMD_WAITRESP_1; //CMD2 has long response
+    if(cmd==CommandType::CMD9) command |= SDIO_CMD_WAITRESP_1; //CMD9 has long response
     SDIO->ARG=arg;
     SDIO->CMD=command;
 
     //CMD0 has no response, so wait until it is sent
-    if(cc==CMD0)
+    if(cc==CommandType::CMD0)
     {
         for(int i=0;i<500;i++)
         {
             if(SDIO->STA & SDIO_STA_CMDSENT)
             {
                 SDIO->ICR=0x7ff;//Clear flags
-                return CmdResult(cc,CmdResult::Ok);
+                return CmdResult(cmd,CmdResult::Ok);
             }
             delayUs(1);
         }
         SDIO->ICR=0x7ff;//Clear flags
-        return CmdResult(cc,CmdResult::Timeout);
+        return CmdResult(cmd,CmdResult::Timeout);
     }
 
     //Command is not CMD0, so wait a reply
@@ -648,20 +647,27 @@ CmdResult Command::IRQsend(CommandType cmd, unsigned int arg)
         unsigned int status=SDIO->STA;
         if(status & SDIO_STA_CMDREND)
         {
+            auto responseCmd = SDIO->RESPCMD;
+
             SDIO->ICR=0x7ff;//Clear flags
-            if(SDIO->RESPCMD==cc) return CmdResult(cc,CmdResult::Ok);
-            else return CmdResult(cc,CmdResult::RespNotMatch);
+            if(SDIO->RESPCMD==cc || cmd==CommandType::CMD2 || cmd==CommandType::CMD9) 
+            {
+                return CmdResult(cmd,CmdResult::Ok);    
+            } else {
+                DBGERR("CMD%u: Response index does not match. Got %lu\n",cc,responseCmd);
+                return CmdResult(cmd,CmdResult::RespNotMatch);
+            } 
         }
         if(status & SDIO_STA_CCRCFAIL)
         {
             SDIO->ICR=SDIO_ICR_CCRCFAILC;
-            return CmdResult(cc,CmdResult::CRCFail);
+            return CmdResult(cmd,CmdResult::CRCFail);
         }
         if(status & SDIO_STA_CTIMEOUT) break;
         delayUs(1);
     }
     SDIO->ICR=SDIO_ICR_CTIMEOUTC;
-    return CmdResult(cc,CmdResult::Timeout);
+    return CmdResult(cmd,CmdResult::Timeout);
 }
 
 unsigned short Command::rca=0;
@@ -988,10 +994,10 @@ static bool waitForCardReady()
     #endif
     long long timeout=getTime()+1500000000; //Timeout 1.5 second
     do {
-        CmdResult cr=Command::send(Command::CMD13,Command::getRca()<<16);
+        CmdResult cr=Command::send(CommandType::CMD13,Command::getRca()<<16);
         if(cr.validateR1Response()==false) return false;
         //Bit 8 in R1 response means ready for data.
-        if(cr.getResponse() & (1<<8)) return true;
+        if(cr.getShortResponse() & (1<<8)) return true;
         Thread::nanoSleep(sleepTime);
     } while(getTime()<timeout);
     DBGERR("Timeout waiting card ready\n");
@@ -1124,7 +1130,7 @@ static bool singleBlockRead(unsigned int *buffer, unsigned int lba)
         //Block size 512 bytes, block data xfer, from card to controller
         SDIO->DCTRL=(9<<4) | SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTEN;
 
-        cr=Command::IRQsend(Command::CMD17,lba);
+        cr=Command::IRQsend(CommandType::CMD17,lba);
         if(cr.IRQvalidateR1Response())
         {
             dr=IRQreceiveDataBlock(buffer,512/sizeof(unsigned int));
@@ -1139,7 +1145,7 @@ static bool singleBlockRead(unsigned int *buffer, unsigned int lba)
                     FastGlobalIrqUnlock eLock(dLock);
                     //After an error during data xfer the card might be a little
                     //confused. So send STOP_TRANSMISSION command to reassure it
-                    cr=Command::send(Command::CMD12,0);
+                    cr=Command::send(CommandType::CMD12,0);
                     if(cr.validateR1Response()) continue;
                 }
             }
@@ -1154,7 +1160,7 @@ static bool singleBlockRead(unsigned int *buffer, unsigned int lba)
         dr.validateError();
         //After an error during data xfer the card might be a little
         //confused. So send STOP_TRANSMISSION command to reassure it
-        cr=Command::send(Command::CMD12,0);
+        cr=Command::send(CommandType::CMD12,0);
         cr.validateR1Response();
         return false;
     }
@@ -1183,7 +1189,7 @@ static bool singleBlockWrite(const unsigned int *buffer, unsigned int lba)
         // would cause a fifo overrun, so we disable interrupts.
         FastGlobalIrqLock dLock;
 
-        cr=Command::IRQsend(Command::CMD24,lba);
+        cr=Command::IRQsend(CommandType::CMD24,lba);
         if(cr.IRQvalidateR1Response())
         {
             SDIO->DLEN=512;
@@ -1202,7 +1208,7 @@ static bool singleBlockWrite(const unsigned int *buffer, unsigned int lba)
                     FastGlobalIrqUnlock eLock(dLock);
                     //After an error during data xfer the card might be a little
                     //confused. So send STOP_TRANSMISSION command to reassure it
-                    cr=Command::send(Command::CMD12,0);
+                    cr=Command::send(CommandType::CMD12,0);
                     if(cr.validateR1Response()) continue;
                 }
             }
@@ -1217,7 +1223,7 @@ static bool singleBlockWrite(const unsigned int *buffer, unsigned int lba)
         dr.validateError();
         //After an error during data xfer the card might be a little
         //confused. So send STOP_TRANSMISSION command to reassure it
-        cr=Command::send(Command::CMD12,0);
+        cr=Command::send(CommandType::CMD12,0);
         cr.validateR1Response();
         return false;
     }
@@ -1304,7 +1310,7 @@ static bool multipleBlockRead(unsigned int *buffer, unsigned int nblk,
         DBGERR("Premature wakeup\n");
         driverError=true;
     }
-    CmdResult cr=Command::send(nblk>1 ? Command::CMD18 : Command::CMD17,lba);
+    CmdResult cr=Command::send(nblk>1 ? CommandType::CMD18 : CommandType::CMD17,lba);
     if(cr.validateR1Response())
     {
         //Block size 512 bytes, block data xfer, from card to controller
@@ -1321,12 +1327,12 @@ static bool multipleBlockRead(unsigned int *buffer, unsigned int nblk,
     // unfinished read in case of errors
     if(nblk>1 || driverError || sdioTransferError || dmaTransferError) 
     {
-        cr=Command::send(Command::CMD12,0);
+        cr=Command::send(CommandType::CMD12,0);
         if(driverError || dmaTransferError || sdioTransferError)
         {
             // CMD13 is sent to check the real status of the sdio after CMD12
             // and to reset the card in case if it gets stuck in a illegal state
-            cr=Command::send(Command::CMD13,Command::getRca()<<16);
+            cr=Command::send(CommandType::CMD13,Command::getRca()<<16);
         }
     }
     if(sdioTransferError || dmaTransferError || cr.validateR1Response()==false)
@@ -1362,7 +1368,7 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
     if(cardType!=SDHC) lba*=512; // Convert to byte address if not SDHC
     if(nblk>1)
     {
-        CmdResult cr=Command::send(Command::ACMD23,nblk);
+        CmdResult cr=Command::send(CommandType::ACMD23,nblk);
         if(cr.validateR1Response()==false) return false;
     }
     
@@ -1405,7 +1411,7 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
         DBGERR("Premature wakeup\n");
         driverError=true;
     }
-    CmdResult cr=Command::send(nblk>1 ? Command::CMD25 : Command::CMD24,lba);
+    CmdResult cr=Command::send(nblk>1 ? CommandType::CMD25 : CommandType::CMD24,lba);
     if(cr.validateR1Response())
     {
         //Block size 512 bytes, block data xfer, from card to controller
@@ -1422,12 +1428,12 @@ static bool multipleBlockWrite(const unsigned int *buffer, unsigned int nblk,
     // unfinished write in case of errors
     if(nblk>1 || driverError || sdioTransferError || dmaTransferError)
     {
-        cr=Command::send(Command::CMD12,0);
+        cr=Command::send(CommandType::CMD12,0);
         if (driverError || dmaTransferError || sdioTransferError)
         {
             // CMD13 is sent to check the real status of the sdio after CMD12
             // and to reset the card in case if it gets stuck in a illegal state
-            cr=Command::send(Command::CMD13,Command::getRca()<<16);
+            cr=Command::send(CommandType::CMD13,Command::getRca()<<16);
         }
     }
     if(sdioTransferError || dmaTransferError || cr.validateR1Response()==false)
@@ -1462,7 +1468,7 @@ public:
     explicit CardSelector()
     {
         success=Command::send(
-                Command::CMD7,Command::getRca()<<16).validateR1Response();
+                CommandType::CMD7,Command::getRca()<<16).validateR1Response();
     }
 
     /**
@@ -1477,7 +1483,7 @@ public:
      */
     ~CardSelector()
     {
-        Command::send(Command::CMD7,0); //Deselect card. This will timeout
+        Command::send(CommandType::CMD7,0); //Deselect card. This will timeout
     }
 
 private:
@@ -1551,11 +1557,11 @@ static void initSDIOPeripheral()
 static CardType detectCardType()
 {
     const int INIT_TIMEOUT=200; //200*10ms= 2 seconds
-    CmdResult r=Command::send(Command::CMD8,0x1aa);
+    CmdResult r=Command::send(CommandType::CMD8,0x1aa);
     if(r.validateError())
     {
         //We have an SDv2 card connected
-        if(r.getResponse()!=0x1aa)
+        if(r.getShortResponse()!=0x1aa)
         {
             DBGERR("CMD8 validation: voltage range fail\n");
             return Invalid;
@@ -1563,25 +1569,25 @@ static CardType detectCardType()
         for(int i=0;i<INIT_TIMEOUT;i++)
         {
             //Bit 30 @ 1 = tell the card we like SDHCs
-            r=Command::send(Command::ACMD41,(1<<30) | sdVoltageMask);
+            r=Command::send(CommandType::ACMD41,(1<<30) | sdVoltageMask);
             //ACMD41 sends R3 as response, whose CRC is wrong.
             if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::CRCFail)
             {
                 r.validateError();
                 return Invalid;
             }
-            if((r.getResponse() & (1<<31))==0) //Busy bit
+            if((r.getShortResponse() & (1<<31))==0) //Busy bit
             {
                 Thread::sleep(10);
                 continue;
             }
-            if((r.getResponse() & sdVoltageMask)==0)
+            if((r.getShortResponse() & sdVoltageMask)==0)
             {
                 DBGERR("ACMD41 validation: voltage range fail\n");
                 return Invalid;
             }
             DBG("ACMD41 validation: looped %d times\n",i);
-            if(r.getResponse() & (1<<30))
+            if(r.getShortResponse() & (1<<30))
             {
                 DBG("SDHC\n");
                 return SDHC;
@@ -1594,7 +1600,7 @@ static CardType detectCardType()
         return Invalid;
     } else {
         //We have an SDv1 or MMC
-        r=Command::send(Command::ACMD41,sdVoltageMask);
+        r=Command::send(CommandType::ACMD41,sdVoltageMask);
         //ACMD41 sends R3 as response, whose CRC is wrong.
         if(r.getError()!=CmdResult::Ok && r.getError()!=CmdResult::CRCFail)
         {
@@ -1612,14 +1618,14 @@ static CardType detectCardType()
                     r.validateError();
                     return Invalid;
                 }
-                if((r.getResponse() & (1<<31))==0) //Busy bit
+                if((r.getShortResponse() & (1<<31))==0) //Busy bit
                 {
                     Thread::sleep(10);
                     //Send again command
-                    r=Command::send(Command::ACMD41,sdVoltageMask);
+                    r=Command::send(CommandType::ACMD41,sdVoltageMask);
                     continue;
                 }
-                if((r.getResponse() & sdVoltageMask)==0)
+                if((r.getShortResponse() & sdVoltageMask)==0)
                 {
                     DBGERR("ACMD41 validation: voltage range fail\n");
                     return Invalid;
@@ -1635,29 +1641,29 @@ static CardType detectCardType()
 
 
 static off_t getCardSize() {
-    CmdResult r=Command::send(Command::CMD9,Command::getRca()<<16);    //Get CSD 
+    CmdResult r=Command::send(CommandType::CMD9,Command::getRca()<<16);    //Get CSD 
     if(r.validateR2Response()==false) return 0;
-    auto csdStructure = (r.getResponse2Part(3) & 0xC0000000) >> 30;
+    auto csdStructure = (r.getLongResponsePart(3) & 0xC0000000) >> 30;
     switch (csdStructure) {
         case 0: {
             DBG("CSD structure version 1.0\n");
-            auto cSize  = ((r.getResponse2Part(2) & 0x000003ff)) << 2 | ((r.getResponse2Part(1) & 0xC0000000) >> 30);
+            auto cSize  = ((r.getLongResponsePart(2) & 0x000003ff)) << 2 | ((r.getLongResponsePart(1) & 0xC0000000) >> 30);
             DBG("C_SIZE=%8X\n", cSize);
-            auto cSizeMult = (r.getResponse2Part(1) & 0x00038000) >> 15;
+            auto cSizeMult = (r.getLongResponsePart(1) & 0x00038000) >> 15;
             DBG("C_SIZE_MULT=%8X\n", cSizeMult);
-            auto readBlLen = (r.getResponse2Part(2) & 0x000F0000) >> 16;
+            auto readBlLen = (r.getLongResponsePart(2) & 0x000F0000) >> 16;
             DBG("READ_BL_LEN=%8X\n", readBlLen);
             return (cSize + 1) * (1 << (cSizeMult + 2)) * (1 << readBlLen); // (C_SIZE + 1) * 2^(C_SIZE_MULT + 2) * 2^READ_BL_LEN
         }
         case 1: {
             DBG("CSD structure version 2.0\n");
-            off_t cSize = (r.getResponse2Part(1) & 0xffff0000) >> 16 | ((r.getResponse2Part(2) & 0x0000001f) << 16);
+            off_t cSize = (r.getLongResponsePart(1) & 0xffff0000) >> 16 | ((r.getLongResponsePart(2) & 0x0000001f) << 16);
             DBG("C_SIZE=%16llX\n", cSize);
             return (cSize + 1) * (512 * 1024); // (C_SIZE + 1) * 512KB, since C_SIZE is in units of 512KB for CSD version 2.0
         }
         case 2: {
             DBG("CSD structure version 3.0\n");
-            off_t cSize = (r.getResponse2Part(1) & 0xffff0000) >> 16 | ((r.getResponse2Part(2) & 0x000007ff) << 16);
+            off_t cSize = (r.getLongResponsePart(1) & 0xffff0000) >> 16 | ((r.getLongResponsePart(2) & 0x000007ff) << 16);
             DBG("C_SIZE=%16llX\n", cSize);
             return (cSize + 1) * (512 * 1024); // Same formula as CSD version 2.0, but with a larger C_SIZE field
         }
@@ -1861,7 +1867,7 @@ bool SDIODriver::sdioReinitLocked()
     Command::setRca(0);
 
     //Send card reset command
-    CmdResult r=Command::send(Command::CMD0,0);
+    CmdResult r=Command::send(CommandType::CMD0,0);
     if(r.validateError()==false) return false;
 
     cardType=detectCardType();
@@ -1870,12 +1876,12 @@ bool SDIODriver::sdioReinitLocked()
 
     // Now give an RCA to the card. In theory we should loop and enumerate all
     // the cards but this driver supports only one card.
-    r=Command::send(Command::CMD2,0);
+    r=Command::send(CommandType::CMD2,0);
     if(r.validateR2Response()==false) return false;
 
-    r=Command::send(Command::CMD3,0);
+    r=Command::send(CommandType::CMD3,0);
     if(r.validateR6Response()==false) return false;
-    Command::setRca(r.getResponse()>>16);
+    Command::setRca(r.getShortResponse()>>16);
     DBG("Got RCA=%u\n",Command::getRca());
     if(Command::getRca()==0)
     {
@@ -1901,11 +1907,11 @@ bool SDIODriver::sdioReinitLocked()
         if(selector.succeded()==false) return false;
         #else //SD_KEEP_CARD_SELECTED
         //Select card here, and keep it selected indefinitely
-        r=Command::send(Command::CMD7,Command::getRca()<<16);
+        r=Command::send(CommandType::CMD7,Command::getRca()<<16);
         if(r.validateR1Response()==false) return false;
         #endif //SD_KEEP_CARD_SELECTED
 
-        r=Command::send(Command::CMD13,Command::getRca()<<16);//Get status
+        r=Command::send(CommandType::CMD13,Command::getRca()<<16);//Get status
         if(r.validateR1Response()==false) return false;
         if(r.getState()!=4) //4=Tran state
         {
@@ -1913,12 +1919,12 @@ bool SDIODriver::sdioReinitLocked()
             return false;
         }
 
-        r=Command::send(Command::ACMD6,2);   //Set 4 bit bus width
+        r=Command::send(CommandType::ACMD6,2);   //Set 4 bit bus width
         if(r.validateR1Response()==false) return false;
 
         if(cardType!=SDHC)
         {
-            r=Command::send(Command::CMD16,512); //Set 512Byte block length
+            r=Command::send(CommandType::CMD16,512); //Set 512Byte block length
             if(r.validateR1Response()==false) return false;
         }
     }
