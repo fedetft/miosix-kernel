@@ -38,6 +38,13 @@ void tryMBR() {
 
 int main()
 {
+    iprintf("Starting partitiondbg\n");
+    iprintf("Reading SDIO device size...\n");
+
+    off_t cardSize = 0;
+    SDIODriver::instance()->ioctl(IOCTL_GET_VOLUME_SIZE, &cardSize);
+
+    iprintf("SDIO device size: %llu bytes\n", cardSize);
     tryMBR();
     printf("Trying GPT from main\n");
     printf("Trying GPT\n");
