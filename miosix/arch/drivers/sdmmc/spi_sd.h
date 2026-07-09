@@ -106,6 +106,15 @@ private:
     unsigned char waitForCardReady() noexcept;
 
     /**
+     * Reinitialize the card.
+     * The mutex is recursive, so calibration can call readBlock() without
+     * deadlocking even when reinitialize() is already holding it.
+     */
+    bool reinitialize();
+
+    bool sdioReinitLocked();
+
+    /**
      * \internal
      * Send a command to the SD card
      * \param cmd one among the #define'd commands
@@ -485,6 +494,8 @@ int SPISD<SPI>::ioctl(int cmd, void* arg)
 {
     if(cardType==0) return -EIO;
     dbg("%s\n",__PRETTY_FUNCTION__);
+    if (cmd==IOCTL_REINIT)
+        return reinitialize() ? 0 : -EFAULT;
     if(cmd!=IOCTL_SYNC) return -ENOTTY;
     Lock<KernelMutex> l(mutex);
     cs.low();
@@ -495,9 +506,9 @@ int SPISD<SPI>::ioctl(int cmd, void* arg)
 }
 
 template <class SPI>
-SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
-    : Device(Device::BLOCK), spi(std::move(movedSpi)), cs(cs)
+bool SPISD<SPI>::sdioReinitLocked() 
 {
+    Lock<KernelMutex> l(mutex);
     cs.high();
     cs.mode(Mode::OUTPUT);
 
@@ -521,7 +532,7 @@ SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
         printErrorCode(resp);
         dbgerr("Init failed\n");
         cs.high();
-        return; //Error
+        return false; //Error
     }
     unsigned char n, cmd, ty=0, ocr[4];
     // Enter Idle state
@@ -589,7 +600,7 @@ SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
     if(ty==0)
     {
         cs.high();
-        return; //Error
+        return false; //Error
     }
     cardType=ty;
 
@@ -597,7 +608,7 @@ SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
     {
         dbgerr("Status error\n");
         cs.high();
-        return; //Error
+        return false; //Error
     }
 
     cs.high();
@@ -605,6 +616,21 @@ SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
     spi->setBitrate(25*1000*1000);
 
     dbg("Init done...\n");
+    return true;
+}
+
+template <class SPI>
+bool SPISD<SPI>::reinitialize()
+{
+    Lock<KernelMutex> l(mutex);
+    return sdioReinitLocked();
+}
+
+template <class SPI>
+SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
+    : Device(Device::BLOCK), spi(std::move(movedSpi)), cs(cs)
+{
+    if(reinitialize()) DBG("SDIO init: Success\n");
 }
 
 } // namespace miosix
