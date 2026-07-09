@@ -545,21 +545,39 @@ void SPISD<SPI>::getCardSize() {
 
 }
 
-
 template <class SPI>
 int SPISD<SPI>::ioctl(int cmd, void* arg)
 {
     if(cardType==0) return -EIO;
     dbg("%s\n",__PRETTY_FUNCTION__);
-    if (cmd==IOCTL_REINIT)
+
+    switch (cmd) {
+    case IOCTL_REINIT: {
+        DBG("IOCTL_REINIT\n");
         return reinitialize() ? 0 : -EFAULT;
-    if(cmd!=IOCTL_SYNC) return -ENOTTY;
-    Lock<KernelMutex> l(mutex);
-    cs.low();
-    unsigned char result=waitForCardReady();
-    cs.high();
-    if(result==0xff) return 0;
-    else return -EFAULT;
+    }
+    case IOCTL_GET_VOLUME_SIZE: {
+        DBG("IOCTL_GET_VOLUME_SIZE\n");
+        off_t* sizePtr=static_cast<off_t*>(arg);
+        if (sizePtr==nullptr) {
+            return -EINVAL;
+        }
+        Lock<KernelMutex> l(mutex);
+        *sizePtr=cardSize;
+        return 0;
+    }
+    case IOCTL_SYNC: {
+        DBG("IOCTL_SYNC\n");
+        Lock<KernelMutex> l(mutex);
+        cs.low();
+        unsigned char result=waitForCardReady();
+        cs.high();
+        if(result==0xff) return 0;
+        else return -EFAULT;
+    }
+    default:
+        return -ENOTTY;
+    }
 }
 
 template <class SPI>
