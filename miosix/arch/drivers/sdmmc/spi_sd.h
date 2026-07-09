@@ -114,6 +114,8 @@ private:
 
     bool sdioReinitLocked();
 
+    void getCardSize();
+
     /**
      * \internal
      * Send a command to the SD card
@@ -180,7 +182,7 @@ private:
 
     std::unique_ptr<SPI> spi;
     GpioPin cs;
-    KernelMutex mutex;
+    KernelMutex mutex{MutexOptions::RECURSIVE};
     ///\internal Type of card
     /// - 0=no card
     /// - (1<<0)=MMC
@@ -188,6 +190,7 @@ private:
     /// - (1<<2)=SDv2
     /// - (1<<2)|(1<<3)=SDHC
     unsigned char cardType=0;
+    off_t cardSize=0;
 };
 
 template <class SPI>
@@ -490,6 +493,60 @@ ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where)
 }
 
 template <class SPI>
+void SPISD<SPI>::getCardSize() {
+
+    if (cardType==1) {
+        return 0;  // MMC not supported
+    }
+
+    uint32_t buff[4];
+    buff[0] = sendCmd(CMD9, 0x0);
+    buff[1] = spi->sendRecv(0xff);
+    buff[2] = spi->sendRecv(0xff);
+    buff[3] = spi->sendRecv(0xff);
+
+    if (buff[0] == 0xff) {
+        cardSize=0;
+        return;
+    } 
+    
+    auto csdStructure = (buff[3] & 0xC0000000) >> 30;
+    switch (csdStructure) {
+        case 0: {
+            DBG("CSD structure version 1.0\n");
+            auto cSize  = ((buff[2] & 0x000003ff)) << 2 | ((buff[1] & 0xC0000000) >> 30);
+            DBG("C_SIZE=%8X\n", cSize);
+            auto cSizeMult = (buff[1] & 0x00038000) >> 15;
+            DBG("C_SIZE_MULT=%8X\n", cSizeMult);
+            auto readBlLen = (buff[2] & 0x000F0000) >> 16;
+            DBG("READ_BL_LEN=%8X\n", readBlLen);
+            cardSize=(cSize + 1) * (1 << (cSizeMult + 2)) * (1 << readBlLen); // (C_SIZE + 1) * 2^(C_SIZE_MULT + 2) * 2^READ_BL_LEN
+            return;
+        }
+        case 1: {
+            DBG("CSD structure version 2.0\n");
+            off_t cSize = (buff[1] & 0xffff0000) >> 16 | ((buff[2] & 0x0000001f) << 16);
+            DBG("C_SIZE=%16llX\n", cSize);
+            cardSize=(cSize + 1) * (512 * 1024); // (C_SIZE + 1) * 512KB, since C_SIZE is in units of 512KB for CSD version 2.0
+            return;
+        }
+        case 2: {
+            DBG("CSD structure version 3.0\n");
+            off_t cSize = (buff[1] & 0xffff0000) >> 16 | ((buff[2] & 0x000007ff) << 16);
+            DBG("C_SIZE=%16llX\n", cSize);
+            cardSize=(cSize + 1) * (512 * 1024); // Same formula as CSD version 2.0, but with a larger C_SIZE field
+            return;
+        }
+        default:
+            DBGERR("Unsupported CSD structure version: %d\n", csdStructure);
+            cardSize=0;
+            return;
+    }
+
+}
+
+
+template <class SPI>
 int SPISD<SPI>::ioctl(int cmd, void* arg)
 {
     if(cardType==0) return -EIO;
@@ -603,6 +660,15 @@ bool SPISD<SPI>::sdioReinitLocked()
         return false; //Error
     }
     cardType=ty;
+
+    // Get the CSD and the card size from it
+    getCardSize();
+    if (cardSize == 0)
+    {
+        DBGERR("Failed to get card size or card is empty\n");
+    } else {
+        DBG("Card size: %llu bytes\n", cardSize);
+    }
 
     if(readSdStatus()<0)
     {
