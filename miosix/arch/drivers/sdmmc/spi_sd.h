@@ -468,7 +468,7 @@ ssize_t SPISD<SPI>::writeBlock(const void* buffer, size_t size, off_t where)
             return -EBADF;
         }
     } else { // Multiple block write
-        //DBGERR("Mbw\n");//debug only
+        //dbgerr("Mbw\n");//debug only
         if(cardType & 6) sendCmd(ACMD23,nSectors); //Only if it is SD card
         result=sendCmd(CMD25,lba); // WRITE_MULTIPLE_BLOCK
         if(result!=0)
@@ -496,7 +496,8 @@ template <class SPI>
 void SPISD<SPI>::getCardSize() {
 
     if (cardType==1) {
-        return 0;  // MMC not supported
+        cardSize=0;
+        return;  // MMC not supported
     }
 
     uint32_t buff[4];
@@ -513,32 +514,32 @@ void SPISD<SPI>::getCardSize() {
     auto csdStructure = (buff[3] & 0xC0000000) >> 30;
     switch (csdStructure) {
         case 0: {
-            DBG("CSD structure version 1.0\n");
+            dbg("CSD structure version 1.0\n");
             auto cSize  = ((buff[2] & 0x000003ff)) << 2 | ((buff[1] & 0xC0000000) >> 30);
-            DBG("C_SIZE=%8X\n", cSize);
+            dbg("C_SIZE=%8X\n", cSize);
             auto cSizeMult = (buff[1] & 0x00038000) >> 15;
-            DBG("C_SIZE_MULT=%8X\n", cSizeMult);
+            dbg("C_SIZE_MULT=%8X\n", cSizeMult);
             auto readBlLen = (buff[2] & 0x000F0000) >> 16;
-            DBG("READ_BL_LEN=%8X\n", readBlLen);
+            dbg("READ_BL_LEN=%8X\n", readBlLen);
             cardSize=(cSize + 1) * (1 << (cSizeMult + 2)) * (1 << readBlLen); // (C_SIZE + 1) * 2^(C_SIZE_MULT + 2) * 2^READ_BL_LEN
             return;
         }
         case 1: {
-            DBG("CSD structure version 2.0\n");
+            dbg("CSD structure version 2.0\n");
             off_t cSize = (buff[1] & 0xffff0000) >> 16 | ((buff[2] & 0x0000001f) << 16);
-            DBG("C_SIZE=%16llX\n", cSize);
+            dbg("C_SIZE=%16llX\n", cSize);
             cardSize=(cSize + 1) * (512 * 1024); // (C_SIZE + 1) * 512KB, since C_SIZE is in units of 512KB for CSD version 2.0
             return;
         }
         case 2: {
-            DBG("CSD structure version 3.0\n");
+            dbg("CSD structure version 3.0\n");
             off_t cSize = (buff[1] & 0xffff0000) >> 16 | ((buff[2] & 0x000007ff) << 16);
-            DBG("C_SIZE=%16llX\n", cSize);
+            dbg("C_SIZE=%16llX\n", cSize);
             cardSize=(cSize + 1) * (512 * 1024); // Same formula as CSD version 2.0, but with a larger C_SIZE field
             return;
         }
         default:
-            DBGERR("Unsupported CSD structure version: %d\n", csdStructure);
+            dbgerr("Unsupported CSD structure version: %d\n", csdStructure);
             cardSize=0;
             return;
     }
@@ -553,11 +554,11 @@ int SPISD<SPI>::ioctl(int cmd, void* arg)
 
     switch (cmd) {
     case IOCTL_REINIT: {
-        DBG("IOCTL_REINIT\n");
+        dbg("IOCTL_REINIT\n");
         return reinitialize() ? 0 : -EFAULT;
     }
     case IOCTL_GET_VOLUME_SIZE: {
-        DBG("IOCTL_GET_VOLUME_SIZE\n");
+        dbg("IOCTL_GET_VOLUME_SIZE\n");
         off_t* sizePtr=static_cast<off_t*>(arg);
         if (sizePtr==nullptr) {
             return -EINVAL;
@@ -567,7 +568,7 @@ int SPISD<SPI>::ioctl(int cmd, void* arg)
         return 0;
     }
     case IOCTL_SYNC: {
-        DBG("IOCTL_SYNC\n");
+        dbg("IOCTL_SYNC\n");
         Lock<KernelMutex> l(mutex);
         cs.low();
         unsigned char result=waitForCardReady();
@@ -683,9 +684,9 @@ bool SPISD<SPI>::sdioReinitLocked()
     getCardSize();
     if (cardSize == 0)
     {
-        DBGERR("Failed to get card size or card is empty\n");
+        dbgerr("Failed to get card size or card is empty\n");
     } else {
-        DBG("Card size: %llu bytes\n", cardSize);
+        dbg("Card size: %llu bytes\n", cardSize);
     }
 
     if(readSdStatus()<0)
@@ -714,7 +715,7 @@ template <class SPI>
 SPISD<SPI>::SPISD(std::unique_ptr<SPI> movedSpi, GpioPin cs)
     : Device(Device::BLOCK), spi(std::move(movedSpi)), cs(cs)
 {
-    if(reinitialize()) DBG("SDIO init: Success\n");
+    if(reinitialize()) dbg("SDIO init: Success\n");
 }
 
 } // namespace miosix
