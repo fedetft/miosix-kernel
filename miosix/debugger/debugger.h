@@ -18,29 +18,31 @@ public:
      * Destination must be big enough to store the register, register size can
      * be queried with registerSize
      *
+     * @param thread Thread to reference for read
      * @param i number of register to read
      * @param ref to store value
      * @return true if valid read, false otherwise
      */
-    bool read(Thread* t, int i, char* ref);
+    bool read(Thread* thread, int i, char* value);
 
     /**
      * @brief Writes the value pinted by ref into register i
      *
      * The number of bytes written depends on register size
      *
+     * @param thread Thread to reference for write
      * @param i number of register to write
      * @param value value to write
      * @return true if valid write, false otherwise
      */
-    bool write(Thread* t, int i, char* ref);
+    bool write(Thread* thread, int i, char* value);
 
     /**
      * @brief Return the size of register i in bytes
      *
      * @param i Index of register in register file
      */
-    int getSize(int i);
+    int getSize(int index);
 
     // Number of entries in the register file
     const static int entries            = REGISTER_FILE_ENTRIES;
@@ -391,6 +393,12 @@ private:
 
     void remove();
 
+    // NOTE: all methods here should actually be IRQmethods, as they are called either inside an IRQfunction (IRQsyncLocal, IRQhandleResched etc.)
+    // +++++ Correct behavior is to acquire GlobalLock inside BreakpointUnit to make sure it's synched
+    // FIXME: However, this is working in stop-mode, interrupt handlers never access this structure concurrently with
+    // ++++++ debugger (only accessed when thread can be scheduled again, i.e.: when I call debugWakup() on it)
+    // ?????? Can I avoid acquiring locks?: I know no thread of this process
+
     unsigned int value = 0;
 
 };
@@ -443,7 +451,16 @@ public:
         for(int i=0; i<breakpointsNum; i++) {
             if(!breakpoints[i].enabled()) {
                 breakpoints[i] = Breakpoint(address, kind);
-                markDirty();
+                {
+                    // NOTE: scoping lock just to this line is basically useless, should take the lock for
+                    // the whole function, but I am working in stop mode (and single threaded): BPU is
+                    // accessed by other components only when scheduling an attached process, if this is
+                    // executing no attached thread can be scheduled
+                    //
+                    // Correct behavior is: make add/RemoveBreakpoint and clear atomic
+                    FastGlobalIrqLock dLock;
+                    IRQmarkDirty();
+                }
                 return i;
             }
         }
@@ -462,7 +479,10 @@ public:
         for(int i=0; i<breakpointsNum; i++) {
             if (breakpoints[i].eq(breakpoint)) {
                 breakpoints[i].remove();
-                markDirty();
+                {
+                    FastGlobalIrqLock dLock;
+                    IRQmarkDirty();
+                }
                 return i;
             }
         }
@@ -483,7 +503,10 @@ public:
         for(int i=0; i<watchpointsNum; i++) {
             if(!watchpoints[i].enabled()) {
                 watchpoints[i] = Watchpoint(address, kind, type);
-                markDirty();
+                {
+                    FastGlobalIrqLock dLock;
+                    IRQmarkDirty();
+                }
                 return i;
             }
         }
@@ -503,7 +526,10 @@ public:
         for(int i=0; i<watchpointsNum; i++) {
             if (watchpoints[i].eq(watchpoint)) {
                 watchpoints[i].remove();
-                markDirty();
+                {
+                    FastGlobalIrqLock dLock;
+                    IRQmarkDirty();
+                }
                 return i;
             }
         }
@@ -518,27 +544,30 @@ public:
             breakpoints[i].remove();
         for (int i = 0; i < watchpointsNum; i++)
             watchpoints[i].remove();
-        markDirty();
+        {
+            FastGlobalIrqLock dLock;
+            IRQmarkDirty();
+        }
     }
 
     // Make sure that the type used to store BreakpointUnit cpu flags is wide
     // enough to accomodate all available cpus
     static_assert(CPU_NUM_CORES < sizeof(BPUFlag) * 8,
             "BreakpointUnit: too many CPUs for dirty flag implementation");
-    static inline BPUFlag cpuDirty(unsigned int coreId) {
+    static inline BPUFlag IRQcpuDirty(unsigned int coreId) {
         return dirty & (1 << coreId);
     }
 
-    static inline void clearDirtyBit(unsigned int coreId) {
+    static inline void IRQclearDirtyBit(unsigned int coreId) {
         dirty &= ~(1 << coreId);
     }
 
-    static inline void markDirty() {
+    static inline void IRQmarkDirty() {
         dirty = ~(BPUFlag)0x0;
     }
 
-    static inline int getBreakpointsNum()       { return breakpointsNum; }
-    static inline int getWatchpointsNum()       { return watchpointsNum; }
+    // static inline int getBreakpointsNum()       { return breakpointsNum; }
+    // static inline int getWatchpointsNum()       { return watchpointsNum; }
 
     /**
      * @brief Update FPB of the local cpu
@@ -566,11 +595,11 @@ public:
             debugMonitorSteppingDisable();
             const auto coreId = getCurrentCoreId();
             // If cpu is updated: return
-            if (!cpuDirty(coreId)) return;
+            if (!IRQcpuDirty(coreId)) return;
             // Update CPU debug register
             for (int i = 0; i < breakpointsNum; i++) breakpoints[i].IRQsetLocal(i);
             for (int i = 0; i < watchpointsNum; i++) watchpoints[i].IRQsetLocal(i);
-            clearDirtyBit(coreId);
+            IRQclearDirtyBit(coreId);
         }
     }
 
@@ -627,7 +656,7 @@ private:
      * @param address
      * @return true if the address can be properly represented, false otherwise
      */
-    bool validate(unsigned int address);
+    // bool validate(unsigned int address);
 
     static int breakpointsNum,
                watchpointsNum;

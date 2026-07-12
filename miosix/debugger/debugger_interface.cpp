@@ -218,6 +218,9 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
     //     // write new sp as already implemented, considering context offset
     //
     // NOTE:
+    // *** EXCR (reported as lr in ctxsave) can be directly omitted from process
+    //     context, but it might be useful in some cases, forbid write
+    //
     // Writing on lr, specifically changing "fpuPresent" bit, would give write
     // permissions outside process memory area if architecture supports fpu:
     // - 'P[lr]=0xffffffff'  -> make sure context does not include fpu registers
@@ -244,9 +247,11 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
         return true;
     }
     if (regNum == excr) {
-        // excr
-        ctx[9] = value;
-        return true;
+        // // TODO: Do not allow excr writing, consider removing from registerfile entirely
+        // // excr
+        // ctx[9] = value;
+        // return true;
+        return false;
     }
     // r12
     if (regNum == r12) {
