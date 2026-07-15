@@ -109,13 +109,14 @@ RP2040PL022DmaSpi::~RP2040PL022DmaSpi() noexcept
 void RP2040PL022DmaSpi::setBitrate(unsigned int bitrate) noexcept
 {
     this->bitrate=bitrate;
-    unsigned int ratio=peripheralFrequency/bitrate;
+    //(peripheralFrequency+bitrate-1) in numerator rounds by eccess
+    unsigned int ratio=(peripheralFrequency+bitrate-1)/bitrate;
     if(ratio<2) ratio=2;
     if(ratio>0xfe00) errorHandler(Error::UNEXPECTED);
     unsigned int presc=2;
     while(ratio>presc*0x100) presc<<=1;
     if(presc>0xfe) presc=0xfe;
-    unsigned int scr=(ratio/presc)-1;
+    unsigned int scr=((ratio+presc-1)/presc)-1;
     spi->cpsr=presc;
     spi->cr0=(spi->cr0&~SPI_SSPCR0_SCR_BITS) | (scr<<SPI_SSPCR0_SCR_LSB);
 }
