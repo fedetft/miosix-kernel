@@ -3,6 +3,7 @@
 #include "debugger.h"
 #include "interfaces-impl/cpu_const_impl.h"
 #include "kernel/thread.h"
+#include "kernel/process.h"
 
 #ifdef PROCESS_DEBUGGER
 
@@ -128,7 +129,6 @@ bool RegisterFile::read(Thread* t, int regNum, char *ref) {
         // Report proper stack pointer (before it gets moved by context switch,
         // position depends on size of context, which is different when float
         // registers are saved/omitted
-        // FIXME: Should I use oldStack instead? (saved by hardware) ?
         *dest = reinterpret_cast<unsigned int>(stackPtr) + offset;
         return true;
     }
@@ -247,11 +247,9 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
         return true;
     }
     if (regNum == excr) {
-        // // TODO: Do not allow excr writing, consider removing from registerfile entirely
-        // // excr
+        // NOTE: Fake write, readonly register, it may change context size
         // ctx[9] = value;
-        // return true;
-        return false;
+        return true;
     }
     // r12
     if (regNum == r12) {
@@ -260,16 +258,27 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
     }
     // sp
     if (regNum == sp) {
-        // Write proper stack pointer (before it gets moved by context switch,
-        // position depends on size of context, which is different when float
-        // registers are saved/omitted
-        ctx[STACK_OFFSET_IN_CTXSAVE] = value - offset;
-        return true;
+        unsigned int newStackPtr = value - offset;
+
+        // Safe cast: t is a user thread
+        Process *p = reinterpret_cast<Process*>(t->getProcess());
+
+        if (p->mpu.withinForWriting(reinterpret_cast<unsigned int*>(newStackPtr), offset)) {
+            // Copy context to new location
+            // Use of memmove since the two region may overlap
+            // TODO: could speed up switching to memcpy if they don't
+            memmove(reinterpret_cast<unsigned int*>(newStackPtr), stackPtr, offset);
+            ctx[STACK_OFFSET_IN_CTXSAVE] = newStackPtr;
+            return true;
+        } else {
+            return false;
+        }
         // return false;
     }
     // FIXME: if architecture does not provide floating point registers: report
     // lr since gdb wants it, do not access it in context
     if (regNum == lr) {
+        stackPtr[5] = value;
         return true;
     }
     // pc

@@ -391,6 +391,7 @@ private:
     bool eq (const Breakpoint& other) const;
     inline void IRQsetLocal(int id) { FPB->FP_COMP[id] = value; }
 
+    // TODO: rename disable()
     void remove();
 
     // NOTE: all methods here should actually be IRQmethods, as they are called either inside an IRQfunction (IRQsyncLocal, IRQhandleResched etc.)
@@ -420,6 +421,7 @@ private:
         _DWT->WP[id].FUNCTION  = type;
     }
 
+    // TODO: rename disable()
     void remove();
 
     unsigned int    address;
@@ -575,6 +577,10 @@ public:
      * Needs GlobalIrqLock acquired to be consistent
      */
 
+    // NOTE: the correct behavior is to keep breakpoints and watchpoints enabled as the thread
+    // is stepping, but proper client should remove all break/watchpoints before executing a step, if
+    // STEP is handled separately from RUN it's possible to schedule thread for stepping without the
+    // need for Breakpoint and Watchpoint refresh on the core (switch in should be faster)
     #ifdef PROCESS_DEBUGGER
     static inline void IRQsyncLocal(Thread* t) {
         switch(t->debugStatus) {
@@ -585,6 +591,8 @@ public:
             debugMonitorEnable();
             flashPatchDisable();
             debugMonitorSteppingEnable();
+            // NOTE: Correct behavior is: clear trcena, but watchpoint
+            // triggers at the beginning of next instruction
         } break;
         case DebugStatus::RUN:
             // case DebugStatus::RUN:

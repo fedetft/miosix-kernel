@@ -808,7 +808,6 @@ void Debugger::vattach() {
         }
 
         attached.process                    = proc;
-        attached.running                    = true;
         attached.pid                        = pid;
         // attached.thread is set by debug event
 
@@ -818,6 +817,7 @@ void Debugger::vattach() {
         // without detaching from previous processes, in which case both the
         // newly and previous attached process are halted due to a debug event
         if (! th->flags.isWaitingDebug()) {
+            attached.running                = true;
             th->debugStatus                 = DebugStatus::PEND;
             th->IRQwakeup();
         }

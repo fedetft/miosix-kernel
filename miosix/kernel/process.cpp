@@ -195,7 +195,7 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
         Debugger::attached.running = true;
         // The process is now running, it needs to step into debugmonitor as
         // soon as it enters userspace
-        thr->debugStatus = DebugStatus::STEP;
+        thr->debugStatus = DebugStatus::PEND;
         proc->priv = true;
     }
     #endif

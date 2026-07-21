@@ -238,7 +238,10 @@ private:
     //Needs access to mpu
     friend class EDFScheduler;
     #ifdef PROCESS_DEBUGGER
+    //Needs access to mpu
     friend class Debugger;
+    //Needs access to mpu
+    friend class RegisterFile;
 
     // Returns the process pointer by pid, nullptr if it does not exist
     //

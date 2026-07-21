@@ -768,29 +768,34 @@ void DebugMon_Handler()
     // For multithreading: do this only when no more threads of the process are
     // running
     // Set running flag
-    // TODO: with the assumption of single-thread, the first thread hitting a
-    // breakpoint is the only one reporting the halting reason, all other
-    // threads stop without reporting their halting reason
+    // TODO: This check only makes sense for multithread if a single event
+    // report is allowed:
+    // makes sure that only the first event is reported
+    // TODO: Implementing multithread it might be better to change
+    // representation, allowing each thread to append their own stopreason
+    // (i.e.: IntrusiveListNode debugInfo in Thread class)
+    // Even if this might require more memory (needs to be included for each
+    // thread, regardless of them being debugged or not, kernel or user (must
+    // be in per thread, not per process))
+ 
     if (Debugger::attached.reason == StopReason::NONE) {
         Debugger::attached.IRQset(thread, StopReason::DEBUGEVENT, 0);
     }
     // TODO: with the assumption of single-thread, process running is immediately
     // set to false, With the support of multithread this must be set only by
-    // the last trhead which happens to stop, by either performing a context
+    // the last thread that halts, by either performing a context
     // switch, a resched, or hitting another breakpoint
     //
-    // TODO: Implementing multithread it might be better to change
-    // representation, allowing each thread to append their own stopreason
-    // (i.e.: IntrusiveListNode debugInfo in Thread class)
-    // Even if this might require more memory (needs to be included for each
-    // thread, regardless of them being kernel or user)
     Debugger::attached.running = false;
     // Wakeup debugger thread if waiting
+    // (this is a formal check, in practice, debugger thread is set before
+    // starting/attaching to a process, if a debugged thread causes a debug
+    // event and no debugger thread is listening for it, something is wrong)
     if (Debugger::thread != nullptr) {
         // Wakeup debugger if waiting
         Debugger::thread->IRQwakeup();
     }
-    // Clear dfsr
+    // Clear dfsr (only needed when reporting debug event type)
     SCB->DFSR = 0b11111;
     #else // PROCESS_DEBUGGER
     #ifdef WITH_ERRLOG

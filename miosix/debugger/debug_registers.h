@@ -177,7 +177,7 @@ inline void debugMonitorSteppingDisable() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/// TODO: These values are constants for a board, consider switching to #def
+/// TODO: These values are constants for a speific board, consider switching to #def
 
 /**
  * @brief Returns therevision version of implemented fpb
@@ -187,7 +187,7 @@ inline unsigned int fpbGetRevisionVersion() {
 }
 
 /**
- * @brief Regurns breakpoint writemask for the architecture (maybe can be defined)
+ * @brief Returns breakpoint writemask for the architecture (maybe can be defined)
  */
 inline unsigned int fpbGetWriteMask() {
     if (fpbGetRevisionVersion() == FP_Ctrl_REVISION_1)
