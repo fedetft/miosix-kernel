@@ -81,6 +81,23 @@ public:
      */
     static void unload(const unsigned int *elf);
 
+    #ifdef PROCESS_DEBUGGER
+    /**
+     * @brief Mark selected code section as private
+     *
+     * @param elf code section
+     * @return true on sucess, false otherwise
+     */
+    static bool makePrivate(const unsigned int *elf);
+
+    /**
+     * @brief Mark selected code section as shared
+     *
+     * @param elf
+     */
+    static void makeShared(const unsigned int *elf);
+    #endif//PROCESS_DEBUGGER
+
 private:
     /**
      * An entry into the cache of programs loaded in RAM
@@ -110,7 +127,7 @@ private:
         int useCount; ///< Used for reference counting the cache entry
         #ifdef PROCESS_DEBUGGER
         // If this flag is set, force duplication of code section
-        const bool priv;
+        bool priv;
         #endif //PROCESS_DEBUGGER
     };
 
@@ -164,6 +181,7 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     //
     //   KernelMutex m:
     const auto makePrivate (Thread::getCurrentThread() == Debugger::thread);
+    // If Debugger is executing, do not attempt sharing
     if (!makePrivate) {
     #else //PROCESS_DEBUGGER
     // To avoid repeated ifdef guards
@@ -178,7 +196,7 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
         {
             if(p.inode!=s.st_ino || p.device!=s.st_dev) continue;
             #ifdef PROCESS_DEBUGGER
-            // If the section is marked private do not share it
+            // If entry found is marked private, cannot use it
             if(p.priv) continue;
             #endif //PROCESS_DEBUGGER
             //Found, increment use count and return
@@ -209,6 +227,7 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     memset(reinterpret_cast<unsigned char*>(ramPointer)+fileSize,0,ramSize-fileSize);
     //Success
     #ifdef PROCESS_DEBUGGER
+    // Push entry with the desired flag
     programs.push_front(Entry(s.st_ino,s.st_dev,ramPointer,ramSize,makePrivate));
     #else
     programs.push_front(Entry(s.st_ino,s.st_dev,ramPointer,ramSize));
@@ -238,6 +257,37 @@ void ProgramCache::unload(const unsigned int *elf)
     }
     DBG("ProgramCache::unload(%p): bug: not in cache\n",elf);
 }
+
+#ifdef PROCESS_DEBUGGER
+bool ProgramCache::makePrivate(const unsigned int *elf)
+{
+    Lock<KernelMutex> l(m);
+    for(auto it=begin(programs);it!=end(programs);++it)
+    {
+        if(it->elf!=elf) continue;
+        if(it->priv == false && it->useCount == 1) {
+            it->priv = true;
+            return true;
+        }
+    }
+    return false;
+}
+
+void ProgramCache::makeShared(const unsigned int *elf)
+{
+    Lock<KernelMutex> l(m);
+    for(auto it=begin(programs);it!=end(programs);++it)
+    {
+        if(it->elf!=elf) continue;
+        it->priv = false;
+        return;
+    }
+}
+
+// Clunky: exposes method for ProgramCache through ElfProgram to Process
+bool ElfProgram::makePrivate() { return ProgramCache::makePrivate(elf); }
+void ElfProgram::makeShared()  { ProgramCache::makeShared(elf);  }
+#endif//PROCESS_DEBUGGER
 
 KernelMutex ProgramCache::m;
 list<ProgramCache::Entry> ProgramCache::programs;

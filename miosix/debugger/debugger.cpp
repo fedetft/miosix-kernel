@@ -558,6 +558,8 @@ void Debugger::handleCommand_D() {
         return;
     }
 
+    attached.process->makeShared();
+
     // Stop debugging process and wake up its only (assuming single thread
     // execution)
     {
@@ -771,6 +773,7 @@ void Debugger::vattach() {
 
     buffer.clear();
 
+    // Fancy quasi-static method (cannot make it fully static, needs to access ProcessTable)
     Process* proc = attached.process->debugGetByPid(pid);
     // Provided pid is not valid
     if (proc == nullptr) {
@@ -778,35 +781,41 @@ void Debugger::vattach() {
         return;
     }
 
+    bool priv = proc->makePrivate();
+
+    // Cannot insert breakpoints: code is outside Rev.1 bp address
+    // 0x00000000 - 0x1fffffff
+    // gdb may attempt software breakpoints, but process code is shared
     if (proc->program.isCopiedInRam() &&
-            (!proc->priv)) {
-        // FIXME: Relax condition: 
-        // if (makePrivate()) {
+            !priv) {
         BUF_FORMAT(buffer,
-                "E.Cannot attach to process with code inside RAM unless the debugger spawned it");
+                "E.Code section is shared and cannot use hardware breakpoints");
         return;
-        // }
         // // w/makePrivate() : if memory used by only one process: flag memory
         // as private and return 0, otherwise return 1
     }
 
+    // TODO: Process class never takes any mutex when interacting with threads,
+    // I assume it's safe to do so?
+    Thread* th = nullptr;
+    for (const auto& thread : proc->threads) {
+        if (thread->flags.isDeleted() == false
+        && thread->flags.isDeleting() == false) {
+            th = thread;
+            break;
+        }
+    }
+
+    if(th == nullptr) {
+        // Fail if no thread is alive in the selected process
+        buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
+        // Release private flag
+        proc->makeShared();
+        return;
+    }
+
     {
         FastGlobalIrqLock dLock;
-        Thread* th = nullptr;
-        for (const auto& thread : proc->threads) {
-            if (thread->flags.isDeleted() == false
-            && thread->flags.isDeleting() == false) {
-                th = thread;
-                break;
-            }
-        }
-
-        if(th == nullptr) {
-            // Fail if no thread is alive in the selected process
-            buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
-            return;
-        }
-
         attached.process                    = proc;
         attached.pid                        = pid;
         // attached.thread is set by debug event

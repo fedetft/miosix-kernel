@@ -250,8 +250,8 @@ private:
     // ideally not expose)
     Process* debugGetByPid (pid_t pid) const;
 
-    // Mirrors the priv flag in program cache
-    bool priv;
+    inline bool makePrivate() { return program.makePrivate(); }
+    inline void makeShared() { program.makeShared(); }
     #endif
 };
 

@@ -156,6 +156,21 @@ public:
      */
     ~ElfProgram();
 
+    #ifdef PROCESS_DEBUGGER
+    /**
+     * @brief Mark entry associated to this ElfProgram as private
+     *
+     * @return true on sucess, false otherwise
+     */
+    bool makePrivate();
+
+    /**
+     * @brief Marke entry associated to this ElfProgram as shared
+     */
+    void makeShared();
+    #endif//PROCESS_DEBUGGER
+
+
 private:
 
     /**
