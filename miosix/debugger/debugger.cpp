@@ -136,10 +136,14 @@ void Debugger::listen(int serial) {
         sendPacket();
     }
 
+    // If debugger reaches here it means an unrecoverable fail happened
+    // (read/write perror), behave like a detach: disable all debug hardware,
+    // resume any halted thread
+    handleCommand_D();
     // Unset debugger thread
     thread = nullptr;
 
-    fiprintf(stderr, "[DBG]: failes\n");
+    fiprintf(stderr, "[DBG]: failed\n");
 }
 
 void Debugger::listen(char serialName[]) {
@@ -174,7 +178,7 @@ void Debugger::recvPacket() {
     // - read until '#'
     // - read checksumbytes and compare with message checksum, send ack and return/retry
     while(!failed) {
-        if(read(serial, &cc, 1) <= 0) {
+        if(read(serial, &cc, 1) < 0) {
             perror("read");
             fail();
             return;
@@ -233,7 +237,7 @@ void Debugger::sendPacket() {
         write(serial, "#",              1);
         write(serial, strSum,           2);
 
-        if(read(serial, &cc, 1) <= 0) {
+        if(read(serial, &cc, 1) < 0) {
             perror("read");
             fail();
             return;
@@ -293,14 +297,15 @@ void Debugger::stopReply() {
         BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
     } break;
     case StopReason::EXIT: {
-        attached.process = nullptr;
         attached.pid = wait(&attached.ec);
         BUF_FORMAT(buffer, "W" "%02x", attached.code & 0xff);
-        attached.IRQclear();
         BreakpointUnit::clear();
+        {
+            FastGlobalIrqLock dLock;
+            attached.IRQclear();
+        }
     } break;
     case StopReason::FAULT: {
-        attached.process = nullptr;
         attached.pid = wait(&attached.ec);
         buffer.clear();
         buffer.appendChar('O');
@@ -309,9 +314,12 @@ void Debugger::stopReply() {
                                 hexToAscii(attached.code & 0xf),
                                 '\0'};
         buffer.appendBytes(retCode);
-        attached.IRQclear();
         BreakpointUnit::clear();
         sendPacket();
+        {
+            FastGlobalIrqLock dLock;
+            attached.IRQclear();
+        }
         BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
     } break;
     case StopReason::EXECVE:
@@ -322,10 +330,13 @@ void Debugger::stopReply() {
             buffer.appendChar(';');
             Debugger::attached.name = nullptr;
         } else {
-            attached.process = nullptr;
+            // Stop debugging if executable changed
             attached.pid = wait(&attached.ec);
-            attached.IRQclear();
-            BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
+            {
+                FastGlobalIrqLock dLock;
+                attached.IRQclear();
+            }
+            BUF_FORMAT(buffer, "W" "00");
         }
     };
 }
@@ -553,6 +564,7 @@ void Debugger::handleCommand_cs() {
 }
 
 void Debugger::handleCommand_D() {
+    // Cannot detach if there is no attached process
     if (attached.process == nullptr) {
         buffer.setReturnCode(ATTACH_FAIL);
         return;
@@ -564,7 +576,6 @@ void Debugger::handleCommand_D() {
     // execution)
     {
         FastGlobalIrqLock dLock;
-        attached.process = nullptr;
         if(attached.thread) attached.thread->IRQdebugWakeup();
         attached.IRQclear();
     }
@@ -768,6 +779,14 @@ void Debugger::vrun() {
 
 // TODO: check if logic to determine live threads is correct
 void Debugger::vattach() {
+
+    if (attached.process != nullptr) {
+        // Single process mode: you should detach from a previous process before
+        // attaching to a new one
+        buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
+        return;
+    }
+
     char* const str = strchr(buffer.getData(), ';');
     const auto pid = strtoul(str + 1, nullptr, 16);
 
