@@ -117,7 +117,7 @@ private:
     ReaderResult readPartitionTables(miosix::intrusive_ref_ptr<miosix::Device> device);
 
     GPTReader():primaryHeader{}, backupHeader{}, primaryPartitions{}, backupPartitions{} {
-        printf("Initializing GPTReader");
+        iprintf("Initializing GPTReader");
     };
 
     GPTReader(GPTReader& other) = delete;
