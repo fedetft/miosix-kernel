@@ -189,14 +189,6 @@ private:
         "GDBBuffers must be large enough to store all registers with hex encoding (2 hex per byte)");
 };
 
-enum class StopReason {
-    NONE,                   // No thread running (start)
-    DEBUGEVENT,             // Debug event triggered
-    EXIT,                   // Exited normally, code is return value
-    FAULT,                  // Terminated,      code is the fault reason
-    EXECVE,                 // Execve called
-};
-
 /**
  * @class AttachedProcessInfo
  * @brief Contains information about the process currently being debugged
@@ -211,32 +203,20 @@ public:
     const char*     name        = nullptr;
     Process*        process     = nullptr;
     Thread*         thread      = nullptr;
-    unsigned int    code        = 0;
     bool            running     = false;
-    StopReason      reason      = StopReason::NONE;
 
     pid_t           pid;
     int             ec;
+
+    // FIXME: where they are called, call also thread->debugInfo.IRQset/clear
 
     inline void IRQclear() {
         process     = nullptr;
         name        = nullptr;
         thread      = nullptr;
-        code        = 0;
         running     = false;
-        reason      = StopReason::NONE;
     }
 
-    inline void IRQset(Thread* thread, StopReason reason, unsigned int code) {
-        this->thread = thread;
-        this->reason = reason;
-        this->code = code;
-    }
-
-    inline bool valid() {
-        return process != nullptr
-            && thread != nullptr;
-    }
 };
 
 /**
@@ -577,18 +557,19 @@ public:
      * Needs GlobalIrqLock acquired to be consistent
      */
 
-    // NOTE: the correct behavior is to keep breakpoints and watchpoints enabled as the thread
+#define PROCESS_DEBUGGER
+    // NOTE: the correct behavior should be to keep breakpoints and watchpoints enabled as the thread
     // is stepping, but proper client should remove all break/watchpoints before executing a step, if
     // STEP is handled separately from RUN it's possible to schedule thread for stepping without the
     // need for Breakpoint and Watchpoint refresh on the core (switch in should be faster)
     #ifdef PROCESS_DEBUGGER
     static inline void IRQsyncLocal(Thread* t) {
-        switch(t->debugStatus) {
+        switch(t->debugInfo.status) {
         case DebugStatus::PEND: {
             debugMonitorPendSet();
         } break;
         case DebugStatus::STEP: {
-            debugMonitorEnable();
+            debugTraceDisable();
             flashPatchDisable();
             debugMonitorSteppingEnable();
             // NOTE: Correct behavior is: clear trcena, but watchpoint
@@ -598,7 +579,7 @@ public:
             // case DebugStatus::RUN:
             // since DebugStatus::STOP implies the thread has already been
             // stopped and cannot be scheduled
-            debugMonitorEnable();
+            debugTraceEnable();
             flashPatchEnable();
             debugMonitorSteppingDisable();
             const auto coreId = getCurrentCoreId();
@@ -612,8 +593,8 @@ public:
     }
 
     static inline void IRQdisableLocal() {
-        // Disable DebugMon_handler, ignores step and dwt
-        debugMonitorDisable();
+        // Disable DWT
+        debugTraceDisable();
         // Dissable Flashpatch unit
         flashPatchDisable();
         // clear pending debugmonitor events
@@ -626,7 +607,7 @@ public:
         && reinterpret_cast<Process*>(prev->getProcess()) == Debugger::attached.process)
             // Thread switching out of context has a pending exception: must be
             // restored later
-            if (debugMonitorPendGet()) prev->debugStatus = DebugStatus::PEND;
+            if (debugMonitorPendGet()) prev->debugInfo.status = DebugStatus::PEND;
 
         if (next->flags.isInUserspace() == true
         && reinterpret_cast<Process*>(next->getProcess()) == Debugger::attached.process) {

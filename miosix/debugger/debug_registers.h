@@ -124,19 +124,23 @@ inline void flashPatchDisable() {
     FPB->FP_CTRL = FP_Ctrl_WRITE_KEY;
 }
 
+inline void debugMonitorEnable() {
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_MON_EN_Msk;
+}
+
 /**
  * @brief Enable DebugMonitor & trace (core specific)
  */
-inline void debugMonitorEnable() {
-    CoreDebug->DEMCR |= CoreDebug_DEMCR_MON_EN_Msk | CoreDebug_DEMCR_TRCENA_Msk;
+inline void debugTraceEnable() {
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
 }
 
 /**
  * @brief Disable DebugMonitor & trace (core specific)
  */
-inline void debugMonitorDisable() {
+inline void debugTraceDisable() {
     // Apparently not enough, need to also disable all DWT features
-    CoreDebug->DEMCR &= ~(CoreDebug_DEMCR_MON_EN_Msk | CoreDebug_DEMCR_TRCENA_Msk);
+    CoreDebug->DEMCR &= ~CoreDebug_DEMCR_TRCENA_Msk;
 }
 
 /**

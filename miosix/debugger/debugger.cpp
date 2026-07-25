@@ -130,6 +130,10 @@ void Debugger::listen(int serial) {
     // Set debugger thread when handling messages
     thread = Thread::getCurrentThread();
 
+    // From now on, any debug event (SWBKPT, HWBKPT, Watchpiont, step, pend)
+    // will trigger DebugMonitor rather than HardFault
+    debugMonitorEnable();
+
     while (!failed) {
         recvPacket();
         handleCommand();
@@ -278,6 +282,13 @@ void Debugger::stopReply() {
             Thread::IRQglobalIrqUnlockAndWait(dLock);
         }
     }
+
+    if (!attached.thread) {
+        // Report 00
+        BUF_FORMAT(buffer, "W" "00");
+        return;
+    }
+
     // When code is here the attached process must already be stopped, not
     // checking again
 
@@ -288,7 +299,10 @@ void Debugger::stopReply() {
     // debug event triggered in this section is not associated with debugged
     // process (escalates to HardFault rather than being handled by
     // DebugMonitor)
-    switch (attached.reason) {
+
+    auto t = attached.thread;
+
+    switch (t->debugInfo.reason) {
     case StopReason::NONE: {
         BUF_FORMAT(buffer, "W" "00");
     } break;
@@ -298,7 +312,7 @@ void Debugger::stopReply() {
     } break;
     case StopReason::EXIT: {
         attached.pid = wait(&attached.ec);
-        BUF_FORMAT(buffer, "W" "%02x", attached.code & 0xff);
+        BUF_FORMAT(buffer, "W" "%02x", t->debugInfo.code & 0xff);
         BreakpointUnit::clear();
         {
             FastGlobalIrqLock dLock;
@@ -310,12 +324,12 @@ void Debugger::stopReply() {
         buffer.clear();
         buffer.appendChar('O');
         buffer.appendBytes("Program fault has occurred: 0x");
-        const char retCode[] = {hexToAscii(attached.code >> 4),
-                                hexToAscii(attached.code & 0xf),
+        const char retCode[] = {hexToAscii(t->debugInfo.code >> 4),
+                                hexToAscii(t->debugInfo.code & 0xf),
                                 '\0'};
         buffer.appendBytes(retCode);
-        BreakpointUnit::clear();
         sendPacket();
+        BreakpointUnit::clear();
         {
             FastGlobalIrqLock dLock;
             attached.IRQclear();
@@ -330,13 +344,7 @@ void Debugger::stopReply() {
             buffer.appendChar(';');
             Debugger::attached.name = nullptr;
         } else {
-            // Stop debugging if executable changed
-            attached.pid = wait(&attached.ec);
-            {
-                FastGlobalIrqLock dLock;
-                attached.IRQclear();
-            }
-            BUF_FORMAT(buffer, "W" "00");
+            BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
         }
     };
 }
@@ -510,8 +518,7 @@ void Debugger::handleCommand_mM() {
         const auto base = reinterpret_cast<unsigned int>(baseAddress);
         // - Could avoid third check (overflow protection) as it's implicit
         //   from inProcessMem (this check is included in mpu methods)
-        // - Could use an inFlash variable and refuse if writing is within
-        // memory
+        // - Could use an inFlash variable and refuse if writing is within flash memory
         const bool inProcessPool =  base        >= _process_pool_start
                                  && base + len  <= _process_pool_end
                                  && base + len  >= base;
@@ -536,7 +543,7 @@ void Debugger::handleCommand_mM() {
 void Debugger::handleCommand_cs() {
 
     if (attached.process == nullptr
-     || attached.thread == nullptr) {
+     || attached.thread  == nullptr) {
         // No process is currently attached, attempting to resume execution,
         // return an error
         // While this should never happen with a proper client, it might lock
@@ -545,6 +552,8 @@ void Debugger::handleCommand_cs() {
         return;
     }
 
+    auto t = attached.thread;
+
     {
         FastGlobalIrqLock dLock;
         // Prepare struct to wake up thread
@@ -552,8 +561,8 @@ void Debugger::handleCommand_cs() {
         // NOTE: It's mandatory to set stopreason to NONE as only the first thread
         // which triggers an event can set attached.reason, this is done by checking
         // on the stopreason
-        attached.reason = StopReason::NONE;
-        attached.thread->debugStatus = (buffer.getData()[0] == 'c')
+        t->debugInfo.reason = StopReason::NONE;
+        t->debugInfo.status = (buffer.getData()[0] == 'c')
                                      ? DebugStatus::RUN
                                      : DebugStatus::STEP
                                      ;
@@ -570,7 +579,7 @@ void Debugger::handleCommand_D() {
         return;
     }
 
-    attached.process->makeShared();
+    // Do not make shared: some breakpoints may have been inserted
 
     // Stop debugging process and wake up its only (assuming single thread
     // execution)
@@ -840,16 +849,19 @@ void Debugger::vattach() {
         // attached.thread is set by debug event
 
         // If it's not waiting due to a debug event, wake it up, otherwise keep
-        // it in debug wait and continue (preserving attached info), this should
-        // always happen, unless a client (erroneously) calls multiple attach
-        // without detaching from previous processes, in which case both the
-        // newly and previous attached process are halted due to a debug event
-        if (! th->flags.isWaitingDebug()) {
+        // it in debug wait and continue, set debugInfo to DEBUGEVENT, otherwise NONE is reported
+        // and debugger doesn't attempt connecting, this can be solved by storing DebugStatus
+
+        if (th->flags.isWaitingDebug()) {
+            attached.running = false;
+            attached.thread = th;
+        } else {
             attached.running                = true;
-            th->debugStatus                 = DebugStatus::PEND;
+            th->debugInfo.status            = DebugStatus::PEND;
             th->IRQwakeup();
         }
     }
+
     stopReply();
 }
 

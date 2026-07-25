@@ -9,6 +9,14 @@ enum class DebugStatus {
     PEND,           // Debugevent is pending:   ---         ---         ---         SET
 };
 
+enum class StopReason {
+    NONE,                   // No thread running (start)
+    DEBUGEVENT,             // Debug event triggered
+    EXIT,                   // Exited normally, code is return value
+    FAULT,                  // Terminated,      code is the fault reason
+    EXECVE,                 // Execve called
+};
+
 #if defined(__aarch64__)
     #error "RegisterFile: missing 64 bit layout"
 #elif defined (__arm__) || defined (__thumb__)

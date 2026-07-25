@@ -180,7 +180,7 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     //   execution
     //
     //   KernelMutex m:
-    const auto makePrivate (Thread::getCurrentThread() == Debugger::thread);
+    const auto makePrivate = (Thread::getCurrentThread() == Debugger::thread);
     // If Debugger is executing, do not attempt sharing
     if (!makePrivate) {
     #else //PROCESS_DEBUGGER
@@ -265,7 +265,7 @@ bool ProgramCache::makePrivate(const unsigned int *elf)
     for(auto it=begin(programs);it!=end(programs);++it)
     {
         if(it->elf!=elf) continue;
-        if(it->priv == false && it->useCount == 1) {
+        if(it->useCount == 1) {
             it->priv = true;
             return true;
         }

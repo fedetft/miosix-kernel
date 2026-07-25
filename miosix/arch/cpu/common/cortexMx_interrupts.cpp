@@ -735,22 +735,7 @@ void DebugMon_Handler()
 
     #ifdef PROCESS_DEBUGGER
 
-    Thread *thread = Thread::IRQgetCurrentThread();
-
-    // Debug events can only happen in usermode
-    if (! thread->flags.isInUserspace()) {
-        IRQerrorLog("\r\n*** DebugMon event outside userspace: ");
-        IRQdebugMonFail();
-    }
-
-    const Process *process = static_cast<Process*>(thread->getProcess());
-
-    // Not attached process
-    if (process != Debugger::attached.process) {
-        IRQerrorLog("\r\n*** DebugMon in different process: ");
-        IRQdebugMonFail();
-    }
-
+    // Validate stack when exception happened
     const unsigned int off = 24;
     const unsigned int psp = __get_PSP();
 
@@ -763,39 +748,54 @@ void DebugMon_Handler()
         IRQerrorLog("\r\n*** Corrupted user stack pointer");
         IRQdebugMonFail();
     }
-    // Wakeup debugged thread
+
+    // Debug events can only happen in usermode
+    Thread *thread = Thread::IRQgetCurrentThread();
+    if (! thread->flags.isInUserspace()) {
+        IRQerrorLog("\r\n*** DebugMon event outside userspace: ");
+        IRQdebugMonFail();
+    }
+
+    // Set stopreason for the thread if not set already, this is done also for threads without a debugger
+    // attached, so that attaching to such thread the debugger recognize a stop reason and doesn't report `W00`
+    if (thread->debugInfo.reason == StopReason::NONE) {
+        thread->debugInfo.IRQset(StopReason::DEBUGEVENT, 0);
+    }
+
+    // If event happened in userspae, halt the thread
     thread->IRQdebugWait();
-    // For multithreading: do this only when no more threads of the process are
-    // running
-    // Set running flag
-    // TODO: This check only makes sense for multithread if a single event
-    // report is allowed:
-    // makes sure that only the first event is reported
-    // TODO: Implementing multithread it might be better to change
-    // representation, allowing each thread to append their own stopreason
-    // (i.e.: IntrusiveListNode debugInfo in Thread class)
-    // Even if this might require more memory (needs to be included for each
-    // thread, regardless of them being debugged or not, kernel or user (must
-    // be in per thread, not per process))
- 
-    if (Debugger::attached.reason == StopReason::NONE) {
-        Debugger::attached.IRQset(thread, StopReason::DEBUGEVENT, 0);
+
+    // Notify the deubugger if the thread belongs to debugged process, otherwise the thread is stopped indefinetly
+    const Process *process = static_cast<Process*>(thread->getProcess());
+    if (process == Debugger::attached.process)
+    {
+        // For multithreading:
+        // - Set running flag to false when no more threads of the process are running (last stopping thread)
+        // - only the first event is reported or switch to a list of events
+        // TODO(multithread): Implementing multithread it might be better to change
+        // TODO(multithread): representation, allowing each thread to append their own stopreason
+        // TODO(multithread): (i.e.: IntrusiveListNode debugInfo in Thread class)
+        // TODO(multithread): Even if this might require more memory (needs to be included for each
+        // TODO(multithread): thread, regardless of them being debugged or not, kernel or user (must
+        // TODO(multithread): be in per thread, not per process))
+
+        // TODO(multithread): with the assumption of single-thread, process running is immediately
+        // TODO(multithread): set to false, With the support of multithread this must be set only by
+        // TODO(multithread): the last trhead that halts, by either performing a context
+        // TODO(multithread): switch, a resched, or hitting another breakpoint
+
+        // Set thread and wakeup debugger
+        Debugger::attached.thread = thread;
+        Debugger::attached.running = false;
+        // Wakeup debugger thread if waiting
+        // (this is a formal check, in practice, debugger thread is set before
+        // starting/attaching to a process, if a debugged thread causes a debug
+        // event and no debugger thread is listening for it, something is wrong)
+        if (Debugger::thread != nullptr) {
+            Debugger::thread->IRQwakeup();
+        }
     }
-    // TODO: with the assumption of single-thread, process running is immediately
-    // set to false, With the support of multithread this must be set only by
-    // the last thread that halts, by either performing a context
-    // switch, a resched, or hitting another breakpoint
-    //
-    Debugger::attached.running = false;
-    // Wakeup debugger thread if waiting
-    // (this is a formal check, in practice, debugger thread is set before
-    // starting/attaching to a process, if a debugged thread causes a debug
-    // event and no debugger thread is listening for it, something is wrong)
-    if (Debugger::thread != nullptr) {
-        // Wakeup debugger if waiting
-        Debugger::thread->IRQwakeup();
-    }
-    // Clear dfsr (only needed when reporting debug event type)
+    // Clear DFSR (only useful when reporting event type in stopReason (`T05...`)
     SCB->DFSR = 0b11111;
     #else // PROCESS_DEBUGGER
     #ifdef WITH_ERRLOG
