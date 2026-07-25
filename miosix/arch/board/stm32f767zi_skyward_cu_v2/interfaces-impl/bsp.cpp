@@ -245,7 +245,10 @@ void IRQbspInit()
 void bspInit2()
 {
 #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup(SDIODriver::instance());
+    MountHelper mh = MountHelper::mountRoot();
+    auto partitions = Partition::enumeratePartitions(SDIODriver::instance());
+    mh.doMount(partitions[0], "/sd");
+//    basicFilesystemSetup(SDIODriver::instance());
 #endif  // WITH_FILESYSTEM
 }
 
