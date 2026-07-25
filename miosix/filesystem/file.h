@@ -438,6 +438,14 @@ public:
      * \return filesystem id
      */
     short int getFsId() const { return filesystemId; }
+
+     /**
+     * \return true if the filesystem failed to mount 
+     */
+    virtual bool mountFailed() 
+    { 
+        return false; 
+    }
             
     /**
      * Destructor

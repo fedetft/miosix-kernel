@@ -109,7 +109,7 @@ public:
     /**
      * \return true if the filesystem failed to mount 
      */
-    bool mountFailed() 
+    bool mountFailed() override
     { 
         return !(filesystem.fs_type == FS_FAT12 || filesystem.fs_type == FS_FAT16 
             || filesystem.fs_type == FS_FAT32); 

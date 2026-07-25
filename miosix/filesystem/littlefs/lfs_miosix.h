@@ -122,7 +122,7 @@ public:
     /**
      * \return true if the filesystem failed to mount
      */
-    bool mountFailed() const { return mountError != 0; }
+    bool mountFailed() override { return mountError != 0; }
 
     /**
      * Destructor

@@ -137,7 +137,7 @@ public:
     /**
      * \return true if the filesystem failed to mount
      */
-    bool mountFailed() const { return failed; }
+    bool mountFailed() override { return failed; }
 
     /**
      * \internal

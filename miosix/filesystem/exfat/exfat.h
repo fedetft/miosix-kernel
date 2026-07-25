@@ -115,7 +115,7 @@ namespace miosix
         /**
          * \return true if the filesystem failed to mount
          */
-        bool mountFailed() { return filesystem.fs_type != FS_EXFAT; }
+        bool mountFailed() override { return filesystem.fs_type != FS_EXFAT; }
 
         /**
          * Destructor
