@@ -45,6 +45,8 @@ filesystem/littlefs/lfs_miosix.cpp                                         \
 filesystem/littlefs/lfs.c                                                  \
 filesystem/littlefs/lfs_util.c                                             \
 filesystem/romfs/romfs.cpp                                                 \
+filesystem/partition/partition.cpp										   \
+filesystem/partition/MBR/mbr.cpp										   \
 kercalls/libc_integration.cpp                                              \
 kercalls/libstdcpp_integration.cpp                                         \
 e20/e20.cpp                                                                \
