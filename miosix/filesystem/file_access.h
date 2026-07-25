@@ -40,6 +40,7 @@
 #include "kernel/intrusive.h"
 #include "kernel/thread.h"
 #include "miosix_settings.h"
+#include "partition/partition.h"
 
 #ifdef WITH_FILESYSTEM
 
@@ -587,6 +588,46 @@ private:
     #endif //WITH_DEVFS
 
     static int devCount; ///< For assigning filesystemId to filesystems
+};
+
+
+class MountHelper
+{
+public:
+    /**
+     * Mount the root filesystem as MountpointFS and /dev filesystem, if WITH_DEVFS is defined.
+     */
+    static MountHelper mountRoot();
+
+    /**
+     * Mount the given partition as the root and /dev filesystem, if WITH_DEVFS is defined.
+     */
+    static MountHelper mountRoot(
+        std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
+        intrusive_ref_ptr<Device> physicalDevice
+    );
+
+    /**
+     * Tries to mount the partition with the given partition type at the given mount point.
+     * If the partition type is UNKNOWN or if type-aware mount fails, it will try-mount the 
+     * partition with all supported partition types, until one succeeds or all fail.
+     * \param partition the partition to mount
+     * \param mountPoint the mount point where to mount the partition
+     * \return 0 on success, a negative number on failure
+     */
+    int doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, const char* mountPoint);
+
+private:
+    int mountDevFs();
+    MountHelper() {}
+    MountHelper(const MountHelper&);
+    MountHelper& operator=(const MountHelper&);
+
+    friend class FilesystemManager;
+    intrusive_ref_ptr<FilesystemBase> rootFs;
+#ifdef WITH_DEVFS
+    intrusive_ref_ptr<DevFs> devFs;
+#endif //WITH_DEVFS
 };
 
 /**

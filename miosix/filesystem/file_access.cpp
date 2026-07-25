@@ -843,6 +843,185 @@ static inline bool tryMount(const char *name, intrusive_ref_ptr<Device> dev,
     return true;
 }
 
+int MountHelper::mountDevFs()
+{
+    bootlog("Mounting DevFs as /dev ... ");
+    FilesystemManager& fsm=FilesystemManager::instance();
+    StringPart sp("dev");
+    int r1=rootFs->mkdir(sp,0755);
+    int r2=fsm.kmount("/dev",devFs);
+    bool devFsOk=(r1==0 && r2==0);
+    bootlog(devFsOk ? "Ok\n" : "Failed\n");
+    if(!devFsOk) return -1;
+    fsm.setDevFs(devFs);
+    return 0;
+}
+
+MountHelper MountHelper::mountRoot()
+{
+    MountHelper mh;
+    bootlog("Mounting MountpointFs as / ... ");
+    FilesystemManager& fsm=FilesystemManager::instance();
+    intrusive_ref_ptr<FilesystemBase> rootFs(new MountpointFs);
+    if(fsm.kmount("/",rootFs)==0) bootlog("Ok\n"); else bootlog("Failed\n");
+    mh.rootFs = rootFs;
+#ifdef WITH_DEVFS
+    intrusive_ref_ptr<DevFs> devfs(new DevFs);
+    mh.devFs = devfs;
+    mh.mountDevFs();
+#endif //WITH_DEVFS
+    return mh;
+}
+
+static intrusive_ref_ptr<FilesystemBase> tryMount(intrusive_ref_ptr<FileBase> disk, PartitionType partitionType)
+{
+    switch (partitionType)
+    {
+        case PartitionType::FAT32:
+            return intrusive_ref_ptr<Fat32Fs>(new Fat32Fs(disk));
+        #ifdef WITH_EXFAT
+        case PartitionType::EXFAT:
+            return intrusive_ref_ptr<ExFatFs>(new ExFatFs(disk));
+        #endif // WITH_EXFAT
+        #ifdef WITH_LITTLEFS
+        case PartitionType::LITTLEFS:
+            return intrusive_ref_ptr<LittleFS>(new LittleFS(disk));
+        #endif // WITH_LITTLEFS
+        default:
+            // Unkown partition type
+            return intrusive_ref_ptr<FilesystemBase>(nullptr);
+    }
+}
+
+MountHelper MountHelper::mountRoot(
+    std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
+    intrusive_ref_ptr<Device> physicalDevice)
+{
+    MountHelper mh;
+    bootlog("Mounting / ... ");
+
+    intrusive_ref_ptr<FileBase> disk;
+    FilesystemManager& fsm=FilesystemManager::instance();
+#ifdef WITH_DEVFS
+    intrusive_ref_ptr<DevFs> devfs(new DevFs); // we must create devFs here
+    mh.devFs = devfs;
+
+    if (physicalDevice) mh.devFs->addDevice("mmcblk0", physicalDevice);
+    if(partition.first) mh.devFs->addDevice("mmcblk0p0", partition.first);
+    StringPart part0("mmcblk0p0");
+    if(mh.devFs->open(disk, part0, O_RDWR, 0) < 0)
+    #else // WITH_DEVFS
+    if(partition.first && partition.first->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
+    #endif // WITH_DEVFS
+    {
+        bootlog("Failed\n");
+        return mh;
+    }
+
+    intrusive_ref_ptr<FilesystemBase> fsImpl = tryMount(disk, partition.second);
+
+    // If the filesystem is unknown or has failed then we try to mount all 
+    // partition types except for the one hinted, which has already failed
+    for(auto partitionType = static_cast<unsigned char>(PartitionType::FAT32); 
+        partitionType < static_cast<unsigned char>(PartitionType::UNKNOWN); 
+        partitionType++)
+    {
+        if(fsImpl && !fsImpl->mountFailed()) break;
+        bootlog("Failed\nTrying another partition type... ");
+        if(partitionType == static_cast<unsigned char>(partition.second)) continue;
+        fsImpl = tryMount(disk, static_cast<PartitionType>(partitionType));
+    }
+    
+    if (!fsImpl || fsImpl->mountFailed()) 
+    {
+        bootlog("Failed\n");
+        return mh;
+    }
+
+    if(fsm.kmount("/", fsImpl)!=0)
+    {
+        bootlog("Failed\n");
+        return mh;
+    }
+
+    bootlog("Ok\n");
+    mh.rootFs = fsImpl;
+
+#ifdef WITH_DEVFS
+    mh.mountDevFs();
+#endif //WITH_DEVFS
+    return mh;
+}
+
+int MountHelper::doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, const char* mountPoint)
+{
+    bootlog("Mounting %s ... ", mountPoint);
+
+    intrusive_ref_ptr<FileBase> disk;
+    FilesystemManager& fsm=FilesystemManager::instance();
+    
+    #ifdef WITH_DEVFS
+    char devPartName[10] = "mmcblk0p0";
+    StringPart part0("mmcblk0p0");
+    if (partition.first)
+    {
+        // TOOD: What is the max number of partitions??
+        constexpr unsigned char MAX_NUM_OF_PARTITIONS = 32;
+        for (unsigned char partitionNumber=0; partitionNumber<MAX_NUM_OF_PARTITIONS; partitionNumber++) 
+        {
+            if (devFs->addDevice(devPartName, partition.first)) break;
+            devPartName[8]++;
+            part0 = StringPart{devPartName};
+        }
+    }
+    if(partition.first && devFs->open(disk, part0, O_RDWR, 0) < 0)
+    #else // WITH_DEVFS
+    if(partition.first && partition.first->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
+    #endif // WITH_DEVFS
+    {
+        bootlog("Failed (failed opening disk)\n");
+        return -1;
+    }
+
+    intrusive_ref_ptr<FilesystemBase> fsImpl = tryMount(disk, partition.second);
+
+    // If the filesystem is unknown or has failed then we try to mount all 
+    // partition types except for the one hinted, which has already failed
+    for(auto partitionType = static_cast<unsigned char>(PartitionType::FAT32); 
+        partitionType < static_cast<unsigned char>(PartitionType::UNKNOWN); 
+        partitionType++)
+    {
+        if(fsImpl && !fsImpl->mountFailed()) break;
+        bootlog("Failed\nTrying another partition type... ");
+        if(partitionType == static_cast<unsigned char>(partition.second)) continue;
+        fsImpl = tryMount(disk, static_cast<PartitionType>(partitionType));
+    }
+    
+    if (!fsImpl || fsImpl->mountFailed()) 
+    {
+        bootlog("Failed (Failed to mount filesystem)\n");
+        return -1;
+    }
+
+    std::string path{mountPoint};
+    auto resolvedPath = fsm.resolvePath(path);
+    if(resolvedPath.result<0) return resolvedPath.result;
+    StringPart sp(path, string::npos, resolvedPath.off);
+    resolvedPath.fs->mkdir(sp, 0755);
+    // We can ignore return of mkdir since if
+    // The directory exists then we will try to mount on that directory
+    // If the directory does not exist and mkdir fails mounting will fail too
+
+    if(fsm.kmount(path.c_str(), fsImpl)!=0)
+    {
+        bootlog("Failed (failed to mount to mountpoint)\n");
+        return -1;
+    }
+
+    bootlog("Ok\n");
+    return 0;
+}
+
 #ifdef WITH_DEVFS
 intrusive_ref_ptr<DevFs> //return value is a pointer to DevFs
 #else //WITH_DEVFS
