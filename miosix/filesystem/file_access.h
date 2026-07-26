@@ -578,7 +578,7 @@ private:
     KernelMutex mutex; ///< To protect against concurrent access
     
     /// Mounted filesystem
-    std::map<StringPart,intrusive_ref_ptr<FilesystemBase> > filesystems;
+    std::map<StringPart,intrusive_ref_ptr<FilesystemBase>> filesystems;
     
     #ifdef WITH_PROCESSES
     std::list<FileDescriptorTable*> fileTables; ///< Process file tables
@@ -598,18 +598,21 @@ public:
      * Mounts MountpointFS as /
      * Mounts DevFs as /dev, if WITH_DEVFS is defined.
      * Mounts RomFs as /bin, if WITH_ROMFS is defined.
+     * \returns an instance of mounthelper
      */
     static MountHelper mountRoot();
 
     /**
-
      * Mounts the given partition as /
      * Mounts DevFs as /dev, if WITH_DEVFS is defined.
-     * Mounts RomFs as /bin, if WITH_ROMFS is defined.     */
+     * Mounts RomFs as /bin, if WITH_ROMFS is defined.    
+     * \param partition the partition that will be mounted as the root 
+     * \param physicalDevice the physicalDevice that holds the partition (this sucks)
+     * \returns an instance of mounthelper
+     */
     static MountHelper mountRoot(
         std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
-        intrusive_ref_ptr<Device> physicalDevice
-    );
+        intrusive_ref_ptr<Device> physicalDevice);
 
     /**
      * Tries to mount the partition with the given partition type at the given mount point.
@@ -619,34 +622,37 @@ public:
      * \param mountPoint the mount point where to mount the partition
      * \return 0 on success, a negative number on failure
      */
-    int doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, const char* mountPoint);
+    int doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, 
+        const char* mountPoint);
 
 private:
+
 #ifdef WITH_DEVFS
     int mountDevFs();
 #endif
+
 #ifdef WITH_ROMFS
     int mountRomFs();
 #endif
+
     MountHelper() {}
     MountHelper(const MountHelper& other) 
     {
-        rootFs = other.rootFs;
+        rootFs=other.rootFs;
         #ifdef WITH_DEVFS
-        devFs = other.devFs;
+        devFs=other.devFs;
         #endif
     } 
     
     MountHelper& operator=(const MountHelper& other)
     {
-        rootFs = other.rootFs;
+        rootFs=other.rootFs;
         #ifdef WITH_DEVFS
-        devFs = other.devFs;
+        devFs=other.devFs;
         #endif
         return *this;
     }
 
-    friend class FilesystemManager;
     intrusive_ref_ptr<FilesystemBase> rootFs;
 #ifdef WITH_DEVFS
     intrusive_ref_ptr<DevFs> devFs;

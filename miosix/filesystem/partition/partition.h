@@ -67,12 +67,13 @@ public:
      */
     virtual ssize_t readBlock(void *buffer, size_t size, off_t where)
     {
-        auto whereLBA = where / 512;
-        auto sizeLBA = size / 512;
-        if (where < 0 || static_cast<unsigned long long>(whereLBA + sizeLBA) >= sectorsCount) {
+        auto whereLBA=where/512;
+        auto sizeLBA=size/512;
+        if (where<0 || static_cast<unsigned long long>(whereLBA+sizeLBA)>=sectorsCount) 
+        {
             return -EFAULT; // out of bounds
         }
-        return backend->readBlock(buffer, size, startSector * 512 + where);
+        return backend->readBlock(buffer, size, startSector*512 + where);
     };
 
     /**
@@ -84,9 +85,10 @@ public:
      */
     virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where)
     {
-        auto whereLBA = where / 512;
-        auto sizeLBA = size / 512;
-        if (where < 0 || static_cast<unsigned long long>(whereLBA + sizeLBA) >= sectorsCount) {
+        auto whereLBA=where/512;
+        auto sizeLBA=size/512;
+        if (where<0 || static_cast<unsigned long long>(whereLBA+sizeLBA)>=sectorsCount) 
+        {
             return -EFAULT; // out of bounds
         }
         return backend->writeBlock(buffer, size, startSector * 512 + where);
@@ -103,10 +105,11 @@ public:
         if (cmd == IOCTL_GET_VOLUME_SIZE)
         {
             unsigned long long* sizePtr=static_cast<unsigned long long*>(arg);
-            if (sizePtr==nullptr) {
+            if (sizePtr==nullptr) 
+            {
                 return -EINVAL;
             }
-            *sizePtr = sectorsCount * 512;
+            *sizePtr=sectorsCount*512;
             return 0;
         }
         return backend->ioctl(cmd, arg);
@@ -116,11 +119,12 @@ public:
      * This helper method allows to enumerate all available partitions on a drive
      * It supports MBR and (if enabled) GPT partition tables.
      * Returns a list of partitions as virtual devices and a hint of what type of 
-     * filesystem that partition can be. It will be later used by doMount to try 
-     * to mount the partition. 
+     * filesystem that partition can be. It will be later used by doMount or mountRoot
+     * to try to mount the partition. 
+     * \param physicalDevice is the physical memory device that contains the partitions
      */
-    static std::vector<std::pair<
-        intrusive_ref_ptr<Partition>, PartitionType>
+    static std::vector<
+        std::pair<intrusive_ref_ptr<Partition>, PartitionType>
     > enumeratePartitions(intrusive_ref_ptr<Device> physicalDevice);
 private:
     const intrusive_ref_ptr<Device> backend; ///< the device that contains the partition, can be physical or logical
