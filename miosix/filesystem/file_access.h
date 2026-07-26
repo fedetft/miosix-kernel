@@ -595,13 +595,17 @@ class MountHelper
 {
 public:
     /**
-     * Mount the root filesystem as MountpointFS and /dev filesystem, if WITH_DEVFS is defined.
+     * Mounts MountpointFS as /
+     * Mounts DevFs as /dev, if WITH_DEVFS is defined.
+     * Mounts RomFs as /bin, if WITH_ROMFS is defined.
      */
     static MountHelper mountRoot();
 
     /**
-     * Mount the given partition as the root and /dev filesystem, if WITH_DEVFS is defined.
-     */
+
+     * Mounts the given partition as /
+     * Mounts DevFs as /dev, if WITH_DEVFS is defined.
+     * Mounts RomFs as /bin, if WITH_ROMFS is defined.     */
     static MountHelper mountRoot(
         std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
         intrusive_ref_ptr<Device> physicalDevice
@@ -618,10 +622,29 @@ public:
     int doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, const char* mountPoint);
 
 private:
+#ifdef WITH_DEVFS
     int mountDevFs();
+#endif
+#ifdef WITH_ROMFS
+    int mountRomFs();
+#endif
     MountHelper() {}
-    MountHelper(const MountHelper&);
-    MountHelper& operator=(const MountHelper&);
+    MountHelper(const MountHelper& other) 
+    {
+        rootFs = other.rootFs;
+        #ifdef WITH_DEVFS
+        devFs = other.devFs;
+        #endif
+    } 
+    
+    MountHelper& operator=(const MountHelper& other)
+    {
+        rootFs = other.rootFs;
+        #ifdef WITH_DEVFS
+        devFs = other.devFs;
+        #endif
+        return *this;
+    }
 
     friend class FilesystemManager;
     intrusive_ref_ptr<FilesystemBase> rootFs;

@@ -848,14 +848,40 @@ int MountHelper::mountDevFs()
     bootlog("Mounting DevFs as /dev ... ");
     FilesystemManager& fsm=FilesystemManager::instance();
     StringPart sp("dev");
-    int r1=rootFs->mkdir(sp,0755);
+    rootFs->mkdir(sp,0755);
     int r2=fsm.kmount("/dev",devFs);
-    bool devFsOk=(r1==0 && r2==0);
+    bool devFsOk=r2==0;
     bootlog(devFsOk ? "Ok\n" : "Failed\n");
     if(!devFsOk) return -1;
     fsm.setDevFs(devFs);
     return 0;
 }
+
+#ifdef WITH_ROMFS
+int MountHelper::mountRomFs()
+{
+    FilesystemManager& fsm=FilesystemManager::instance();
+    bootlog("Mounting RomFs as /bin ... ");
+    StringPart sp("bin");
+    bool ok=false;
+    // we can skip checking if mkdir fails or not
+    //since if the directory already exists it is ok
+    //and if it fails for other reasons also kmount fails
+    rootFs->mkdir(sp,0755);
+    {
+        const void *base=getRomFsAddressAfterKernel();
+        if(base)
+        {
+            intrusive_ref_ptr<MemoryMappedRomFs> bin(new MemoryMappedRomFs(base));
+            if(!bin->mountFailed())
+                if(fsm.kmount("/bin",bin)==0) ok=true;
+        }
+    }
+    bootlog(ok ? "Ok\n" : "Failed\n");
+
+    return ok ? 0 : -1;
+}
+#endif //WITH_ROMFS
 
 MountHelper MountHelper::mountRoot()
 {
@@ -870,6 +896,9 @@ MountHelper MountHelper::mountRoot()
     mh.devFs = devfs;
     mh.mountDevFs();
 #endif //WITH_DEVFS
+#ifdef WITH_ROMFS
+    mh.mountRomFs();
+#endif
     return mh;
 }
 
@@ -893,12 +922,28 @@ static intrusive_ref_ptr<FilesystemBase> tryMount(intrusive_ref_ptr<FileBase> di
     }
 }
 
+
+static inline const char* getPartitionTypeName(PartitionType partition)
+{
+    switch (partition)
+    {
+        case PartitionType::FAT32:
+            return "FAT32";
+        case PartitionType::EXFAT:
+            return "ExFAT";
+        case PartitionType::LITTLEFS:
+            return "LittleFS";
+        default: 
+            return "UNKOWN";
+    }
+}
+
 MountHelper MountHelper::mountRoot(
     std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
     intrusive_ref_ptr<Device> physicalDevice)
 {
     MountHelper mh;
-    bootlog("Mounting / ... ");
+    bootlog("Mounting %s as / ... ", getPartitionTypeName(partition.second));
 
     intrusive_ref_ptr<FileBase> disk;
     FilesystemManager& fsm=FilesystemManager::instance();
@@ -910,9 +955,9 @@ MountHelper MountHelper::mountRoot(
     if(partition.first) mh.devFs->addDevice("mmcblk0p0", partition.first);
     StringPart part0("mmcblk0p0");
     if(mh.devFs->open(disk, part0, O_RDWR, 0) < 0)
-    #else // WITH_DEVFS
+#else // WITH_DEVFS
     if(partition.first && partition.first->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
-    #endif // WITH_DEVFS
+#endif // WITH_DEVFS
     {
         bootlog("Failed\n");
         return mh;
@@ -950,12 +995,23 @@ MountHelper MountHelper::mountRoot(
 #ifdef WITH_DEVFS
     mh.mountDevFs();
 #endif //WITH_DEVFS
+#ifdef WITH_ROMFS
+    mh.mountRomFs();
+#endif
     return mh;
 }
 
-int MountHelper::doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, const char* mountPoint)
+int MountHelper::doMount(
+    std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, 
+    const char* mountPoint)
 {
-    bootlog("Mounting %s ... ", mountPoint);
+    bootlog("Mounting %s as %s ... ", getPartitionTypeName(partition.second), mountPoint);
+
+    if (partition.second == PartitionType::NONE)
+    {
+        bootlog(" Skipped (Empty Partition)\n");
+        return -1;
+    }
 
     intrusive_ref_ptr<FileBase> disk;
     FilesystemManager& fsm=FilesystemManager::instance();
@@ -988,11 +1044,12 @@ int MountHelper::doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> 
     // If the filesystem is unknown or has failed then we try to mount all 
     // partition types except for the one hinted, which has already failed
     for(auto partitionType = static_cast<unsigned char>(PartitionType::FAT32); 
-        partitionType < static_cast<unsigned char>(PartitionType::UNKNOWN); 
+        partitionType < static_cast<unsigned char>(PartitionType::NONE); 
         partitionType++)
     {
         if(fsImpl && !fsImpl->mountFailed()) break;
-        bootlog("Failed\nTrying another partition type... ");
+        bootlog("Failed (Partition Type was: %s)\nTrying another partition type... ",
+            getPartitionTypeName(static_cast<PartitionType>(partitionType)));
         if(partitionType == static_cast<unsigned char>(partition.second)) continue;
         fsImpl = tryMount(disk, static_cast<PartitionType>(partitionType));
     }
@@ -1012,9 +1069,9 @@ int MountHelper::doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> 
     // The directory exists then we will try to mount on that directory
     // If the directory does not exist and mkdir fails mounting will fail too
 
-    if(fsm.kmount(path.c_str(), fsImpl)!=0)
+    if(fsm.kmount(mountPoint, fsImpl)!=0)
     {
-        bootlog("Failed (failed to mount to mountpoint)\n");
+        bootlog("Failed (failed to kmount)\n");
         return -1;
     }
 
