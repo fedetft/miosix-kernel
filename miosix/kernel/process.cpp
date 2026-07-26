@@ -1049,7 +1049,7 @@ Process* Process::debugGetByPid(pid_t pid) const {
         Lock<KernelMutex> l(processTable.procMutex);
         const auto p = processTable.processes.find(pid);
         if(p == processTable.processes.end()) return nullptr;
-        // Safe cast since a pid != 0 is return
+        // Safe cast since a pid != 0 is provided
         const auto proc = reinterpret_cast<Process*>(p->second);
         if(proc->zombie) return nullptr;
         return proc;

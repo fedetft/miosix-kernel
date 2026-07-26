@@ -823,27 +823,28 @@ void Debugger::vattach() {
         // as private and return 0, otherwise return 1
     }
 
-    // TODO: Process class never takes any mutex when interacting with threads,
-    // I assume it's safe to do so?
-    Thread* th = nullptr;
-    for (const auto& thread : proc->threads) {
-        if (thread->flags.isDeleted() == false
-        && thread->flags.isDeleting() == false) {
-            th = thread;
-            break;
-        }
-    }
-
-    if(th == nullptr) {
-        // Fail if no thread is alive in the selected process
-        buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
-        // Release private flag
-        proc->makeShared();
-        return;
-    }
-
     {
         FastGlobalIrqLock dLock;
+
+        Thread* th = nullptr;
+
+        for (const auto& thread : proc->threads) {
+            if (thread->flags.isDeleted() == false
+            && thread->flags.isDeleting() == false) {
+                th = thread;
+                break;
+            }
+        }
+
+        if(th == nullptr) {
+            FastGlobalIrqUnlock u(dLock);
+            // Fail if no thread is alive in the selected process
+            buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
+            // Release private flag
+            proc->makeShared();
+            return;
+        }
+
         attached.process                    = proc;
         attached.pid                        = pid;
         // attached.thread is set by debug event
@@ -853,7 +854,7 @@ void Debugger::vattach() {
         // and debugger doesn't attempt connecting, this can be solved by storing DebugStatus
 
         if (th->flags.isWaitingDebug()) {
-            attached.running = false;
+            attached.running                = false;
             attached.thread = th;
         } else {
             attached.running                = true;
