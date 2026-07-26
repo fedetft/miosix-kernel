@@ -38,6 +38,7 @@ enum class PartitionType : unsigned char
     FAT32 = 0,
     EXFAT,
     LITTLEFS,
+    NONE, // KEEP JUST BEFORE UNKOWN
     UNKNOWN // KEEP AS LAST
 };
     
@@ -66,10 +67,12 @@ public:
      */
     virtual ssize_t readBlock(void *buffer, size_t size, off_t where)
     {
-        if (where < 0 || static_cast<unsigned long long>(where) >= sectorsCount) {
+        auto whereLBA = where / 512;
+        auto sizeLBA = size / 512;
+        if (where < 0 || static_cast<unsigned long long>(whereLBA + sizeLBA) >= sectorsCount) {
             return -EFAULT; // out of bounds
         }
-        return backend->readBlock(buffer, size, startSector + where);
+        return backend->readBlock(buffer, size, startSector * 512 + where);
     };
 
     /**
@@ -81,10 +84,12 @@ public:
      */
     virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where)
     {
-        if (where < 0 || static_cast<unsigned long long>(where) >= sectorsCount) {
+        auto whereLBA = where / 512;
+        auto sizeLBA = size / 512;
+        if (where < 0 || static_cast<unsigned long long>(whereLBA + sizeLBA) >= sectorsCount) {
             return -EFAULT; // out of bounds
         }
-        return backend->writeBlock(buffer, size, startSector + where);
+        return backend->writeBlock(buffer, size, startSector * 512 + where);
     };
 
     /**

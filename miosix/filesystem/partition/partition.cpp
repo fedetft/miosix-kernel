@@ -19,6 +19,8 @@ static PartitionType getPartitionTypeFromOSType(MBR::OSType osType)
             return PartitionType::FAT32;
         case MBR::OSType::EXFAT:
             return PartitionType::EXFAT;
+        case MBR::OSType::Empty:
+            return PartitionType::NONE;
         default:
             return PartitionType::UNKNOWN; // There is no way to know if it is LITTLEFS or not, so we return UNKNOWN
     }
@@ -35,7 +37,7 @@ std::vector<std::pair<intrusive_ref_ptr<Partition>, PartitionType>> Partition::e
         // we failed, there is no point in trying GPT since GPT always has a protective MBR 
         // maybe we are unipartitioned? But there is no way I can get a hint from that
         // so finding the partition type will be left to the caller.
-        return {};
+        return std::vector<std::pair<intrusive_ref_ptr<Partition>, PartitionType>>{};
     }
     auto reader = *result;
 
@@ -61,7 +63,7 @@ std::vector<std::pair<intrusive_ref_ptr<Partition>, PartitionType>> Partition::e
         return partitions;
     }
 
-    return {}; // we do not support GPT yet
+    return std::vector<std::pair<intrusive_ref_ptr<Partition>, PartitionType>>{}; // we do not support GPT yet
     // try GPT
 }
 
