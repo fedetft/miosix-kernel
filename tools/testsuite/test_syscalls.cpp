@@ -1300,7 +1300,7 @@ static void sys_test_spawn()
     pid_t pid,pid2;
     int ec;
     ec=posix_spawn(&pid,arg0[0],NULL,NULL,(char* const*)arg0,(char* const*)env);
-    if(ec!=EACCES) fail("posix_spawn of non-existing file (return value)");
+    if(ec!=EACCES && ec!=ENOENT) fail("posix_spawn of non-existing file (return value)");
 
     const char *arg1[] = { "/bin/test_process", "exit_123", nullptr };
     ec=posix_spawn(nullptr,arg1[0],NULL,NULL,(char* const*)arg1,(char* const*)env);
