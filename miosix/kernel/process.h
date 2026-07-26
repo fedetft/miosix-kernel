@@ -242,15 +242,30 @@ private:
     friend class Debugger;
     //Needs access to mpu
     friend class RegisterFile;
+    //Needs access to debugState
+    friend void DebugMon_Handler();
 
-    // Returns the process pointer by pid, nullptr if it does not exist
-    //
-    // This function is used to attach to a process using its pid rather
-    // than its structure pointer inside the kernel (which the kernel should
-    // ideally not expose)
+    // TODO: maybe a bad Idea initializing it here?
+    bool debugState = false; ///< True for a process which entered debug state
+
+    /**
+     * @brief Get Process pointer by pid
+     *
+     * @param pid 
+     * @return nullptr if pid refers to a kernel thread or zombie process
+     */
     Process* debugGetByPid (pid_t pid) const;
 
+    /**
+     * @brief Flag ProgramCache entry as private
+     *
+     * @return true if operation succeeds, false otherwise
+     */
     inline bool makePrivate() { return program.makePrivate(); }
+
+    /**
+     * @brief Flag ProgramCache entry as shared
+     */
     inline void makeShared() { program.makeShared(); }
     #endif
 };

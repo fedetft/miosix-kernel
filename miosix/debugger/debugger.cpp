@@ -273,20 +273,17 @@ void Debugger::handleCommand() {
 
 void Debugger::stopReply() {
 
+    BUF_FORMAT(buffer, "W" "00");
+    if (attached.process == nullptr) { return; }
+
     {
         FastGlobalIrqLock dLock;
-        // While process is running
-        while(attached.running) {
+        // While process is not in debugstate (at least one thread running)
+        while(attached.process->debugState == false) {
             // TODO: to implement process kill, should peek one character from
             // gdbserial if available, matching 0x03
             Thread::IRQglobalIrqUnlockAndWait(dLock);
         }
-    }
-
-    if (!attached.thread) {
-        // Report 00
-        BUF_FORMAT(buffer, "W" "00");
-        return;
     }
 
     // When code is here the attached process must already be stopped, not
@@ -301,6 +298,8 @@ void Debugger::stopReply() {
     // DebugMonitor)
 
     auto t = attached.thread;
+    // This should not happen
+    // if (t == nullptr) { return; }
 
     switch (t->debugInfo.reason) {
     case StopReason::NONE: {
@@ -336,7 +335,7 @@ void Debugger::stopReply() {
         }
         BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
     } break;
-    case StopReason::EXECVE:
+    case StopReason::EXECVE: {
         BreakpointUnit::clear();
         if (features.supported(GDBFeatures::EXEC_EVENTS)) {
             BUF_FORMAT(buffer, "T" "%02x" "exec:", SIGTRAP);
@@ -346,6 +345,9 @@ void Debugger::stopReply() {
         } else {
             BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
         }
+    } break;
+    [[unlikely]]
+    default: BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
     };
 }
 
@@ -556,17 +558,18 @@ void Debugger::handleCommand_cs() {
 
     {
         FastGlobalIrqLock dLock;
-        // Prepare struct to wake up thread
-        attached.running = true;
         // NOTE: It's mandatory to set stopreason to NONE as only the first thread
         // which triggers an event can set attached.reason, this is done by checking
         // on the stopreason
+
+        // Wakeup thread
         t->debugInfo.reason = StopReason::NONE;
         t->debugInfo.status = (buffer.getData()[0] == 'c')
                                      ? DebugStatus::RUN
                                      : DebugStatus::STEP
                                      ;
-        attached.thread->IRQdebugWakeup();
+        attached.process->debugState = false;
+        t->IRQdebugWakeup();
     }
 
     stopReply();
@@ -574,7 +577,8 @@ void Debugger::handleCommand_cs() {
 
 void Debugger::handleCommand_D() {
     // Cannot detach if there is no attached process
-    if (attached.process == nullptr) {
+    if (attached.process == nullptr
+    ||  attached.thread == nullptr) {
         buffer.setReturnCode(ATTACH_FAIL);
         return;
     }
@@ -585,7 +589,8 @@ void Debugger::handleCommand_D() {
     // execution)
     {
         FastGlobalIrqLock dLock;
-        if(attached.thread) attached.thread->IRQdebugWakeup();
+        attached.process->debugState = false;
+        attached.thread->IRQdebugWakeup();
         attached.IRQclear();
     }
     BreakpointUnit::clear();
@@ -847,17 +852,17 @@ void Debugger::vattach() {
 
         attached.process                    = proc;
         attached.pid                        = pid;
-        // attached.thread is set by debug event
 
-        // If it's not waiting due to a debug event, wake it up, otherwise keep
-        // it in debug wait and continue, set debugInfo to DEBUGEVENT, otherwise NONE is reported
-        // and debugger doesn't attempt connecting, this can be solved by storing DebugStatus
-
-        if (th->flags.isWaitingDebug()) {
-            attached.running                = false;
+        if (proc->debugState)
+        {
+            // Process already in debugstate,
+            // just set first alive thread as the attached thread
             attached.thread = th;
-        } else {
-            attached.running                = true;
+        }
+        else
+        {
+            // Process not in debugstate, make thread pending
+            th->debugInfo.reason             = StopReason::NONE;
             th->debugInfo.status            = DebugStatus::PEND;
             th->IRQwakeup();
         }

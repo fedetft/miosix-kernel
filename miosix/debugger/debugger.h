@@ -203,7 +203,6 @@ public:
     const char*     name        = nullptr;
     Process*        process     = nullptr;
     Thread*         thread      = nullptr;
-    bool            running     = false;
 
     pid_t           pid;
     int             ec;
@@ -214,7 +213,6 @@ public:
         process     = nullptr;
         name        = nullptr;
         thread      = nullptr;
-        running     = false;
     }
 
 };

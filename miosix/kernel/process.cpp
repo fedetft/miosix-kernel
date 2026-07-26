@@ -192,7 +192,7 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
     if (Thread::getCurrentThread() == Debugger::thread) {
         FastGlobalIrqLock dLock;
         Debugger::attached.process = reinterpret_cast<Process*>(thr->getProcess());
-        Debugger::attached.running = true;
+        proc->debugState = false;
         // The process is now running, it needs to step into debugmonitor as
         // soon as it enters userspace
         thr->debugInfo.status = DebugStatus::PEND;
@@ -835,7 +835,7 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                     Debugger::attached.thread = t;
                     t->debugInfo.IRQset(StopReason::EXIT, exitCode >> 8);
                     // On exit all threads exit
-                    Debugger::attached.running = false;
+                    debugState = true;
                     // No need to disable debug hardware: the process left
                     // kernelspace a while ago, context switch disabled
                     // debug hardware already
@@ -899,7 +899,7 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                                 // process registers which have not been
                                 // initialized.
                                 t->debugInfo.status = DebugStatus::PEND;
-                                Debugger::attached.running = true;
+                                debugState = false;
                             }
                             #endif
 

@@ -845,7 +845,7 @@ bool Thread::IRQreportFault(const FaultData& fault)
         // enum FaultType
         Debugger::attached.thread = cur;
         cur->debugInfo.IRQset(StopReason::FAULT, fault.id);
-        Debugger::attached.running = false;
+        proc->debugState = true;
         // Need to disable debug hardware, otherwise stepping on a faulty
         // instruction would cause a debugevent in kernelspace, which is not
         // allowed.
