@@ -245,9 +245,22 @@ void IRQbspInit()
 void bspInit2()
 {
 #ifdef WITH_FILESYSTEM
-    MountHelper mh = MountHelper::mountRoot();
     auto partitions = Partition::enumeratePartitions(SDIODriver::instance());
-    mh.doMount(partitions[0], "/sd");
+    if (partitions.size() > 0) 
+    {
+        MountHelper mh = MountHelper::mountRoot(partitions[0], SDIODriver::instance());
+        mh.doMount(partitions[1], "/sd");
+        char sdMountDir[5] = "/sd0";
+        for (size_t i = 2; i < partitions.size(); i++)
+        {
+            if (partitions[i].second == PartitionType::NONE) continue; // skip over empty partitions
+
+            sdMountDir[3]++;
+            mh.doMount(partitions[i], sdMountDir);
+        }
+    } else {
+        bootlog("Missing SD Card or no partition table on SD card\n");
+    }
 //    basicFilesystemSetup(SDIODriver::instance());
 #endif  // WITH_FILESYSTEM
 }
