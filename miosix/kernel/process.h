@@ -245,8 +245,20 @@ private:
     //Needs access to debugState
     friend void DebugMon_Handler();
 
-    // TODO: maybe a bad Idea initializing it here?
-    bool debugState = false; ///< True for a process which entered debug state
+    /**
+     * @brief Check if the process is in debugstate (all threads in debugwait)
+     *
+     * @return true if in debugstate, false otherwise
+     */
+    inline bool IRQdebugState() {
+        for(auto t : threads)
+            if(t && (!t->flags.isWaitingDebug()))
+                return false;
+        return true;
+    }
+
+
+    bool debugNeedJoin = false; ///< True for a process spawned by Debugger::thread, needs to be joined at exit
 
     /**
      * @brief Get Process pointer by pid

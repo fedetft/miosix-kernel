@@ -815,8 +815,8 @@ void Thread::IRQhandleSvc()
             // debug hardware
             if (proc == Debugger::attached.process) {
                 // If status ist step: Thread tried to stop over an svc
-                if (cur->debugInfo.status == DebugStatus::STEP)
-                    cur->debugInfo.status  = DebugStatus::PEND;
+                if (cur->debugStatus == DebugStatus::STEP)
+                    cur->debugStatus  = DebugStatus::PEND;
                 // Disable BPU for the duration of svc
                 BreakpointUnit::IRQdisableLocal();
             }
@@ -844,8 +844,8 @@ bool Thread::IRQreportFault(const FaultData& fault)
         // Report fault reason to the debugger, hex code meaning is encoded in
         // enum FaultType
         Debugger::attached.thread = cur;
-        cur->debugInfo.IRQset(StopReason::FAULT, fault.id);
-        proc->debugState = true;
+        Debugger::attached.event.IRQset(StopReason::FAULT, fault.id);
+        Debugger::attached.debugState = true;
         // Need to disable debug hardware, otherwise stepping on a faulty
         // instruction would cause a debugevent in kernelspace, which is not
         // allowed.

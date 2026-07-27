@@ -16,7 +16,6 @@
 namespace miosix {
 
 AttachedProcessInfo Debugger::attached;
-RegisterFile Debugger::registerFile;
 bool Debugger::failed = false;
 Thread* Debugger::thread = nullptr;
 
@@ -274,12 +273,12 @@ void Debugger::handleCommand() {
 void Debugger::stopReply() {
 
     BUF_FORMAT(buffer, "W" "00");
-    if (attached.process == nullptr) { return; }
+    if(attached.process == nullptr) { return; }
 
     {
         FastGlobalIrqLock dLock;
         // While process is not in debugstate (at least one thread running)
-        while(attached.process->debugState == false) {
+        while(attached.debugState == false) {
             // TODO: to implement process kill, should peek one character from
             // gdbserial if available, matching 0x03
             Thread::IRQglobalIrqUnlockAndWait(dLock);
@@ -297,43 +296,14 @@ void Debugger::stopReply() {
     // process (escalates to HardFault rather than being handled by
     // DebugMonitor)
 
-    auto t = attached.thread;
-    // This should not happen
-    // if (t == nullptr) { return; }
+    // Tho it should never happen
+    if (attached.thread == nullptr) { return; }
 
-    switch (t->debugInfo.reason) {
-    case StopReason::NONE: {
-        BUF_FORMAT(buffer, "W" "00");
-    } break;
+    switch (attached.event.reason) {
+    case StopReason::NONE: break;
     case StopReason::DEBUGEVENT: {
-        // TODO: Support multiple debug halting reason
+        // Can report multiple stop reasons with 'T' packet
         BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
-    } break;
-    case StopReason::EXIT: {
-        attached.pid = wait(&attached.ec);
-        BUF_FORMAT(buffer, "W" "%02x", t->debugInfo.code & 0xff);
-        BreakpointUnit::clear();
-        {
-            FastGlobalIrqLock dLock;
-            attached.IRQclear();
-        }
-    } break;
-    case StopReason::FAULT: {
-        attached.pid = wait(&attached.ec);
-        buffer.clear();
-        buffer.appendChar('O');
-        buffer.appendBytes("Program fault has occurred: 0x");
-        const char retCode[] = {hexToAscii(t->debugInfo.code >> 4),
-                                hexToAscii(t->debugInfo.code & 0xf),
-                                '\0'};
-        buffer.appendBytes(retCode);
-        sendPacket();
-        BreakpointUnit::clear();
-        {
-            FastGlobalIrqLock dLock;
-            attached.IRQclear();
-        }
-        BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
     } break;
     case StopReason::EXECVE: {
         BreakpointUnit::clear();
@@ -346,8 +316,38 @@ void Debugger::stopReply() {
             BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
         }
     } break;
+    case StopReason::EXIT: {
+        BreakpointUnit::clear();
+        if (attached.needJoin) attached.pid = wait(&attached.ec);
+        BUF_FORMAT(buffer, "W" "%02x", attached.event.code & 0xff);
+        {
+            FastGlobalIrqLock dLock;
+            attached.IRQclear();
+        }
+    } break;
+    case StopReason::FAULT: {
+        BreakpointUnit::clear();
+        if (attached.needJoin) attached.pid = wait(&attached.ec);
+        {
+            // Notify error code (additional packet
+            buffer.clear();
+            buffer.appendChar('O');
+            buffer.appendBytes("Program fault has occurred: 0x");
+            const auto c = attached.event.code;
+            const char retCode[] = {hexToAscii(c >> 4),
+                                    hexToAscii(c & 0xf),
+                                    '\0'};
+            buffer.appendBytes(retCode);
+            sendPacket();
+        }
+        {
+            FastGlobalIrqLock dLock;
+            attached.IRQclear();
+        }
+        BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
+    } break;
     [[unlikely]]
-    default: BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
+    default: BUF_FORMAT(buffer, "W" "%02x", -1);
     };
 }
 
@@ -388,9 +388,9 @@ void Debugger::handleCommand_gG() {
 
     if (read) {
         buffer.clear();
-        for (int i = 0; i < registerFile.entries; i++) {
-            const auto size = registerFile.getSize(i);
-            if(! registerFile.read(attached.thread, i, valPtr)) {
+        for (int i = 0; i < RegisterFile::entries; i++) {
+            const auto size = RegisterFile::getSize(i);
+            if(! RegisterFile::read(attached.thread, i, valPtr)) {
                 #if FPU_REGISTERS == 1
                 for(int i=0; i < (size * 2); i++)
                     buffer.appendChar('x');
@@ -405,13 +405,13 @@ void Debugger::handleCommand_gG() {
                 appendBigEndian32(buffer,valPtr);
         }
     } else {
-        if (buffer.len() != registerFile.sizeBytes * 2) {
+        if (buffer.len() != RegisterFile::sizeBytes * 2) {
             buffer.setReturnCode(REGISTER_WRITE_FAIL);
             return;
         }
 
         auto readPtr = buffer.getData();
-        for(int i = 0; i < registerFile.entries ; i ++) {
+        for(int i = 0; i < RegisterFile::entries ; i ++) {
             // In place (input buffer):
             // - get size of register i
             // - save character after last one of register and substitute with
@@ -419,7 +419,7 @@ void Debugger::handleCommand_gG() {
             // - write register
             // - restore character
             // - move to next register
-            const auto size = registerFile.getSize(i);
+            const auto size = RegisterFile::getSize(i);
             const auto readSize = size * 2;
             const auto oldChar = readPtr[readSize];
             readPtr[readSize] = '\0';
@@ -432,7 +432,7 @@ void Debugger::handleCommand_gG() {
             #endif
                 parseBigEndian32(readPtr, valPtr);
 
-            if(! registerFile.write(attached.thread, i, valPtr)) {
+            if(! RegisterFile::write(attached.thread, i, valPtr)) {
                 buffer.setReturnCode(GDBReturnCode::REGISTER_WRITE_FAIL);
                 return;
             }
@@ -453,12 +453,12 @@ void Debugger::handleCommand_pP() {
     const auto read = buffer.getData()[0] == 'p';
     char* separator;
     const auto entry = strtoul(buffer.getData() + 1, &separator, 16);
-    const auto size = registerFile.getSize(entry);
+    const auto size = RegisterFile::getSize(entry);
     char valPtr[MAX_REGISTER_SIZE_BYTES];
 
     if (read) {
         buffer.clear();
-        if(! registerFile.read(attached.thread, entry, valPtr)) {
+        if(! RegisterFile::read(attached.thread, entry, valPtr)) {
             for(int i=0; i < (size * 2); i++)
                 buffer.appendChar('x');
             return;
@@ -479,7 +479,7 @@ void Debugger::handleCommand_pP() {
         else if (size == 4)
         #endif
             parseBigEndian32(readPtr, valPtr);
-        buffer.setReturnCode(registerFile.write(attached.thread, entry, valPtr)
+        buffer.setReturnCode(RegisterFile::write(attached.thread, entry, valPtr)
                 ? OK
                 : REGISTER_WRITE_FAIL);
     }
@@ -562,13 +562,13 @@ void Debugger::handleCommand_cs() {
         // which triggers an event can set attached.reason, this is done by checking
         // on the stopreason
 
+        attached.debugState = false;
+        attached.event.reason = StopReason::NONE;
         // Wakeup thread
-        t->debugInfo.reason = StopReason::NONE;
-        t->debugInfo.status = (buffer.getData()[0] == 'c')
+        t->debugStatus = (buffer.getData()[0] == 'c')
                                      ? DebugStatus::RUN
                                      : DebugStatus::STEP
                                      ;
-        attached.process->debugState = false;
         t->IRQdebugWakeup();
     }
 
@@ -589,7 +589,7 @@ void Debugger::handleCommand_D() {
     // execution)
     {
         FastGlobalIrqLock dLock;
-        attached.process->debugState = false;
+        attached.debugState = true;
         attached.thread->IRQdebugWakeup();
         attached.IRQclear();
     }
@@ -769,18 +769,17 @@ void Debugger::vrun() {
         ptr += strlen(ptr) + 1;
     }
 
-    // posix_spawn must remain unix compliant, it's interface cannot be
-    // modified, this is not the proper way to communicate with process
-    // creation, A fork() should be performed and the child process should be
-    // set traceable before execve, but since this mechanism is not present in
-    // miosix due to lack of a fork syscall, which is way more expensive than a
-    // direct process spawn
-
+    // posix_spawn cannot be modified
+    //
+    // In posix_spawn implementation: check if Debugger::thread == currentThread
     attached.ec=posix_spawn(&(attached.pid),args[0],nullptr,nullptr,args, nullptr);
     if (attached.ec != 0) {
         buffer.setReturnCode(GDBReturnCode::SPAWN_FAIL);
         return;
     }
+
+    // Created process needs to be joined
+    attached.needJoin = true;
 
     // If process creation comletes successfully: attached.process is set
     delete[] args;
@@ -852,18 +851,21 @@ void Debugger::vattach() {
 
         attached.process                    = proc;
         attached.pid                        = pid;
+        attached.needJoin                   = proc->debugNeedJoin;
+        attached.debugState                 = proc->IRQdebugState();
 
-        if (proc->debugState)
+        if (attached.debugState)
         {
-            // Process already in debugstate,
-            // just set first alive thread as the attached thread
+            // Thread stopped before the attach, there is no way to know the reason
+            // Report generic debugevent
+            attached.event.reason = StopReason::DEBUGEVENT;
             attached.thread = th;
         }
         else
         {
             // Process not in debugstate, make thread pending
-            th->debugInfo.reason             = StopReason::NONE;
-            th->debugInfo.status            = DebugStatus::PEND;
+            attached.event.reason             = StopReason::NONE;
+            th->debugStatus                 = DebugStatus::PEND;
             th->IRQwakeup();
         }
     }
@@ -903,7 +905,7 @@ void Debugger::parsePacket_q(QMessage* qMessage) {
         { qMessage->type = QMessage::SUPPORTED; return; }
     if (strEq(ptr, qoffsets))
         { qMessage->type = QMessage::OFFSETS; return; }
-    
+
     // Packets with additional data
     if (strParEq(ptr, q_mem_map)) {
         if ((ptr += sizeof(q_mem_map)) >= limit) return;

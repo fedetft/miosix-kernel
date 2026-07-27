@@ -756,18 +756,11 @@ void DebugMon_Handler()
         IRQdebugMonFail();
     }
 
-    // Set stopreason for the thread if not set already
-    // (needed to report EXECVE)
-    if (thread->debugInfo.reason == StopReason::NONE) {
-        thread->debugInfo.IRQset(StopReason::DEBUGEVENT, 0);
-    }
-
     // Set the process as in debugstate (and halt its thread)
     // For multithreading:
     // - Set running flag to false when no more threads of the process are running (last stopping thread)
     // - only the first event is reported or switch to a list of events
     Process *process = static_cast<Process*>(thread->getProcess());
-    process->debugState = true;
     thread->IRQdebugWait();
 
     // Notify the deubugger if the thread belongs to debugged process, otherwise the thread is stopped indefinetly
@@ -775,6 +768,14 @@ void DebugMon_Handler()
     {
         // Set thread and wakeup debugger
         Debugger::attached.thread = thread;
+        // Valid for sinle thread, need more
+        Debugger::attached.debugState = process->IRQdebugState();
+
+        // Set stopReason for the thread if not set already
+        // (needed to report EXECVE and other events)
+        if (Debugger::attached.event.reason == StopReason::NONE) {
+            Debugger::attached.event.IRQset(StopReason::DEBUGEVENT, 0);
+        }
         // Wakeup debugger thread if waiting (this should always be non-null if attached.process is set)
         Debugger::thread->IRQwakeup();
     }

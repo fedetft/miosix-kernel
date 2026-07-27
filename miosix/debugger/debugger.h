@@ -23,7 +23,7 @@ public:
      * @param ref to store value
      * @return true if valid read, false otherwise
      */
-    bool read(Thread* thread, int i, char* value);
+    static bool read(Thread* thread, int i, char* value);
 
     /**
      * @brief Writes the value pinted by ref into register i
@@ -35,18 +35,18 @@ public:
      * @param value value to write
      * @return true if valid write, false otherwise
      */
-    bool write(Thread* thread, int i, char* value);
+    static bool write(Thread* thread, int i, char* value);
 
     /**
      * @brief Return the size of register i in bytes
      *
      * @param i Index of register in register file
      */
-    int getSize(int index);
+    static int getSize(int index);
 
     // Number of entries in the register file
     const static int entries            = REGISTER_FILE_ENTRIES;
-    
+
     // Total size of the register file in bytes
     const static int sizeBytes          = REGISTER_FILE_SIZE_BYTES;
 
@@ -203,16 +203,20 @@ public:
     const char*     name        = nullptr;
     Process*        process     = nullptr;
     Thread*         thread      = nullptr;
+    bool            needJoin    = false;        // Populated at spawn and attach
+    bool            debugState  = true;
+    DebugEvent      event;
 
     pid_t           pid;
     int             ec;
-
-    // FIXME: where they are called, call also thread->debugInfo.IRQset/clear
 
     inline void IRQclear() {
         process     = nullptr;
         name        = nullptr;
         thread      = nullptr;
+        needJoin    = false;
+        debugState  = true;
+        event.IRQclear();
     }
 
 };
@@ -319,7 +323,6 @@ private:
 
     // Share information between Debugger and other modules
     static AttachedProcessInfo attached;
-    static RegisterFile registerFile;
     static Thread* thread;
 
     static bool failed;
@@ -353,7 +356,7 @@ private:
     void vattach();
     void parsePacket_v(VMessage* vMessage);
     void parsePacket_q(QMessage* qMessage);
-    
+
 };
 
 class Breakpoint {
@@ -367,12 +370,12 @@ private:
     friend class BreakpointUnit;
     bool enabled();
     bool eq (const Breakpoint& other) const;
-    inline void IRQsetLocal(int id) { FPB->FP_COMP[id] = value; }
+    void IRQsetLocal(int id);
 
     // TODO: rename disable()
     void remove();
 
-    // NOTE: all methods here should actually be IRQmethods, as they are called either inside an IRQfunction (IRQsyncLocal, IRQhandleResched etc.)
+    // NOTE: all methods here should actually be IRQmethods, as the data is accessed inside an IRQfunction (IRQsyncLocal, IRQhandleResched etc.)
     // +++++ Correct behavior is to acquire GlobalLock inside BreakpointUnit to make sure it's synched
     // FIXME: However, this is working in stop-mode, interrupt handlers never access this structure concurrently with
     // ++++++ debugger (only accessed when thread can be scheduled again, i.e.: when I call debugWakup() on it)
@@ -393,11 +396,7 @@ private:
     friend class BreakpointUnit;
     bool enabled();
     bool eq (const Watchpoint& other) const;
-    inline void IRQsetLocal(int id) {
-        _DWT->WP[id].COMP      = address;
-        _DWT->WP[id].MASK      = mask;
-        _DWT->WP[id].FUNCTION  = type;
-    }
+    void IRQsetLocal(int id);
 
     // TODO: rename disable()
     void remove();
@@ -562,7 +561,7 @@ public:
     // need for Breakpoint and Watchpoint refresh on the core (switch in should be faster)
     #ifdef PROCESS_DEBUGGER
     static inline void IRQsyncLocal(Thread* t) {
-        switch(t->debugInfo.status) {
+        switch(t->debugStatus) {
         case DebugStatus::PEND: {
             debugMonitorPendSet();
         } break;
@@ -570,18 +569,13 @@ public:
             debugTraceDisable();
             flashPatchDisable();
             debugMonitorSteppingEnable();
-            // NOTE: Correct behavior is: clear trcena, but watchpoint
-            // triggers at the beginning of next instruction
         } break;
         case DebugStatus::RUN:
-            // case DebugStatus::RUN:
-            // since DebugStatus::STOP implies the thread has already been
-            // stopped and cannot be scheduled
             debugTraceEnable();
             flashPatchEnable();
             debugMonitorSteppingDisable();
             const auto coreId = getCurrentCoreId();
-            // If cpu is updated: return
+            // If cpu is valid: return
             if (!IRQcpuDirty(coreId)) return;
             // Update CPU debug register
             for (int i = 0; i < breakpointsNum; i++) breakpoints[i].IRQsetLocal(i);
@@ -605,12 +599,11 @@ public:
         && reinterpret_cast<Process*>(prev->getProcess()) == Debugger::attached.process)
             // Thread switching out of context has a pending exception: must be
             // restored later
-            if (debugMonitorPendGet()) prev->debugInfo.status = DebugStatus::PEND;
+            if (debugMonitorPendGet()) prev->debugStatus = DebugStatus::PEND;
 
         if (next->flags.isInUserspace() == true
         && reinterpret_cast<Process*>(next->getProcess()) == Debugger::attached.process) {
             // Scheduling attached process in userspace: configure local
-            // breakpoints
             // breakpointUnit
             BreakpointUnit::IRQsyncLocal(next);
         } else {

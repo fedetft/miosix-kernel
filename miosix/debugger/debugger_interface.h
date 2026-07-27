@@ -10,11 +10,27 @@ enum class DebugStatus {
 };
 
 enum class StopReason {
-    NONE,                   // No thread running (start)
+    NONE,                   // No event
     DEBUGEVENT,             // Debug event triggered
     EXIT,                   // Exited normally, code is return value
     FAULT,                  // Terminated,      code is the fault reason
     EXECVE,                 // Execve called
+};
+
+class DebugEvent {
+public:
+    StopReason reason = StopReason::NONE;
+    unsigned int code = 0;
+
+    inline void IRQclear() {
+        this->reason = StopReason::NONE;
+        this->code = 0;
+    };
+
+    inline void IRQset(StopReason reason, unsigned int code) {
+        this->reason = reason;
+        this->code = code;
+    }
 };
 
 #if defined(__aarch64__)

@@ -1163,22 +1163,7 @@ private:
     friend class CPUTimeCounter;
     #endif //WITH_CPU_TIME_COUNTER
     #ifdef PROCESS_DEBUGGER
-    class DebugInfo {
-    public:
-        DebugStatus status = DebugStatus::RUN;
-        StopReason reason = StopReason::NONE;
-        unsigned int code = 0;
-
-        inline void IRQclear() {
-            this->reason = StopReason::NONE;
-            this->code = 0;
-        };
-
-        inline void IRQset(StopReason reason, unsigned int code) {
-            this->reason = reason;
-            this->code = code;
-        }
-    } debugInfo;
+    DebugStatus debugStatus = DebugStatus::RUN;
     //Needs access to debugStatus, userContext, flags
     friend class RegisterFile;
     friend class Debugger;

@@ -9,17 +9,7 @@
 
 namespace miosix {
 
-// NOTE: Kept here but commented, used when handling 'c' and 's' programs to
-// step over hardcoded breakpoint instructions
-//
-// bool isCodeBreakpoint(unsigned int* pc) {
-// #if defined (__arm__) || defined (__thumb__)
-//     const auto instruction = *reinterpret_cast<unsigned short*>(pc);
-//     return (instruction & 0xff00) == 0xbe00;
-// #else
-//     #error "Debugger: cannot determine structure of code breakpoints for the current architecture"
-// #endif
-// }
+////////////////////////////////////////////////////////////////////////////////
 
 Breakpoint::Breakpoint(unsigned int address, unsigned int kind) {
     // Revision 2: Simply set address and enable
@@ -46,6 +36,10 @@ bool Breakpoint::enabled() { return this->value & FP_Comp_ENABLE_MASK; }
 
 bool Breakpoint::eq(const Breakpoint& other) const { return this->value == other.value; }
 
+void Breakpoint::IRQsetLocal(int id) { FPB->FP_COMP[id] = value; }
+
+////////////////////////////////////////////////////////////////////////////////
+
 Watchpoint::Watchpoint(unsigned int address, unsigned int kind, WatchpointType type) {
 
     const auto tz = __builtin_ctz(kind);
@@ -69,6 +63,14 @@ bool Watchpoint::eq (const Watchpoint& other) const {
         && this->type    == other.type
         ;
 }
+
+void Watchpoint::IRQsetLocal(int id) {
+    _DWT->WP[id].COMP      = address;
+    _DWT->WP[id].MASK      = mask;
+    _DWT->WP[id].FUNCTION  = type;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 int RegisterFile::getSize(int i) {
     // Invalid register number
