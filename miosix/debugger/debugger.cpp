@@ -18,6 +18,7 @@ namespace miosix {
 AttachedProcessInfo Debugger::attached;
 bool Debugger::failed = false;
 Thread* Debugger::thread = nullptr;
+int Debugger::needJoin = 0;
 
 // TODO: might improve, thees are a bit hacky
 // Shorthand combining sniprintf on gdbbufer and setLen for the same
@@ -136,6 +137,7 @@ void Debugger::listen(int serial) {
     while (!failed) {
         recvPacket();
         handleCommand();
+        processCleanup();
         sendPacket();
     }
 
@@ -252,6 +254,8 @@ void Debugger::handleCommand() {
 
     switch (buffer.getData()[0]) {
     case '!':   buffer.setReturnCode(OK);   break;
+                // When this function is executing, either the process doesn't
+                // exists or it's in debugstate
     case '?':   stopReply();                break;
     case 'c':
     case 's':   handleCommand_cs();         break;
@@ -273,17 +277,7 @@ void Debugger::handleCommand() {
 void Debugger::stopReply() {
 
     BUF_FORMAT(buffer, "W" "00");
-    if(attached.process == nullptr) { return; }
-
-    {
-        FastGlobalIrqLock dLock;
-        // While process is not in debugstate (at least one thread running)
-        while(attached.debugState == false) {
-            // TODO: to implement process kill, should peek one character from
-            // gdbserial if available, matching 0x03
-            Thread::IRQglobalIrqUnlockAndWait(dLock);
-        }
-    }
+    if (attached.noProgram()) return;
 
     // When code is here the attached process must already be stopped, not
     // checking again
@@ -295,9 +289,6 @@ void Debugger::stopReply() {
     // debug event triggered in this section is not associated with debugged
     // process (escalates to HardFault rather than being handled by
     // DebugMonitor)
-
-    // Tho it should never happen
-    if (attached.thread == nullptr) { return; }
 
     switch (attached.event.reason) {
     case StopReason::NONE: break;
@@ -318,7 +309,6 @@ void Debugger::stopReply() {
     } break;
     case StopReason::EXIT: {
         BreakpointUnit::clear();
-        if (attached.needJoin) attached.pid = wait(&attached.ec);
         BUF_FORMAT(buffer, "W" "%02x", attached.event.code & 0xff);
         {
             FastGlobalIrqLock dLock;
@@ -327,7 +317,6 @@ void Debugger::stopReply() {
     } break;
     case StopReason::FAULT: {
         BreakpointUnit::clear();
-        if (attached.needJoin) attached.pid = wait(&attached.ec);
         {
             // Notify error code (additional packet
             buffer.clear();
@@ -347,8 +336,27 @@ void Debugger::stopReply() {
         BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
     } break;
     [[unlikely]]
-    default: BUF_FORMAT(buffer, "W" "%02x", -1);
+    default: {} break;
     };
+}
+
+void Debugger::processCleanup() {
+    int n = 0;
+    // First, check if there is at least one thread to join (doesn't need to be synchronized,
+    // avoid taking lock if it's zero, if it changes after the read simply handle it at the
+    // next cycle)
+    {
+        // I want to swap these two and use volatile, but ++ is deprecated
+        FastGlobalIrqLock dLock;
+        if (needJoin > 0) {
+            // needJoin is volatile, make sure to read it again once lock is taken
+            // to get the exact value, then set it to 0
+            n = needJoin;
+            needJoin = 0;
+        }
+    }
+    // Wait for n processes (spawned by debugger), ignore pid and status
+    while (n-->0) wait(NULL);
 }
 
 static inline void appendBigEndian64(GDBBuffer& buffer, char* valPtr) {
@@ -377,9 +385,8 @@ static inline void parseBigEndian32(char* readPtr, char* valPtr) {
 
 void Debugger::handleCommand_gG() {
 
-    if (attached.process == nullptr
-     || attached.thread == nullptr) {
-        buffer.setReturnCode(PARSE_FAIL);
+    if (attached.noProgram()) {
+        buffer.setReturnCode(FAIL);
         return;
     }
 
@@ -445,8 +452,8 @@ void Debugger::handleCommand_gG() {
 
 void Debugger::handleCommand_pP() {
 
-    if (attached.process == nullptr) {
-        buffer.setReturnCode(PARSE_FAIL);
+    if (attached.noProgram()) {
+        buffer.setReturnCode(FAIL);
         return;
     }
 
@@ -492,8 +499,8 @@ void Debugger::handleCommand_mM() {
     const auto len = strtoul(separator + 1, &separator, 16);
 
     // Again, this should not happen with a proper client
-    if (attached.process == nullptr) {
-        buffer.setReturnCode(PARSE_FAIL);
+    if (attached.noProgram()) {
+        buffer.setReturnCode(FAIL);
         return;
     }
 
@@ -544,8 +551,7 @@ void Debugger::handleCommand_mM() {
 
 void Debugger::handleCommand_cs() {
 
-    if (attached.process == nullptr
-     || attached.thread  == nullptr) {
+    if (attached.noProgram()) {
         // No process is currently attached, attempting to resume execution,
         // return an error
         // While this should never happen with a proper client, it might lock
@@ -572,13 +578,13 @@ void Debugger::handleCommand_cs() {
         t->IRQdebugWakeup();
     }
 
+    waitAttached();
     stopReply();
 }
 
 void Debugger::handleCommand_D() {
     // Cannot detach if there is no attached process
-    if (attached.process == nullptr
-    ||  attached.thread == nullptr) {
+    if (attached.noProgram()) {
         buffer.setReturnCode(ATTACH_FAIL);
         return;
     }
@@ -625,6 +631,10 @@ void Debugger::handleCommand_q() {
             , buffer.size -1);
     } break;
     case QMessage::OFFSETS: {
+        if (attached.noProgram()) {
+            buffer.setReturnCode(FAIL);
+            return;
+        }
         const auto textSegment = attached.process->program.getElfBase();
         const auto dataSegment = reinterpret_cast<unsigned int>(
                 attached.process->image.getProcessBasePointer());
@@ -733,7 +743,7 @@ void Debugger::vrun() {
 
     char* const str = strchr(buffer.getData(), ';');
     if (str == NULL) {
-        buffer.setReturnCode(PARSE_FAIL);
+        buffer.setReturnCode(FAIL);
         return;
     }
 
@@ -772,14 +782,12 @@ void Debugger::vrun() {
     // posix_spawn cannot be modified
     //
     // In posix_spawn implementation: check if Debugger::thread == currentThread
-    attached.ec=posix_spawn(&(attached.pid),args[0],nullptr,nullptr,args, nullptr);
-    if (attached.ec != 0) {
+    int pid,ec;
+    ec = posix_spawn(&pid,args[0],nullptr,nullptr,args, nullptr);
+    if (ec != 0) {
         buffer.setReturnCode(GDBReturnCode::SPAWN_FAIL);
         return;
     }
-
-    // Created process needs to be joined
-    attached.needJoin = true;
 
     // If process creation comletes successfully: attached.process is set
     delete[] args;
@@ -787,6 +795,7 @@ void Debugger::vrun() {
     // once thread is no longer running (can be as soon as created (skip right
     // away) can continue execution
 
+    waitAttached();
     stopReply();
 }
 
@@ -813,13 +822,13 @@ void Debugger::vattach() {
         return;
     }
 
-    bool priv = proc->makePrivate();
+    bool priv = proc->isPrivate();
 
     // Cannot insert breakpoints: code is outside Rev.1 bp address
     // 0x00000000 - 0x1fffffff
     // gdb may attempt software breakpoints, but process code is shared
     if (proc->program.isCopiedInRam() &&
-            !priv) {
+            !proc->makePrivate()) {
         BUF_FORMAT(buffer,
                 "E.Code section is shared and cannot use hardware breakpoints");
         return;
@@ -844,14 +853,14 @@ void Debugger::vattach() {
             FastGlobalIrqUnlock u(dLock);
             // Fail if no thread is alive in the selected process
             buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
-            // Release private flag
-            proc->makeShared();
+            // If previously was private, keep it private
+            // This is the only way an entry can be assigned shared to prevent
+            // sharing modified code, can only revert to its original value if attach fails
+            if(!priv) proc->makeShared();
             return;
         }
 
         attached.process                    = proc;
-        attached.pid                        = pid;
-        attached.needJoin                   = proc->debugNeedJoin;
         attached.debugState                 = proc->IRQdebugState();
 
         if (attached.debugState)
@@ -870,6 +879,7 @@ void Debugger::vattach() {
         }
     }
 
+    waitAttached();
     stopReply();
 }
 

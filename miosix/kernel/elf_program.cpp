@@ -93,9 +93,18 @@ public:
     /**
      * @brief Mark selected code section as shared
      *
-     * @param elf
+     * @param elf code section
      */
     static void makeShared(const unsigned int *elf);
+
+    /**
+     * @brief get private flag for selected code section
+     *
+     * @param elf code setion
+     * @return value of private flag
+     */
+    static bool isPrivate(const unsigned int *elf);
+ 
     #endif//PROCESS_DEBUGGER
 
 private:
@@ -284,9 +293,21 @@ void ProgramCache::makeShared(const unsigned int *elf)
     }
 }
 
+bool ProgramCache::isPrivate(const unsigned int *elf)
+{
+    Lock<KernelMutex> l(m);
+    for(auto it=begin(programs);it!=end(programs);++it)
+    {
+        if(it->elf!=elf) continue;
+        return it->priv;
+    }
+    return false;
+}
+
 // Clunky: exposes method for ProgramCache through ElfProgram to Process
 bool ElfProgram::makePrivate() { return ProgramCache::makePrivate(elf); }
 void ElfProgram::makeShared()  { ProgramCache::makeShared(elf);  }
+bool ElfProgram::isPrivate() { return ProgramCache::isPrivate(elf); }
 #endif//PROCESS_DEBUGGER
 
 KernelMutex ProgramCache::m;

@@ -189,14 +189,15 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
     }
     #ifdef PROCESS_DEBUGGER
     // If thread is debugger: stop at first user instruction
-    if (Thread::getCurrentThread() == Debugger::thread) {
+    {
         FastGlobalIrqLock dLock;
-        proc->debugNeedJoin = true;
-        Debugger::attached.process = proc.get();
-        Debugger::attached.needJoin = true;
-        // The process is now running, it needs to step into debugmonitor as
-        // soon as it enters userspace
-        thr->debugStatus = DebugStatus::PEND;
+        if (Thread::getCurrentThread() == Debugger::thread) {
+            proc->needJoin = true;
+            Debugger::attached.process = proc.get();
+            // The process is now running, it needs to enter debugmonitor as
+            // soon as it enters userspace
+            thr->debugStatus = DebugStatus::PEND;
+        }
     }
     #endif
 
@@ -827,18 +828,22 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
             {
                 exitCode=(sp.getParameter<0>() & 0xff)<<8;
                 #ifdef PROCESS_DEBUGGER
-                if (this == Debugger::attached.process)
                 {
                     FastGlobalIrqLock dLock;
-                    auto t = Thread::IRQgetCurrentThread();
-                    Debugger::attached.thread = t;
-                    Debugger::attached.event.IRQset(StopReason::EXIT, exitCode >> 8);
-                    // On exit all threads exit
-                    Debugger::attached.debugState = true;
-                    // No need to disable debug hardware: the process left
-                    // kernelspace a while ago, context switch disabled
-                    // debug hardware already
-                    if (Debugger::thread) Debugger::thread->IRQwakeup();
+                    // Debugger spawned the process, add to join counter
+                    if (this->needJoin) Debugger::needJoin ++;
+                    // Notify debugger
+                    if (this == Debugger::attached.process) {
+                        auto t = Thread::IRQgetCurrentThread();
+                        Debugger::attached.thread = t;
+                        Debugger::attached.event.IRQset(StopReason::EXIT, exitCode >> 8);
+                        // On exit all threads exit
+                        Debugger::attached.debugState = true;
+                        // No need to disable debug hardware: the process left
+                        // kernelspace a while ago, context switch disabled
+                        // debug hardware already
+                        if (Debugger::thread) Debugger::thread->IRQwakeup();
+                    }
                 }
                 #endif
                 return Exit;
@@ -865,7 +870,7 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                                 //TODO: when threads within processes are
                                 //implemented, kill all other threads
                                 #ifdef PROCESS_DEBUGGER
-                                // FIXME: When a new elf is loaded in ram,
+                                // FIXME: When a new elf is loaded in ram for a debugged process,
                                 // flag it private immediately, to prevent any other process from sharing it
                                 // - Add another load(program,args,<private>);
                                 #endif
@@ -884,20 +889,21 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 
                             // Execve must be handled AFTER load
                             #ifdef PROCESS_DEBUGGER
-                            if (this == Debugger::attached.process)
                             {
                                 FastGlobalIrqLock dLock;
-                                auto t = Thread::IRQgetCurrentThread();
-                                Debugger::attached.name = path;
-                                Debugger::attached.event.IRQset(StopReason::EXECVE, 0);
-                                // NOTE: Do not stop immediately but set pending debug
-                                // exception, which allows context switch inside the process
-                                // This is necessary as a client not
-                                // supporting execve would receive a simple
-                                // stop reply and might attempt to read
-                                // process registers which have not been
-                                // initialized.
-                                t->debugStatus = DebugStatus::PEND;
+                                if (this == Debugger::attached.process){
+                                    auto t = Thread::IRQgetCurrentThread();
+                                    Debugger::attached.name = path;
+                                    Debugger::attached.event.IRQset(StopReason::EXECVE, 0);
+                                    // NOTE: Do not stop immediately but set pending debug
+                                    // exception, which allows context switch inside the process
+                                    // This is necessary as a client not
+                                    // supporting execve would receive a simple
+                                    // stop reply and might attempt to read
+                                    // process registers which have not been
+                                    // initialized.
+                                    t->debugStatus = DebugStatus::PEND;
+                                }
                             }
                             #endif
 

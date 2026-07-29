@@ -168,6 +168,13 @@ public:
      * @brief Marke entry associated to this ElfProgram as shared
      */
     void makeShared();
+
+    /**
+     * @brief Get private flag of the entry in programcache
+     *
+     * @return 
+     */
+    bool isPrivate();
     #endif//PROCESS_DEBUGGER
 
 

@@ -258,7 +258,7 @@ private:
     }
 
 
-    bool debugNeedJoin = false; ///< True for a process spawned by Debugger::thread, needs to be joined at exit
+    bool needJoin = false; ///< True for a process spawned by Debugger::thread, needs to be joined at exit
 
     /**
      * @brief Get Process pointer by pid
@@ -279,6 +279,11 @@ private:
      * @brief Flag ProgramCache entry as shared
      */
     inline void makeShared() { program.makeShared(); }
+
+    /**
+     * @brief Flag ProgramCache entry as shared
+     */
+    inline bool isPrivate() { return program.isPrivate(); }
     #endif
 };
 

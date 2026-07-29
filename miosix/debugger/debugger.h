@@ -56,10 +56,10 @@ public:
 
 typedef enum {
     OK = 0,
+    FAIL,
     SPAWN_FAIL,
     ATTACH_FAIL,
     RUN_FAIL,
-    PARSE_FAIL,
     MEMORY_WRITE_FAIL,
     MEMORY_READ_FAIL,
     REGISTER_READ_FAIL,
@@ -203,20 +203,20 @@ public:
     const char*     name        = nullptr;
     Process*        process     = nullptr;
     Thread*         thread      = nullptr;
-    bool            needJoin    = false;        // Populated at spawn and attach
     bool            debugState  = true;
     DebugEvent      event;
-
-    pid_t           pid;
-    int             ec;
 
     inline void IRQclear() {
         process     = nullptr;
         name        = nullptr;
         thread      = nullptr;
-        needJoin    = false;
         debugState  = true;
         event.IRQclear();
+    }
+
+    inline bool noProgram() {
+        return (process == nullptr
+            ||  thread  == nullptr);
     }
 
 };
@@ -326,6 +326,7 @@ private:
     static Thread* thread;
 
     static bool failed;
+    static int needJoin; // < Cout of processes spawned by Debugger yet to join
 
     //Nedds attached
     friend void DebugMon_Handler();
@@ -351,6 +352,21 @@ private:
     void handleCommand_zZ();
 
     void stopReply();
+
+    void processCleanup();
+
+    /**
+     * @brief Waits for the attached process to enter debugstate
+     */
+    inline void waitAttached() {
+        FastGlobalIrqLock dLock;
+        // While process is not in debugstate (at least one thread running)
+        while(attached.debugState == false) {
+            // TODO: to implement process kill, should peek one character from
+            // gdbserial if available, matching 0x03
+            Thread::IRQglobalIrqUnlockAndWait(dLock);
+        }
+    }
 
     void vrun();
     void vattach();

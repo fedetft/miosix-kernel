@@ -838,6 +838,9 @@ bool Thread::IRQreportFault(const FaultData& fault)
     cur->flags.IRQsetUserspace(false);
     ::ctxsave[getCurrentCoreId()]=cur->ctxsave;
     #ifdef PROCESS_DEBUGGER
+    // If the debugger spawned the process this thread is part of, the whole process dies at fault
+    // Debugger needs to join this process
+    if (proc->needJoin) Debugger::needJoin ++;
     // Notify debugger that a fault happened
     if (proc == Debugger::attached.process)
     {
