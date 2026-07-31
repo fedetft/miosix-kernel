@@ -570,7 +570,6 @@ public:
      * Needs GlobalIrqLock acquired to be consistent
      */
 
-#define PROCESS_DEBUGGER
     // NOTE: the correct behavior should be to keep breakpoints and watchpoints enabled as the thread
     // is stepping, but proper client should remove all break/watchpoints before executing a step, if
     // STEP is handled separately from RUN it's possible to schedule thread for stepping without the
