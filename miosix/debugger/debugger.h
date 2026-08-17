@@ -1,11 +1,11 @@
 #pragma once
 
-#include "debug_registers.h"
-#include "debugger_interface.h"
-
 #include "sys/types.h"
 #include <miosix.h>
 #include <string.h>
+
+#include "debugger/debug_registers.h"
+#include "debugger/debugger_interface.h"
 
 namespace miosix {
 
@@ -187,6 +187,30 @@ private:
 
     static_assert(size > RegisterFile::sizeBytes * 2,
         "GDBBuffers must be large enough to store all registers with hex encoding (2 hex per byte)");
+};
+
+enum class StopReason {
+    NONE,                   // No event
+    DEBUGEVENT,             // Debug event triggered
+    EXIT,                   // Exited normally, code is return value
+    FAULT,                  // Terminated,      code is the fault reason
+    EXECVE,                 // Execve called
+};
+
+class DebugEvent {
+public:
+    StopReason reason = StopReason::NONE;
+    unsigned int code = 0;
+
+    inline void IRQclear() {
+        this->reason = StopReason::NONE;
+        this->code = 0;
+    };
+
+    inline void IRQset(StopReason reason, unsigned int code) {
+        this->reason = reason;
+        this->code = code;
+    }
 };
 
 /**
@@ -375,6 +399,7 @@ private:
 
 };
 
+
 class Breakpoint {
 public:
 
@@ -388,14 +413,13 @@ private:
     bool eq (const Breakpoint& other) const;
     void IRQsetLocal(int id);
 
-    // TODO: rename disable()
     void remove();
 
-    // NOTE: all methods here should actually be IRQmethods, as the data is accessed inside an IRQfunction (IRQsyncLocal, IRQhandleResched etc.)
+    // NOTE: all methods here should actually be IRQmethods, as the data is also accessed inside an IRQfunction (IRQsyncLocal, IRQhandleResched etc.)
     // +++++ Correct behavior is to acquire GlobalLock inside BreakpointUnit to make sure it's synched
-    // FIXME: However, this is working in stop-mode, interrupt handlers never access this structure concurrently with
-    // ++++++ debugger (only accessed when thread can be scheduled again, i.e.: when I call debugWakup() on it)
-    // ?????? Can I avoid acquiring locks?: I know no thread of this process
+    // NOTE: However, this is working in stop-mode, interrupt handlers never access this structure concurrently with
+    // +++++ debugger (only accessed when thread can be scheduled again, i.e.: when I call debugWakup() on it)
+    // ????? Can I avoid acquiring locks?: I know no thread of this process
 
     unsigned int value = 0;
 
@@ -414,7 +438,6 @@ private:
     bool eq (const Watchpoint& other) const;
     void IRQsetLocal(int id);
 
-    // TODO: rename disable()
     void remove();
 
     unsigned int    address;
@@ -422,8 +445,6 @@ private:
     WatchpointType  type    = WatchpointType::NONE;
 
 };
-
-typedef unsigned char BPUFlag;
 
 class BreakpointUnit {
 public:
@@ -544,6 +565,8 @@ public:
             IRQmarkDirty();
         }
     }
+
+    typedef unsigned char BPUFlag;
 
     // Make sure that the type used to store BreakpointUnit cpu flags is wide
     // enough to accomodate all available cpus

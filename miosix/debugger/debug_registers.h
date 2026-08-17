@@ -1,7 +1,5 @@
 #pragma once
 
-#include "interfaces/cpu_const.h"
-
 // Not even sure if 64 bit is supported, but makes it easy to change
 typedef uint32_t WordType;
 

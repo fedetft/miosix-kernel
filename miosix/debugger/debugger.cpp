@@ -12,6 +12,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <interfaces/endianness.h>
+#include "debugger_interface.h"
 
 namespace miosix {
 
@@ -398,13 +399,11 @@ void Debugger::handleCommand_gG() {
         for (int i = 0; i < RegisterFile::entries; i++) {
             const auto size = RegisterFile::getSize(i);
             if(! RegisterFile::read(attached.thread, i, valPtr)) {
-                #if FPU_REGISTERS == 1
                 for(int i=0; i < (size * 2); i++)
                     buffer.appendChar('x');
-                #endif
                 continue;
             }
-            #if FPU_REGISTERS == 1
+            #if __FPU_PRESENT == 1
             if (size == 8)
                 appendBigEndian64(buffer,valPtr);
             else if (size == 4)
@@ -432,7 +431,7 @@ void Debugger::handleCommand_gG() {
             readPtr[readSize] = '\0';
             // These guards are only to skip check on architecture with no
             // floating point support
-            #if FPU_REGISTERS == 1
+            #if __FPU_PRESENT == 1
             if (size == 8)
                 parseBigEndian64(readPtr, valPtr);
             else if (size == 4)
@@ -472,7 +471,7 @@ void Debugger::handleCommand_pP() {
         }
         // These guards are only to skip check on architecture with no
         // floating point support
-        #if FPU_REGISTERS == 1
+        #if __FPU_PRESENT == 1
         if (size == 8)
             appendBigEndian64(buffer, valPtr);
         else if (size == 4)
@@ -480,7 +479,7 @@ void Debugger::handleCommand_pP() {
             appendBigEndian32(buffer, valPtr);
     } else {
         const auto readPtr = separator + 1;
-        #if FPU_REGISTERS == 1
+        #if __FPU_PRESENT == 1
         if (size == 8)
             parseBigEndian64(readPtr, valPtr);
         else if (size == 4)

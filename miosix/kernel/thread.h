@@ -33,7 +33,6 @@
 #include "intrusive.h"
 #include "cpu_time_counter_types.h"
 #include "interfaces/cpu_const.h"
-#include "debugger/debugger_interface.h"
 
 /**
  * \namespace miosix
@@ -100,6 +99,15 @@ class Process;
 class FaultData;
 class SyscallParameters;
 #endif //WITH_PROCESSES
+
+#ifdef PROCESS_DEBUGGER
+enum class DebugStatus {
+                    //                          MON_EN      FP_EN       MON_STEP    MON_PEND
+    RUN,            // Thread is running:       SET         SET         CLEAR       CLEAR
+    STEP,           // Thread is stepping:      SET         CLEAR       SET         CLEAR
+    PEND,           // Debugevent is pending:   ---         ---         ---         SET
+};
+#endif
 
 /**
  * This class represents a thread. It has methods for creating, deleting and
