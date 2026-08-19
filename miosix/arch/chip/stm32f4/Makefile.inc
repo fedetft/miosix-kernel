@@ -18,6 +18,7 @@ CHIP_CXXFLAGS := -D_CHIP_STM32F4 $(XRAM)
 ## These are the files in arch/<arch name>/common
 CHIP_SRC :=                                               \
 arch/cpu/armv7m/interfaces-impl/cpu.cpp                   \
+arch/cpu/armv7m/interfaces-impl/debugger_interface.cpp    \
 arch/cpu/common/cortexMx_interrupts.cpp                   \
 arch/cpu/common/cortexMx_mpu.cpp                          \
 arch/cpu/common/cortexMx_userspace.cpp                    \

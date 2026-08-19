@@ -12,7 +12,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <interfaces/endianness.h>
-#include "debugger_interface.h"
+#include "interfaces/debugger.h"
 
 namespace miosix {
 
@@ -21,7 +21,7 @@ bool Debugger::failed = false;
 Thread* Debugger::thread = nullptr;
 int Debugger::needJoin = 0;
 
-// TODO: might improve, thees are a bit hacky
+// TODO: might improve, these are a bit hacky
 // Shorthand combining sniprintf on gdbbufer and setLen for the same
 #define BUF_FORMAT(x, ...) x.setLen(sniprintf(x.getData(), x.size, __VA_ARGS__))
 
@@ -77,7 +77,7 @@ int GDBBuffer::setReturnCode(GDBReturnCode code) {
         ;
     // This check is to keep implementation equal to all other, it is never
     // taken: buffer is always longer than 3 characters
-    if (available() <= len) return 0;
+    // if (size <= len) return 0;
     head = len;
     return len;
 }
@@ -191,12 +191,12 @@ void Debugger::recvPacket() {
         }
 
         // Handle special characters
-        if(cc == ((char) 0x03)) {
-            write(serial, "+", 1); continue;
-        }
-        if(cc == ((char) 0xf0)) {
-            write(serial, "+", 1); continue;
-        }
+        // if(cc == ((char) 0x03)) {
+        //     write(serial, "+", 1); continue;
+        // }
+        // if(cc == ((char) 0xf0)) {
+        //     write(serial, "+", 1); continue;
+        // }
 
         switch (state) {
         case BEGIN: {
@@ -277,14 +277,13 @@ void Debugger::handleCommand() {
 
 void Debugger::stopReply() {
 
+    // Default reply if no program is running
     BUF_FORMAT(buffer, "W" "00");
     if (attached.noProgram()) return;
 
     // When code is here the attached process must already be stopped, not
     // checking again
 
-    // NOTE: on all exit condition (fault, execve, fault) set attached.process
-    // before the wait, to prevent it triggering with reclaimed memory on clear
     // NOTE: attached.IRQclear should be guarded by a GlobalIrqLock, but this
     // whole code secion executes as the attached process already stopped, any
     // debug event triggered in this section is not associated with debugged
@@ -292,23 +291,29 @@ void Debugger::stopReply() {
     // DebugMonitor)
 
     switch (attached.event.reason) {
+        // Should never happen
     case StopReason::NONE: break;
     case StopReason::DEBUGEVENT: {
-        // Can report multiple stop reasons with 'T' packet
+        // Can report different stop reasons with 'T' packet
+        // if reading from DFSR, but need to also report watchpoint/breakpoint
+        // address
         BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
     } break;
     case StopReason::EXECVE: {
         BreakpointUnit::clear();
         if (features.supported(GDBFeatures::EXEC_EVENTS)) {
+            // Client supports exec events, report them
             BUF_FORMAT(buffer, "T" "%02x" "exec:", SIGTRAP);
             buffer.appendBytes(Debugger::attached.name);
             buffer.appendChar(';');
             Debugger::attached.name = nullptr;
         } else {
-            BUF_FORMAT(buffer, "S" "%02x", SIGTRAP);
+            // Else just treat it as exit (source code has changed)
+            BUF_FORMAT(buffer, "W" "00");
         }
     } break;
     case StopReason::EXIT: {
+        // Report exit code
         BreakpointUnit::clear();
         BUF_FORMAT(buffer, "W" "%02x", attached.event.code & 0xff);
         {
@@ -318,37 +323,32 @@ void Debugger::stopReply() {
     } break;
     case StopReason::FAULT: {
         BreakpointUnit::clear();
-        {
-            // Notify error code (additional packet
-            buffer.clear();
-            buffer.appendChar('O');
-            buffer.appendBytes("Program fault has occurred: 0x");
-            const auto c = attached.event.code;
-            const char retCode[] = {hexToAscii(c >> 4),
-                                    hexToAscii(c & 0xf),
-                                    '\0'};
-            buffer.appendBytes(retCode);
-            sendPacket();
-        }
+        // Report fault code (additional packet 'O', contains FaultID)
+        buffer.clear();
+        buffer.appendChar('O');
+        buffer.appendBytes("Program fault has occurred: 0x");
+        const auto c = attached.event.code;
+        const char retCode[] = {hexToAscii(c >> 4),
+                                hexToAscii(c & 0xf),
+                                '\0'};
+        buffer.appendBytes(retCode);
+        sendPacket();
         {
             FastGlobalIrqLock dLock;
             attached.IRQclear();
         }
         BUF_FORMAT(buffer, "X" "%02x", SIGKILL);
     } break;
-    [[unlikely]]
-    default: {} break;
     };
 }
 
 void Debugger::processCleanup() {
     int n = 0;
-    // First, check if there is at least one thread to join (doesn't need to be synchronized,
-    // avoid taking lock if it's zero, if it changes after the read simply handle it at the
-    // next cycle)
     {
-        // I want to swap these two and use volatile, but ++ is deprecated
+        // I want to swap condition and lock and use volatile, but ++ is
+        // deprecated for volatile
         FastGlobalIrqLock dLock;
+        // Check There is at least one process to join
         if (needJoin > 0) {
             // needJoin is volatile, make sure to read it again once lock is taken
             // to get the exact value, then set it to 0
@@ -398,25 +398,30 @@ void Debugger::handleCommand_gG() {
         buffer.clear();
         for (int i = 0; i < RegisterFile::entries; i++) {
             const auto size = RegisterFile::getSize(i);
-            if(! RegisterFile::read(attached.thread, i, valPtr)) {
+            if(RegisterFile::read(attached.thread, i, valPtr)) {
+                #if __FPU_PRESENT == 1
+                    // if FPU not implemented, skip conditions
+                if (size == 8)
+                    appendBigEndian64(buffer,valPtr);
+                else if (size == 4)
+                #endif
+                    appendBigEndian32(buffer,valPtr);
+            } else {
+                // Write x-es if unaccessible
                 for(int i=0; i < (size * 2); i++)
                     buffer.appendChar('x');
-                continue;
             }
-            #if __FPU_PRESENT == 1
-            if (size == 8)
-                appendBigEndian64(buffer,valPtr);
-            else if (size == 4)
-            #endif
-                appendBigEndian32(buffer,valPtr);
         }
     } else {
-        if (buffer.len() != RegisterFile::sizeBytes * 2) {
+        // - 1 since I have to take into account initial G
+        if (buffer.len() - 1 != RegisterFile::sizeBytes * 2) {
+            // G packet is sorter than expected
             buffer.setReturnCode(REGISTER_WRITE_FAIL);
             return;
         }
 
-        auto readPtr = buffer.getData();
+        // + 1 since I have to take into account intial G
+        auto readPtr = buffer.getData() + 1;
         for(int i = 0; i < RegisterFile::entries ; i ++) {
             // In place (input buffer):
             // - get size of register i
@@ -429,7 +434,7 @@ void Debugger::handleCommand_gG() {
             const auto readSize = size * 2;
             const auto oldChar = readPtr[readSize];
             readPtr[readSize] = '\0';
-            // These guards are only to skip check on architecture with no
+            // Guardds to skip check on architecture with no
             // floating point support
             #if __FPU_PRESENT == 1
             if (size == 8)
@@ -654,34 +659,44 @@ void Debugger::handleCommand_q() {
         IMPORT_SYMBOL(process_pool,   start);
         IMPORT_SYMBOL(process_pool,   end);
         const auto _process_pool_length = _process_pool_end - _process_pool_start;
-        // FIXME: Flagging whole sectoin as flash (gdb is not intended to access
+        // NOTE:  Flagging whole sectoin as flash (gdb is not intended to access
         // this memory area anyway)
-        const unsigned int _hwbp_valid_start  = 0x00000000;
-        // FIXME: End of flash ~~ Any address above 0x1fffffff is not
+        // NOTE: End of flash: Any address above 0x1fffffff is not
         // communicated as being part of flash, since rev.1 hw breakpoints
         // cannot address it anyway (mask is 0x1ffffff4) rev.2 bp can address
         // outside of this space, in which case  it's possible to tell gdb to
         // use hardware breakpoints, the server will prevent insertion attempts
         // outside of addressable space
-        const unsigned int _hwbp_valid_length    = 0x20000000 - _hwbp_valid_start;
-        // TODO: This is not the proper way to communicate memory layout, it
-        // will break if the length requested by GDB is smaller than the message
-        // provided, gdb requests a length appropriate for the advertised
-        // buffersize if this fail I will have to implement this as a separated
-        // template string with fixed length (numbers as 0x........), modify it
-        // in place at setup and provide chunks as requested
-        // NOTE: That the first character 'l' only makes sense if I assume the
+        // TODO: This is not the proper way to communicate memory layout,
+        // The protocol doensn't specify behavior if length provided is greater
+        // than requested, GDB should request a length appropriate for the
+        // advertised buffersize, if this fail I will have to implement this as
+        // a separated template string with fixed length (numbers as 0x........)
+        // modify it in place at setup and provide chunks as requested
+        // NOTE: First character 'l' only makes sense if I assume the
         // whole message is sent as a single packet, otherwise I will have to
         // properly implement 'm' and 'l' messages
-        // TODO: How to determine blocksize?
+        //
+        // Advertise memory as
+        // +-----+ 0xffffffff
+        // | ROM |
+        // +-----+ _process_pool_end
+        // | RAM |
+        // +-----+ _process_pool_start
+        // | ROM |
+        // +-----+ 0x00000000
+        //
         BUF_FORMAT(buffer,
+            // 'l' Assumming requested length is greater than string length
             "l"
             "<memory-map>"
+                "<memory type=\"rom\" start=\"0x00000000\" length=\"0x%x\"/>"
                 "<memory type=\"ram\" start=\"0x%x\" length=\"0x%x\"/>"
                 "<memory type=\"rom\" start=\"0x%x\" length=\"0x%x\"/>"
             "</memory-map>",
-            _process_pool_start, _process_pool_length,
-            _hwbp_valid_start, _hwbp_valid_length);
+                                    _process_pool_start,
+            _process_pool_start,    _process_pool_length,
+            _process_pool_end,      0xffffffff - _process_pool_end);
     } break;
     default:
         buffer.clear();
@@ -737,8 +752,7 @@ void Debugger::handleCommand_zZ() {
 }
 
 void Debugger::vrun() {
-    // This code is cursed, it works, I won't touch it further
-    // TODO: I should, and then I can inline it in handleV
+    // This code is pretty bad, it works, I won't touch it further
 
     char* const str = strchr(buffer.getData(), ';');
     if (str == NULL) {
@@ -748,14 +762,14 @@ void Debugger::vrun() {
 
     // Starting from first character of the buffer after ; (vRun;2f62696e2f666f6f;626172)
     //                                                           ^
+    // Decode to                                           (vRun\0/bin/foo\0bar\0)
+
+    // Decode
     // If character is a semi ';' terminate string '\0'
     // Transform hex pairs into characters 2f62696e -> "/bin"
     int argsNum = 0;
     const char* str_end = buffer.getData() + buffer.len();
-    // TODO: make use of the whole buffer
-    char* w_ptr = str; // = buffer.getData();
-    // TODO: make use of the whole buffer
-    // r_ptr = str + 1;
+    char* w_ptr = str;
     for(char* r_ptr = str; r_ptr < str_end - 1 && *r_ptr; w_ptr ++) {
         if (*r_ptr == ';') {
             *w_ptr = '\0';
@@ -769,17 +783,17 @@ void Debugger::vrun() {
         }
     }
     *w_ptr = '\0';
-    // TODO: make use of the whole buffer
+
+    // Create argv
     char** args = new char*[argsNum+1];
-    char* ptr = str+1; // buffer.getData()+1;
+    char* ptr = str+1;
     args[argsNum] = nullptr;
     for (int i = 0; i < argsNum; i++) {
         args[i] = ptr;
         ptr += strlen(ptr) + 1;
     }
 
-    // posix_spawn cannot be modified
-    //
+    // posix_spawn cannot be modified:
     // In posix_spawn implementation: check if Debugger::thread == currentThread
     int pid,ec;
     ec = posix_spawn(&pid,args[0],nullptr,nullptr,args, nullptr);
@@ -788,17 +802,14 @@ void Debugger::vrun() {
         return;
     }
 
-    // If process creation comletes successfully: attached.process is set
+    // If process creation completes successfully: attached.process is set
     delete[] args;
 
-    // once thread is no longer running (can be as soon as created (skip right
-    // away) can continue execution
-
+    // Process::create sets pending event for thread of created process
     waitAttached();
     stopReply();
 }
 
-// TODO: check if logic to determine live threads is correct
 void Debugger::vattach() {
 
     if (attached.process != nullptr) {
@@ -823,16 +834,12 @@ void Debugger::vattach() {
 
     bool priv = proc->isPrivate();
 
-    // Cannot insert breakpoints: code is outside Rev.1 bp address
-    // 0x00000000 - 0x1fffffff
-    // gdb may attempt software breakpoints, but process code is shared
     if (proc->program.isCopiedInRam() &&
             !proc->tryMakePrivate()) {
+        // gdb may attempt software breakpoints, but process code is shared, forbid
         BUF_FORMAT(buffer,
                 "E.Code section is shared and cannot use hardware breakpoints");
         return;
-        // // w/tryMakePrivate() : if memory used by only one process: flag memory
-        // as private and return 0, otherwise return 1
     }
 
     {
@@ -840,6 +847,7 @@ void Debugger::vattach() {
 
         Thread* th = nullptr;
 
+        // TODO: check if logic to determine live threads is correct
         for (const auto& thread : proc->threads) {
             if (thread->flags.isDeleted() == false
             && thread->flags.isDeleting() == false) {
@@ -853,8 +861,9 @@ void Debugger::vattach() {
             // Fail if no thread is alive in the selected process
             buffer.setReturnCode(GDBReturnCode::ATTACH_FAIL);
             // If previously was private, keep it private
-            // This is the only way an entry can be assigned shared to prevent
-            // sharing modified code, can only revert to its original value if attach fails
+            // This is the only way an entry can be assigned shared again, to prevent
+            // sharing modified code on debugger detach, can only revert to its
+            // original value if attach fails
             if(!priv) proc->makeShared();
             return;
         }
@@ -872,7 +881,7 @@ void Debugger::vattach() {
         else
         {
             // Process not in debugstate, make thread pending
-            attached.event.reason             = StopReason::NONE;
+            attached.event.reason           = StopReason::NONE;
             th->debugStatus                 = DebugStatus::PEND;
             th->IRQwakeup();
         }
@@ -882,7 +891,11 @@ void Debugger::vattach() {
     stopReply();
 }
 
+// TODO: bad code
+// Fancy comparators for message parsing:
+// Negated stringcompare
 #define strEq(ptr, str)         (!strcmp(ptr, str))
+// Negated stringcompare up to length of str (excluded \0)
 #define strParEq(ptr, str)      (!strncmp(ptr, str, sizeof(str) - 1))
 
 void Debugger::parsePacket_v(VMessage* vMessage) {

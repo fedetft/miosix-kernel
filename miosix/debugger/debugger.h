@@ -4,8 +4,7 @@
 #include <miosix.h>
 #include <string.h>
 
-#include "debugger/debug_registers.h"
-#include "debugger/debugger_interface.h"
+#include "interfaces/debugger.h"
 
 namespace miosix {
 
@@ -179,14 +178,14 @@ public:
     
     // Must have enough space to fit Register filein a single message
     // (size of registerfile) * 2 (hex encoding) + 1 (null terminator) 
-    static const unsigned int size = RegisterFile::sizeBytes * 2 + 1;
+    static const unsigned int size = RegisterFile::sizeBytes * 2 + 2;
 
 private:
     char         data[size];
     unsigned int head;
 
-    static_assert(size > RegisterFile::sizeBytes * 2,
-        "GDBBuffers must be large enough to store all registers with hex encoding (2 hex per byte)");
+    static_assert(size >= RegisterFile::sizeBytes * 2 + 2,
+        "GDBBuffers must be large enough to store a 'G' packet:\n'G' + all registers with hex encoding (2 hex per byte) + \\0");
 };
 
 enum class StopReason {
@@ -415,11 +414,15 @@ private:
 
     void remove();
 
-    // NOTE: all methods here should actually be IRQmethods, as the data is also accessed inside an IRQfunction (IRQsyncLocal, IRQhandleResched etc.)
-    // +++++ Correct behavior is to acquire GlobalLock inside BreakpointUnit to make sure it's synched
-    // NOTE: However, this is working in stop-mode, interrupt handlers never access this structure concurrently with
-    // +++++ debugger (only accessed when thread can be scheduled again, i.e.: when I call debugWakup() on it)
-    // ????? Can I avoid acquiring locks?: I know no thread of this process
+    // NOTE: all methods here should actually be IRQmethods, as the data is also
+    // accessed inside an IRQfunction (IRQsyncLocal, IRQhandleResched etc.)
+    // Correct behavior is to acquire GlobalLock inside BreakpointUnit to make
+    // sure it's synched
+    // NOTE: However, this is working in stop-mode, interrupt handlers never
+    // access this structure concurrently with debugger (only accessed when
+    // thread can be scheduled again, i.e.: when I call debugWakup() on it)
+    // ?? Can I avoid acquiring locks?: I know no thread of this process can be
+    // scheduled if I'm actively modifying breakpoints
 
     unsigned int value = 0;
 
@@ -468,12 +471,16 @@ public:
             if(!breakpoints[i].enabled()) {
                 breakpoints[i] = Breakpoint(address, kind);
                 {
-                    // NOTE: scoping lock just to this line is basically useless, should take the lock for
-                    // the whole function, but I am working in stop mode (and single threaded): BPU is
-                    // accessed by other components only when scheduling an attached process, if this is
-                    // executing no attached thread can be scheduled
+                    // NOTE: (same consideration for Breakpoint)
+                    // scoping lock just to this line is basically useless,
+                    // should take the lock for the whole function, but I am
+                    // working in stop mode (and single threaded): BPU is
+                    // accessed by other components only when scheduling an
+                    // attached process, if this is executing no attached thread
+                    // can be scheduled
                     //
-                    // Correct behavior is: make add/RemoveBreakpoint and clear atomic
+                    // Correct behavior is: make whole function locked or remove
+                    // lock entirely
                     FastGlobalIrqLock dLock;
                     IRQmarkDirty();
                 }
@@ -593,25 +600,34 @@ public:
      * Needs GlobalIrqLock acquired to be consistent
      */
 
-    // NOTE: the correct behavior should be to keep breakpoints and watchpoints enabled as the thread
-    // is stepping, but proper client should remove all break/watchpoints before executing a step, if
-    // STEP is handled separately from RUN it's possible to schedule thread for stepping without the
-    // need for Breakpoint and Watchpoint refresh on the core (switch in should be faster)
     #ifdef PROCESS_DEBUGGER
     static inline void IRQsyncLocal(Thread* t) {
-        IRQdisableLocal();
+        // Configure breakpoint unit:
+        //
+        // - PEND: pending exception takes precedence over all the other as it
+        //   triggers as son as interrupts are enabled
+        // - STEP: need to clar PEND if previous thread was pending eventually
+        //   but there is no need to disable other units, as GDB already removes
+        //   all breakpoints and watchpoints before stepping
+        // - RUN: enable comparators, disable stepping and clear pending,
+        //   if cpu is dirty, update all comparators
+        //
         switch(t->debugStatus) {
         case DebugStatus::PEND: {
             debugMonitorPendSet();
         } break;
         case DebugStatus::STEP: {
-            // debugTraceDisable();
-            // flashPatchDisable();
+            debugTraceDisable();
+            flashPatchDisable();
+            debugMonitorPendClear();
             debugMonitorSteppingEnable();
         } break;
         case DebugStatus::RUN:
             debugTraceEnable();
             flashPatchEnable();
+            debugMonitorPendClear();
+            debugMonitorSteppingDisable();
+
             const auto coreId = getCurrentCoreId();
             // If cpu is valid: return
             if (!IRQcpuDirty(coreId)) return;
@@ -669,14 +685,6 @@ public:
     #endif //defined(PROCESS_DEBUGGER)
 
 private:
-
-    /**
-     * @brief Check if hardware breakpoints can represent the address
-     *
-     * @param address
-     * @return true if the address can be properly represented, false otherwise
-     */
-    // bool validate(unsigned int address);
 
     static int breakpointsNum,
                watchpointsNum;

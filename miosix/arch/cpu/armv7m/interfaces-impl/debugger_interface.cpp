@@ -1,8 +1,9 @@
+#include "interfaces-impl/cpu_const_impl.h"
 #include "interfaces/cpu_const.h"
 
 #ifdef PROCESS_DEBUGGER
 
-#include "debugger.h"
+#include "debugger/debugger.h"
 #include "debugger_interface.h"
 #include "kernel/process.h"
 
@@ -84,13 +85,9 @@ int RegisterFile::getSize(int i) {
 
 // CTXSAVE_ON_STACK does not respect alignment, thus + 4
 // If alignment is not respected, gdb will fail to backtrace call frames
-#if CTXSAVE_ON_STACK==0
-static const unsigned int ctxSaveOnStackAligned = 0;
-#else
 static const unsigned int ctxSaveOnStackAligned = ((CTXSAVE_ON_STACK - 1) / CTXSAVE_STACK_ALIGNMENT + 1) * CTXSAVE_STACK_ALIGNMENT;
-#endif
     static_assert(ctxSaveOnStackAligned % CTXSAVE_STACK_ALIGNMENT == 0,
-            "CTXSAVE_ON_STACK does not respect stack alignment");
+            "ctxSaveOnStackAligned - does not respect stack alignment");
 
 bool RegisterFile::read(Thread* t, int regNum, char *ref) {
     if (t == nullptr) return false;
@@ -224,21 +221,24 @@ bool RegisterFile::write(Thread* t, int regNum, char* ref) {
 
     if (regNum < d0) return true;
 
-    if (!fpuPresent) return false;
-
-    if (regNum == fpscr) {
-        stackPtr[24] = value;
-    } else {
-        auto off = (regNum - d0) * 2;
-        auto value64 = *reinterpret_cast<unsigned long long*>(ref);
-        // d0-d7 (either d0-d7 or s0-s15)
-        if (regNum <= d7) {
-            auto dest = reinterpret_cast<unsigned long long*>(stackPtr + 8 + off);
-            *dest = value64;
-        // d8-d15 (either d8-d15 or s16-s31)
+    // if floating point registers are not present, skip writing
+    // This allows 'G' packets to write all registers
+    if (fpuPresent)
+    {
+        if (regNum == fpscr) {
+            stackPtr[24] = value;
         } else {
-            auto dest = reinterpret_cast<unsigned long long*>(ctx + 9 + off);
-            *dest = value64;
+            auto off = (regNum - d0) * 2;
+            auto value64 = *reinterpret_cast<unsigned long long*>(ref);
+            // d0-d7 (either d0-d7 or s0-s15)
+            if (regNum <= d7) {
+                auto dest = reinterpret_cast<unsigned long long*>(stackPtr + 8 + off);
+                *dest = value64;
+            // d8-d15 (either d8-d15 or s16-s31)
+            } else {
+                auto dest = reinterpret_cast<unsigned long long*>(ctx + 9 + off);
+                *dest = value64;
+            }
         }
     }
 
