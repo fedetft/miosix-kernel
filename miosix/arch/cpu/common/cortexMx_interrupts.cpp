@@ -756,9 +756,9 @@ void DebugMon_Handler()
         IRQdebugMonFail();
     }
 
-    // Set the process as in debugstate (and halt its thread)
+    // Set debugstate and halt thread
     // For multithreading:
-    // - Set running flag to false when no more threads of the process are running (last stopping thread)
+    // - Set debugstate flag to true when no more threads of the process are running (last stopping thread)
     // - only the first event is reported or switch to a list of events
     Process *process = static_cast<Process*>(thread->getProcess());
     thread->IRQdebugWait();

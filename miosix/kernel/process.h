@@ -273,7 +273,7 @@ private:
      *
      * @return true if operation succeeds, false otherwise
      */
-    inline bool makePrivate() { return program.makePrivate(); }
+    inline bool tryMakePrivate() { return program.tryMakePrivate(); }
 
     /**
      * @brief Flag ProgramCache entry as shared

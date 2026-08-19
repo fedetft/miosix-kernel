@@ -162,7 +162,7 @@ public:
      *
      * @return true on sucess, false otherwise
      */
-    bool makePrivate();
+    bool tryMakePrivate();
 
     /**
      * @brief Marke entry associated to this ElfProgram as shared

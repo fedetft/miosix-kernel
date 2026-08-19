@@ -88,7 +88,7 @@ public:
      * @param elf code section
      * @return true on sucess, false otherwise
      */
-    static bool makePrivate(const unsigned int *elf);
+    static bool tryMakePrivate(const unsigned int *elf);
 
     /**
      * @brief Mark selected code section as shared
@@ -189,9 +189,9 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     //   execution
     //
     //   KernelMutex m:
-    const auto makePrivate = (Thread::getCurrentThread() == Debugger::thread);
+    const auto priv = (Thread::getCurrentThread() == Debugger::thread);
     // If Debugger is executing, do not attempt sharing
-    if (!makePrivate) {
+    if (!priv) {
     #else //PROCESS_DEBUGGER
     // To avoid repeated ifdef guards
     {
@@ -237,7 +237,7 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     //Success
     #ifdef PROCESS_DEBUGGER
     // Push entry with the desired flag
-    programs.push_front(Entry(s.st_ino,s.st_dev,ramPointer,ramSize,makePrivate));
+    programs.push_front(Entry(s.st_ino,s.st_dev,ramPointer,ramSize,priv));
     #else
     programs.push_front(Entry(s.st_ino,s.st_dev,ramPointer,ramSize));
     #endif
@@ -268,7 +268,7 @@ void ProgramCache::unload(const unsigned int *elf)
 }
 
 #ifdef PROCESS_DEBUGGER
-bool ProgramCache::makePrivate(const unsigned int *elf)
+bool ProgramCache::tryMakePrivate(const unsigned int *elf)
 {
     Lock<KernelMutex> l(m);
     for(auto it=begin(programs);it!=end(programs);++it)
@@ -305,7 +305,7 @@ bool ProgramCache::isPrivate(const unsigned int *elf)
 }
 
 // Clunky: exposes method for ProgramCache through ElfProgram to Process
-bool ElfProgram::makePrivate() { return ProgramCache::makePrivate(elf); }
+bool ElfProgram::tryMakePrivate() { return ProgramCache::tryMakePrivate(elf); }
 void ElfProgram::makeShared()  { ProgramCache::makeShared(elf);  }
 bool ElfProgram::isPrivate() { return ProgramCache::isPrivate(elf); }
 #endif//PROCESS_DEBUGGER

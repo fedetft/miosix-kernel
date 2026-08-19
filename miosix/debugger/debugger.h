@@ -599,19 +599,19 @@ public:
     // need for Breakpoint and Watchpoint refresh on the core (switch in should be faster)
     #ifdef PROCESS_DEBUGGER
     static inline void IRQsyncLocal(Thread* t) {
+        IRQdisableLocal();
         switch(t->debugStatus) {
         case DebugStatus::PEND: {
             debugMonitorPendSet();
         } break;
         case DebugStatus::STEP: {
-            debugTraceDisable();
-            flashPatchDisable();
+            // debugTraceDisable();
+            // flashPatchDisable();
             debugMonitorSteppingEnable();
         } break;
         case DebugStatus::RUN:
             debugTraceEnable();
             flashPatchEnable();
-            debugMonitorSteppingDisable();
             const auto coreId = getCurrentCoreId();
             // If cpu is valid: return
             if (!IRQcpuDirty(coreId)) return;
@@ -634,10 +634,12 @@ public:
 
     static inline void IRQhandleResched(Thread* prev, Thread* next) {
         if (prev->flags.isInUserspace() == true
-        && reinterpret_cast<Process*>(prev->getProcess()) == Debugger::attached.process)
+        && reinterpret_cast<Process*>(prev->getProcess()) == Debugger::attached.process
+        && debugMonitorPendGet()) {
             // Thread switching out of context has a pending exception: must be
             // restored later
-            if (debugMonitorPendGet()) prev->debugStatus = DebugStatus::PEND;
+            prev->debugStatus = DebugStatus::PEND;
+        }
 
         if (next->flags.isInUserspace() == true
         && reinterpret_cast<Process*>(next->getProcess()) == Debugger::attached.process) {
@@ -658,9 +660,9 @@ public:
     // - Add scheduler guard definition below to suppress error message
 
     #if (defined(SCHED_TYPE_PRIORITY))\
-     || (defined(SCHED_TYPE_CONTROL_BASED) &&  defined(SCHED_CONTROL_MULTIBURST))\
-     || (defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_CONTROL_MULTIBURST))\
-     || (defined(SCHED_TYPE_EDF))
+    ||  (defined(SCHED_TYPE_CONTROL_BASED) &&  defined(SCHED_CONTROL_MULTIBURST))\
+    ||  (defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_CONTROL_MULTIBURST))\
+    ||  (defined(SCHED_TYPE_EDF))
     #else //Valid sched
     #error "Process debugger is enabled but current scheduler is not configured to handle BreakpointUnit"
     #endif //Valid sched

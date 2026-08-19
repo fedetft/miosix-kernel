@@ -827,11 +827,11 @@ void Debugger::vattach() {
     // 0x00000000 - 0x1fffffff
     // gdb may attempt software breakpoints, but process code is shared
     if (proc->program.isCopiedInRam() &&
-            !proc->makePrivate()) {
+            !proc->tryMakePrivate()) {
         BUF_FORMAT(buffer,
                 "E.Code section is shared and cannot use hardware breakpoints");
         return;
-        // // w/makePrivate() : if memory used by only one process: flag memory
+        // // w/tryMakePrivate() : if memory used by only one process: flag memory
         // as private and return 0, otherwise return 1
     }
 
