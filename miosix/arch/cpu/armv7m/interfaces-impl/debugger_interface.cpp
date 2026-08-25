@@ -1,5 +1,6 @@
 #include "interfaces-impl/cpu_const_impl.h"
 #include "interfaces/cpu_const.h"
+#include "miosix_settings.h"
 
 #ifdef PROCESS_DEBUGGER
 

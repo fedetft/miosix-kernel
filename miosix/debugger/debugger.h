@@ -1,5 +1,9 @@
 #pragma once
 
+#include "miosix_settings.h"
+
+#ifdef PROCESS_DEBUGGER
+
 #include "sys/types.h"
 #include <miosix.h>
 #include <string.h>
@@ -178,7 +182,7 @@ public:
     
     // Must have enough space to fit Register filein a single message
     // (size of registerfile) * 2 (hex encoding) + 1 (null terminator) 
-    static const unsigned int size = RegisterFile::sizeBytes * 2 + 2;
+    static const unsigned int size = MINIMUM_GDB_BUFFER_SIZE;
 
 private:
     char         data[size];
@@ -699,3 +703,6 @@ private:
 };
 
 }
+
+#endif
+

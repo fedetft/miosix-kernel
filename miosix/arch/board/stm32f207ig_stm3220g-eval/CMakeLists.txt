@@ -32,6 +32,7 @@ set(MIOSIX_BOARD_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/arch/drivers/sdmmc/stm32f2_f4_f7_sd.cpp
     ${MIOSIX_BOARD_INC}/boot.cpp
     ${MIOSIX_BOARD_INC}/interfaces-impl/bsp.cpp
+    ${MIOSIX_BOARD_INC}/interfaces-impl/debugger_interface.cpp
 )
 
 # Add a #define to allow querying board name

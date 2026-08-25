@@ -13,6 +13,7 @@ CHIP_INC := arch/chip/stm32f2
 ## These are the files in arch/<arch name>/<board name>
 BOARD_SRC :=                                \
 arch/drivers/sdmmc/stm32f2_f4_f7_sd.cpp     \
+arch/cpu/armv7m/interfaces-impl/debugger_interface.cpp  \
 $(BOARD_INC)/boot.cpp                       \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 

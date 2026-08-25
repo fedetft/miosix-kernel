@@ -1,4 +1,6 @@
 #include "debugger.h"
+#include "interfaces-impl/debug_registers.h"
+#include "miosix_settings.h"
 
 #ifdef PROCESS_DEBUGGER
 
@@ -13,6 +15,12 @@
 #include <unistd.h>
 #include <interfaces/endianness.h>
 #include "interfaces/debugger.h"
+
+#ifdef LOGGING
+    #define dbg(...) fprintf(stdout, "[DBG]: " __VA_ARGS__)
+#else//LOGGING
+    #define dbg(...) do {} while (0)
+#endif//LOGGING
 
 namespace miosix {
 
@@ -114,7 +122,9 @@ void Debugger::listen(int serial) {
     failed = false;
     this->serial = serial;
 
-    fiprintf(stderr, "[DBG]: listening on serial#%x\n", serial);
+    dbg("listening on serial #%d\n", serial);
+    dbg("hardware breakpoints: %d\n", fpbGetAvailableBreakpoints());
+    dbg("hardware watchpoints: %d\n", fpbGetAvailableWatchpoints());
 
     struct termios tio;
     tcgetattr(serial, &tio);
@@ -135,6 +145,7 @@ void Debugger::listen(int serial) {
     // will trigger DebugMonitor rather than HardFault
     debugMonitorEnable();
 
+    dbg("size: %d\n", buffer.size);
     while (!failed) {
         recvPacket();
         handleCommand();
@@ -149,11 +160,11 @@ void Debugger::listen(int serial) {
     // Unset debugger thread
     thread = nullptr;
 
-    fiprintf(stderr, "[DBG]: failed\n");
+    dbg("failed\n");
 }
 
 void Debugger::listen(char serialName[]) {
-    fiprintf(stderr, "[DBG]: open %s\n", serialName);
+    dbg("open %s\n", serialName);
     const auto serial = open(serialName, O_RDWR | O_NOCTTY);
 
     if(serial < 0) {
@@ -164,7 +175,7 @@ void Debugger::listen(char serialName[]) {
 
     listen(serial);
 
-    fiprintf(stderr, "[DBG]: close %s\n", serialName);
+    dbg("close %s\n", serialName);
     close(serial);
 }
 
@@ -681,7 +692,7 @@ void Debugger::handleCommand_q() {
         // +-----+ 0xffffffff
         // | ROM |
         // +-----+ _process_pool_end
-        // | RAM |
+        // | RAM | // && mpu.withinForRead() => Can insert swbreaks
         // +-----+ _process_pool_start
         // | ROM |
         // +-----+ 0x00000000
@@ -697,6 +708,7 @@ void Debugger::handleCommand_q() {
                                     _process_pool_start,
             _process_pool_start,    _process_pool_length,
             _process_pool_end,      0xffffffff - _process_pool_end);
+        dbg("msg: %s\n", buffer.getData());
     } break;
     default:
         buffer.clear();
@@ -704,6 +716,7 @@ void Debugger::handleCommand_q() {
 }
 
 void Debugger::handleCommand_zZ() {
+                        // or  ... & 0x20 -> uppercase
     const bool insert = buffer.getData()[0] == 'Z';
     char* separator;
     const auto baseAddress  = strtoul(buffer.getData() + 3, &separator, 16);
@@ -793,11 +806,19 @@ void Debugger::vrun() {
         ptr += strlen(ptr) + 1;
     }
 
+    char** a = args;
+    while(*a) {
+        printf("\"%s\" ", *a);
+        a++;
+    }
+    printf("\n");
+
     // posix_spawn cannot be modified:
     // In posix_spawn implementation: check if Debugger::thread == currentThread
-    int pid,ec;
+    int pid = 0,ec = 0;
     ec = posix_spawn(&pid,args[0],nullptr,nullptr,args, nullptr);
     if (ec != 0) {
+        printf("ec: %d\n", ec);
         buffer.setReturnCode(GDBReturnCode::SPAWN_FAIL);
         return;
     }

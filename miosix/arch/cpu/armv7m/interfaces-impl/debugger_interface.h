@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cpu_const_impl.h"
+
 namespace miosix {
 
 #define GDB_ARCH "armv7"
@@ -26,7 +28,9 @@ typedef enum : int {
 #else
     const int REGISTER_FILE_SIZE_BYTES = (17*4);
 #endif
-;
+
+// Used to ensure the communication buffer is big enough to fit a 'qSupported' package
+const int MINIMUM_GDB_BUFFER_SIZE = 208;
 
 #if __FPU_PRESENT == 1
 const int MAX_REGISTER_SIZE_BYTES = 8;
