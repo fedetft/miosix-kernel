@@ -3,7 +3,7 @@
 ##
 
 ## Path to the Miosix kernel root (miosix-kernel/miosix)
-KPATH := ../miosix-kernel/miosix
+KPATH := ../../miosix
 
 ## Path to the Miosix config root, containing:
 ##  - config/Makefile.inc
@@ -12,8 +12,7 @@ KPATH := ../miosix-kernel/miosix
 ## For the processes example the configuration needs to be changed in order to
 ## enable the define WITH_PROCESSES and choose an appropriate linker file for
 ## the board.
-CONFPATH := .
-# $(KPATH)
+CONFPATH := $(KPATH)
 
 ## When using CONFPATH := $(KPATH) you can choose the board here. You can also
 ## override other variables defined by Makefile.inc.

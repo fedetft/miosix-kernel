@@ -1,6 +1,8 @@
 #include <miosix.h>
 #include <sys/wait.h>
 #include <spawn.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 // // Enable processes uncommenting
 // #define WITH_PROCESSES
@@ -20,7 +22,7 @@ int main() {
 
     // Spawn a process
     pid_t pid,ec;
-    const char *arg[] = { "/bin/helloworld", nullptr };
+    const char *arg[] = { "/bin/hello", nullptr };
     const char *env[] = { nullptr };
 
     ec = posix_spawn(&pid,arg[0],NULL,NULL,(char* const*)arg,(char* const*)env);
@@ -47,7 +49,7 @@ int main() {
     // // Alternatively, pass the path directly
     // debugger.listen("/dev/auxtty");
     miosix::Debugger debugger;
-    int serial = open("/dev/auxtty");
+    int serial = open("/dev/auxtty",O_RDWR | O_NOCTTY);
     debugger.listen(serial);
     close(serial);
 

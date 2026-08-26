@@ -1,7 +1,7 @@
-#include <iostream>
+#include <stdio.h>
 
 int main() {
     for (int i = 0; i < 10; i++) {
-        std::cout << "Hello world!" << std::endl;
+        printf("Hello world!\n");
     }
 }
