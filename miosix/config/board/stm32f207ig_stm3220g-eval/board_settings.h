@@ -78,6 +78,19 @@ using defaultSerialRxPin = Gpio<PC,11>;
 using defaultSerialRtsPin = Gpio<PB,14>;
 using defaultSerialCtsPin = Gpio<PB,13>;
 
+// Aux serial port
+// Uncomment AUX_SERIAL to enable. The device will appear as /dev/auxtty.
+//#define AUX_SERIAL "auxtty"
+const unsigned int auxSerial=1;
+const unsigned int auxSerialSpeed=115200;
+const bool auxSerialFlowctrl=false;
+const bool auxSerialDma=true;
+// Aux serial 1 PB6 and PB7 have least conflicts, can be used without moving jumpers
+using auxSerialTxPin = Gpio<PB,6>;
+using auxSerialRxPin = Gpio<PB,7>;
+using auxSerialRtsPin = Gpio<PA,12>;
+using auxSerialCtsPin = Gpio<PA,11>;
+
 //SD card driver
 static const unsigned char sdVoltage=33; //Board powered @ 3.3V
 #define SD_ONE_BIT_DATABUS //Can't use 4 bit databus due to pin conflicts
