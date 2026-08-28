@@ -7,6 +7,7 @@
 #include <filesystem/devfs/devfs.h>
 #include "../UUID/UUID.h"
 #include "../MBR/mbr.h"
+#include "partition_uuids.h"
 
 namespace GPT {
 
@@ -17,21 +18,18 @@ constexpr const char*  GPT_SIGNATURE = "EFI PART";
 constexpr size_t GPT_PARTITION_NAME_SIZE = 72;
 constexpr size_t MAX_GPT_PARTITIONS = 16;
 
-#define MAKE_UUID_NAME_PAIR(uuid, name) {DEF_UUID(uuid), name}
-constexpr std::initializer_list<std::pair<UUID::UUID, 
-                const char*>> GPT_PARTITION_IDS = {
-                    MAKE_UUID_NAME_PAIR("00000000-0000-0000-0000-000000000000", "Empty"),
-                    MAKE_UUID_NAME_PAIR("024DEE41-33E7-11D3-9D69-0008C781F39F ", "MBR Partition Scheme"),
-                    MAKE_UUID_NAME_PAIR("EBD0A0A2-B9E5-4433-87C0-68B6B72699C7", "Microsoft Basic Data Partition"),
-                };
-
 enum class ReaderResult {
     Ok = 0,
     ErrorReadingMBR,
     ErrorInvalidMBR,
     ErrorMBRIsNotProtective,
+    ErrorReadingPartitionTableEntry,
     ErrorReadingPrimaryHeader,
+    ErrorInvalidPrimaryHeader,
+    ErrorInvalidPrimaryHeaderCRC,
     ErrorReadingBackupHeader,
+    ErrorInvalidBackupHeader,
+    ErrorInvalidBackupHeaderCRC,
     ErrorExceededMaxPartitions,
     ErrorReadingPrimaryPartitions,
     ErrorReadingBackupPartitions
@@ -76,59 +74,67 @@ struct GPTHeader {
 
 static_assert(sizeof(GPTHeader) == 512, "GPT Header size must equal the Logic Block Size (512)");
 
+class GPTTableReader {
+public:
+    std::expected<GPTPartitionEntry, ReaderResult> getNextPartitionEntry();
+    void reset() { currentPartitionIndex = 0; currentBlockIndex = 0; }
+
+private:
+    GPTTableReader(miosix::intrusive_ref_ptr<miosix::Device> device, 
+        unsigned long long partitionTableLBA, uint32_t partitionEntrySize, 
+        uint32_t numberOfPartitionEntries)
+        : device{device}, partitionTableLBA{partitionTableLBA}, partitionEntrySize{partitionEntrySize}, 
+          numberOfPartitionEntries{numberOfPartitionEntries}, currentPartitionIndex{0}, 
+          currentBlockIndex{0}
+    {}
+
+    ReaderResult loadPartitonEntry(GPTPartitionEntry* entry);
+
+    friend class GPTReader;
+    
+    miosix::intrusive_ref_ptr<miosix::Device> device;
+    unsigned long long partitionTableLBA;
+    uint32_t partitionEntrySize;
+    uint32_t numberOfPartitionEntries;
+    size_t   currentPartitionIndex;
+    uint32_t currentBlockIndex;
+    
+};
+
 class GPTReader {
 public:
     static std::expected<GPTReader, ReaderResult> readGPT(miosix::intrusive_ref_ptr<miosix::Device> device);
-    bool isValidGPT() {return true;};
-    void printGPTInfo() {};
-    
-    auto partitionsBegin() const {
-        return primaryPartitions.cbegin();
-    }
-    
-    auto partitionsEnd() const {
-        return primaryPartitions.cend();
+    ReaderResult checkGPT();
+
+    void printGPTInfo();
+
+    GPTTableReader getPrimaryPartitionTableReader() {
+        return GPTTableReader(device, primaryHeader.partitionEntryTableLBA, 
+            primaryHeader.partitionEntrySize, primaryHeader.numberOfPartitionEntries);
     }
 
-    auto backupPartitionsBegin() const {
-        return backupPartitions.cbegin();
+    GPTTableReader getBackupPartitionTableReader() {
+        return GPTTableReader(device, backupHeader.partitionEntryTableLBA, 
+            backupHeader.partitionEntrySize, backupHeader.numberOfPartitionEntries);
     }
 
-    auto backupPartitionsEnd() const {
-        return backupPartitions.cend();
-    }
-
-    GPTReader(GPTReader&& other); //< we want this, but private
-
+    GPTReader(GPTReader&& other);
+    GPTReader& operator=(GPTReader&& other);
 private:
-    inline ReaderResult getPartitionsReadingError(GPTHeader& header);
-    ReaderResult load128BitSizeEntries(GPTHeader& header, 
-        std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS>& partitions, 
-        miosix::intrusive_ref_ptr<miosix::Device> device);
-    ReaderResult load256BitSizeEntries(GPTHeader& header, 
-        std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS>& partitions, 
-        miosix::intrusive_ref_ptr<miosix::Device> device);
-    ReaderResult loadGenericSizeEntries(GPTHeader& header, 
-        std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS>& partitions, 
-        miosix::intrusive_ref_ptr<miosix::Device> device);
-    ReaderResult loadPartitionTable(GPTHeader& header, 
-        std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS>& partitions, 
-        miosix::intrusive_ref_ptr<miosix::Device> device);
-    ReaderResult readPartitionTables(miosix::intrusive_ref_ptr<miosix::Device> device);
+    GPTReader(miosix::intrusive_ref_ptr<miosix::Device> device) : 
+        device{device}, primaryHeader{}, backupHeader{} 
+    {};
 
-    GPTReader():primaryHeader{}, backupHeader{}, primaryPartitions{}, backupPartitions{} {
-        iprintf("Initializing GPTReader");
-    };
+    void printHeaderInfo(GPTHeader& header);
+    void printTableInfo(GPTTableReader& tableReader);
+
 
     GPTReader(GPTReader& other) = delete;
     GPTReader operator=(GPTReader& other) = delete;
-    GPTReader& operator=(GPTReader&& other) = delete;
 
+    miosix::intrusive_ref_ptr<miosix::Device> device;
     GPTHeader primaryHeader;
     GPTHeader backupHeader;
-
-    std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> primaryPartitions;
-    std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> backupPartitions;
 };
 
 } // namespace GPT

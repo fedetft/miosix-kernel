@@ -4,7 +4,7 @@
 namespace GPT {
 std::expected<GPTReader, ReaderResult> GPTReader::readGPT(miosix::intrusive_ref_ptr<miosix::Device> device) {
     auto mbrResult = MBR::MBRReader::readMBR(device);
-    GPTReader reader;
+    GPTReader reader(device);
 
     if (!mbrResult) {
         return std::unexpected{ReaderResult::ErrorReadingMBR};
@@ -27,177 +27,194 @@ std::expected<GPTReader, ReaderResult> GPTReader::readGPT(miosix::intrusive_ref_
     if (result < 0) {
         return std::unexpected{ReaderResult::ErrorReadingPrimaryHeader};
     }
-
+        
     iprintf("Reading last LBA block\n");
     result = device->readBlock(&reader.backupHeader, sizeof(GPTHeader), reader.primaryHeader.alternateLBA * 512);
     if (result < 0) {
         return std::unexpected{ReaderResult::ErrorReadingBackupHeader};
     }
 
-    if (reader.primaryHeader.numberOfPartitionEntries < MAX_GPT_PARTITIONS) {
-        iprintf("Too little partitions %ld of size %ld\n", 
-            reader.primaryHeader.numberOfPartitionEntries, 
-            reader.primaryHeader.partitionEntrySize);
-        return std::unexpected{ReaderResult::ErrorExceededMaxPartitions};
-    }
-
-    iprintf("Reading Partition Tables\n");
-    auto readerResult = reader.readPartitionTables(device);
-
-    if (readerResult != ReaderResult::Ok) {
-        return std::unexpected{readerResult};
-    }
-
     return std::move(reader);
 }
 
-inline ReaderResult GPTReader::getPartitionsReadingError(GPTHeader &header)
-{
-    return header.myLBA == MAIN_GPT_POSITION_LBA ? 
-        ReaderResult::ErrorReadingPrimaryPartitions : 
-        ReaderResult::ErrorReadingBackupPartitions;
-}
 
-ReaderResult GPTReader::load128BitSizeEntries(GPTHeader &header, 
-    std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, 
-    miosix::intrusive_ref_ptr<miosix::Device> device)
-{
-    GPTPartitionEntry buff[4];
-    auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
-    
-    size_t result = 0;
-    
-    size_t idx;
-    off_t blockReadIdx;
-
-    for (idx = 0, blockReadIdx = 0; numPartitions >= 4; idx += 4, numPartitions -= 4, blockReadIdx++) {
-        result = device->readBlock(buff, 512, (header.partitionEntryTableLBA + blockReadIdx) * 512);
-        
-        if (result < 0) {
-            return getPartitionsReadingError(header);
-        }
-
-        memcpy(&partitions.at(idx), &buff[0], sizeof(GPTPartitionEntry));
-        // this line adds ~290kb in size at the final binary??? is std::format bloated too? yes it is due to the unicode stuff...
-        // printf("Partition type GUID: %s\n", std::format("{}", UUID::UUID(partitions.at(idx).partitionTypeGUID)).c_str());
-        memcpy(&partitions.at(idx + 1), &buff[1], sizeof(GPTPartitionEntry));
-        memcpy(&partitions.at(idx + 2), &buff[2], sizeof(GPTPartitionEntry));
-        memcpy(&partitions.at(idx + 3), &buff[3], sizeof(GPTPartitionEntry));
+ReaderResult GPTReader::checkGPT() {
+    // Check primary header signature
+    if (std::memcmp(primaryHeader.signature, "EFI PART", 8) != 0) {
+        return ReaderResult::ErrorInvalidPrimaryHeader;
     }
 
-    if (numPartitions > 0) {
-        result = device->readBlock(buff, 512, (header.alternateLBA + blockReadIdx) * 512);
-
-        if (result < 0) {
-            return getPartitionsReadingError(header);
-        }
-
-        for (;numPartitions > 0; idx++, numPartitions--) {
-            memcpy(&partitions.at(idx), &buff[idx], sizeof(GPTPartitionEntry));
-        }   
+    // Check backup header signature
+    if (std::memcmp(backupHeader.signature, "EFI PART", 8) != 0) {
+        return ReaderResult::ErrorInvalidBackupHeader;
     }
+
+    // Check primary and backup header consistency
+    if (primaryHeader.myLBA != MAIN_GPT_POSITION_LBA || primaryHeader.alternateLBA != backupHeader.myLBA) {
+        return ReaderResult::ErrorInvalidPrimaryHeader;
+    }
+
+    if (backupHeader.myLBA != primaryHeader.alternateLBA || backupHeader.alternateLBA != MAIN_GPT_POSITION_LBA) {
+        return ReaderResult::ErrorInvalidBackupHeader;
+    }
+
+    // GPTHeader primaryCopy = primaryHeader;
+    // primaryCopy.headerCRC32 = 0;
+    // const auto primaryCRC = CRC32::calculate(reinterpret_cast<const uint8_t*>(&primaryCopy), primaryHeader.headerSize);
+    // if (primaryCRC != primaryHeader.headerCRC32) {
+    //     return ReaderResult::ErrorInvalidPrimaryHeaderCRC;
+    // }
+
+
+    // GPTHeader backupCopy = backupHeader;
+    // backupCopy.headerCRC32 = 0;
+    // const auto backupCRC = CRC32::calculate(reinterpret_cast<const uint8_t*>(&backupCopy), backupHeader.headerSize);
+    // if (backupCRC != backupHeader.headerCRC32) {
+    //     return ReaderResult::ErrorInvalidBackupHeaderCRC;
+    // }
 
     return ReaderResult::Ok;
 }
 
-ReaderResult GPTReader::load256BitSizeEntries(GPTHeader &header, 
-        std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, 
-        miosix::intrusive_ref_ptr<miosix::Device> device)
-{
-    GPTPartitionEntry buff[4];
-    auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
-
-    size_t result = 0;
-
-    size_t idx;
-    off_t blockReadIdx;
-
-    for (idx = 0, blockReadIdx = 0; numPartitions >= 2; idx += 2, numPartitions -= 2, blockReadIdx++) {
-        result = device->readBlock(buff, 512, (header.alternateLBA + blockReadIdx) * 512);
-        
-        if (result < 0) {
-            return getPartitionsReadingError(header);
-        }
-
-        memcpy(&partitions.at(idx), &buff[0], sizeof(GPTPartitionEntry));
-        memcpy(&partitions.at(idx + 1), &buff[2], sizeof(GPTPartitionEntry));
+std::expected<GPTPartitionEntry, ReaderResult> GPTTableReader::getNextPartitionEntry() {
+    if (currentPartitionIndex >= numberOfPartitionEntries) {
+        return std::unexpected(ReaderResult::ErrorExceededMaxPartitions);
     }
 
-    if (numPartitions > 0) {
-        result = device->readBlock(buff, 512, (header.alternateLBA + blockReadIdx) * 512);
-
-        if (result < 0) {
-            return getPartitionsReadingError(header);
-        }
-
-        for (;numPartitions > 0; idx++, numPartitions--) {
-            memcpy(&partitions.at(idx), &buff[idx * 2], sizeof(GPTPartitionEntry));
-        }   
-    }
-
-    return ReaderResult::Ok;
-}
-
-ReaderResult GPTReader::loadGenericSizeEntries(GPTHeader &header, 
-    std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, 
-    miosix::intrusive_ref_ptr<miosix::Device> device)
-{
-    GPTPartitionEntry buff[4];
-    auto numPartitions = std::min(size_t{header.numberOfPartitionEntries}, MAX_GPT_PARTITIONS);
-    auto entrySize = header.partitionEntrySize / 512;
-
-    size_t result = 0;
-
-    size_t idx;
-    off_t blockReadIdx;
-
-    for (idx = 0, blockReadIdx = 0; numPartitions >= 1; idx += 1, numPartitions -= 1, blockReadIdx += entrySize) {
-        result = device->readBlock(buff, 512, (header.alternateLBA + blockReadIdx) * 512);
-        
-        if (result < 0) {
-            return getPartitionsReadingError(header);
-        }
-
-        memcpy(&partitions.at(idx), &buff[0], sizeof(GPTPartitionEntry));
-    }
+    GPTPartitionEntry entry;
+    auto result = loadPartitonEntry(&entry);
     
-    return ReaderResult::Ok;
-}
-
-ReaderResult GPTReader::loadPartitionTable(GPTHeader &header, 
-    std::array<GPTPartitionEntry, MAX_GPT_PARTITIONS> &partitions, 
-    miosix::intrusive_ref_ptr<miosix::Device> device)
-{
-    // If the partition entries are of standard size we can load them fast, otherwise we need a slower approach
-    // This likely happens every time.
-    // Also we are "lucky" since the specification allows only for 128, 256, 512, 1024, 2048, ecc. (128 x 2^n, where n = {0, 1, 2, 3, ...})
-    // so we don't have strange boundaries in the block offset. In fact for the case where partitionEntrySize is >= 512 we have only one 
-    // partition entry per logic block in the first block and we can just skip paritionEntrySize/512 blocks for the next entry, without
-    // the need to read the remaining blocks since that data is reserved for UEFI software only.
-    // The only concern of that area of data, if the size is not 128, is that it is never checked and some malicious attacker might exploit it 
-    // to hide stuff
-
-    if (header.partitionEntrySize == sizeof(GPTPartitionEntry)) [[likely]] {
-        return load128BitSizeEntries(header, partitions, device);
-    } else if (header.partitionEntrySize == 2 * sizeof(GPTPartitionEntry)) {
-        return load256BitSizeEntries(header, partitions, device);
-    } else {
-        return loadGenericSizeEntries(header, partitions, device);
-    }
-}
-
-ReaderResult GPTReader::readPartitionTables(miosix::intrusive_ref_ptr<miosix::Device> device)
-{
-    auto result = loadPartitionTable(primaryHeader, primaryPartitions, device);
- 
     if (result != ReaderResult::Ok) {
-        return result;
+        return std::unexpected(result);
     }
 
-    return loadPartitionTable(backupHeader, backupPartitions, device);
+    currentPartitionIndex++;
+    return entry;
+}
+
+ReaderResult GPTTableReader::loadPartitonEntry(GPTPartitionEntry* entry) {
+    if (currentPartitionIndex >= numberOfPartitionEntries) {
+        return ReaderResult::ErrorExceededMaxPartitions;
+    }
+
+    GPTPartitionEntry buff[4];
+
+    auto result = device->readBlock(buff, 512, (partitionTableLBA + currentBlockIndex) * 512);
+    if (result < 0) {
+        return ReaderResult::ErrorReadingPartitionTableEntry;
+    }
+
+    if (partitionEntrySize == 128) {
+        memcpy(entry, &buff[currentPartitionIndex % 4], sizeof(GPTPartitionEntry));
+    } else if (partitionEntrySize == 256) {
+        memcpy(entry, &buff[currentPartitionIndex % 2], sizeof(GPTPartitionEntry));
+    } else {
+        memcpy(entry, &buff[0], sizeof(GPTPartitionEntry));
+    }
+
+    if (partitionEntrySize == 128) {
+        currentPartitionIndex++;
+        if (currentPartitionIndex % 4 == 0) {
+            currentBlockIndex++;
+        }
+    } else if (partitionEntrySize == 256) {
+        currentPartitionIndex++;
+        if (currentPartitionIndex % 2 == 0) {
+            currentBlockIndex++;
+        }
+    } else {
+        currentPartitionIndex++;
+        currentBlockIndex += partitionEntrySize / 512;
+    }
+
+    return ReaderResult::Ok;
+}
+
+void GPTReader::printHeaderInfo(GPTHeader& header)
+{
+    iprintf("Signature: %.8s\n", header.signature);
+    iprintf("Revision: 0x%08lX\n", header.revision);
+    iprintf("Header Size: %lu\n", header.headerSize);
+    iprintf("Header CRC32: %lu\n", header.headerCRC32);
+    iprintf("My LBA: %llu\n", header.myLBA);
+    iprintf("Alternate LBA: %llu\n", header.alternateLBA);
+    iprintf("First Usable LBA: %llu\n", header.firstUsableLBA);
+    iprintf("Last Usable LBA: %llu\n", header.lastUsableLBA);
+    iprintf("Disk GUID: ");
+    UUID::UUID(header.diskGUID).printUUID();
+    iprintf("\n");
+    iprintf("Partition Entry Table LBA: %llu\n", header.partitionEntryTableLBA);
+    iprintf("Number of Partition Entries: %lu\n", header.numberOfPartitionEntries);
+    iprintf("Partition Entry Size: %lu\n", header.partitionEntrySize);
+    iprintf("Partition Entry Table CRC32: %lu\n", header.partitionEntryTableCRC32);
+}
+
+void GPTReader::printTableInfo(GPTTableReader& tableReader)
+{
+    for (auto entry = tableReader.getNextPartitionEntry(); 
+            entry.has_value(); 
+            entry = tableReader.getNextPartitionEntry()) 
+    {
+        auto partitionEntry = *entry;
+        iprintf("Partition Type GUID: ");
+        UUID::UUID(partitionEntry.partitionTypeGUID).printUUID();
+        iprintf("\n");
+
+        iprintf("Unique Partition GUID: ");
+        UUID::UUID(partitionEntry.uniquePartitionGUID).printUUID();
+        iprintf("\n");
+
+        iprintf("Starting LBA: %llu\n", partitionEntry.startingLBA);
+        iprintf("Ending LBA: %llu\n", partitionEntry.endingLBA);
+        iprintf("Attributes: %llu\n", partitionEntry.attributes);
+        iprintf("Partition Name: %s\n", partitionEntry.partitionName);
+        iprintf("-----------------------------\n");
+    }
+}
+
+void GPTReader::printGPTInfo() {
+    auto gptValid = checkGPT() == ReaderResult::Ok;
+    iprintf("Is GPT Valid? %s\n", gptValid ? "Yes" : "No.\nExiting");
+    if (!gptValid) return;
+    iprintf("=============================\n");
+    iprintf("=  Primary Partition Header =\n");
+    iprintf("=============================\n");
+    printHeaderInfo(primaryHeader);
+
+    iprintf("=============================\n");
+    iprintf("=  Backup Partition Header  =\n");
+    iprintf("=============================\n"); 
+    printHeaderInfo(backupHeader);
+
+    iprintf("=============================\n");
+    iprintf("=  Primary Partition Table  =\n");
+    iprintf("=============================\n");
+    auto primaryTableReader = getPrimaryPartitionTableReader();
+    printTableInfo(primaryTableReader);
+    iprintf("\n\n");
+
+    iprintf("=============================\n");
+    iprintf("=  Backup Partition Table   =\n");
+    iprintf("=============================\n"); 
+    auto backupTableReader = getBackupPartitionTableReader();
+    printTableInfo(backupTableReader);
+    iprintf("\n\n");
 }
 
 GPTReader::GPTReader(GPTReader&& other) {
+    // Move primary header
+    memcpy(&this->primaryHeader, &other.primaryHeader, sizeof(GPTHeader));
+    memset(&other.primaryHeader, 0, sizeof(GPTHeader));
+
+    // Move backup header
+    memcpy(&this->backupHeader, &other.backupHeader, sizeof(GPTHeader));
+    memset(&other.backupHeader, 0, sizeof(GPTHeader));
+
+    this->device = std::move(other.device);
+}
+
+GPTReader& GPTReader::operator=(GPTReader&& other) {
+    if (this != &other) {
         // Move primary header
         memcpy(&this->primaryHeader, &other.primaryHeader, sizeof(GPTHeader));
         memset(&other.primaryHeader, 0, sizeof(GPTHeader));
@@ -206,15 +223,9 @@ GPTReader::GPTReader(GPTReader&& other) {
         memcpy(&this->backupHeader, &other.backupHeader, sizeof(GPTHeader));
         memset(&other.backupHeader, 0, sizeof(GPTHeader));
 
-        for (size_t idx = 0; idx < MAX_GPT_PARTITIONS; idx++) {
-            // Move primary partition entries
-            memcpy(&this->primaryPartitions[idx], &other.primaryPartitions[idx], sizeof(GPTPartitionEntry));
-            memset(&other.primaryPartitions[idx], 0, sizeof(GPTPartitionEntry));
-
-            // Move backup partition entries
-            memcpy(&this->backupPartitions[idx], &other.backupPartitions[idx], sizeof(GPTPartitionEntry));
-            memset(&other.backupPartitions[idx], 0, sizeof(GPTPartitionEntry));
-        }
+        this->device = std::move(other.device);
     }
+    return *this;
+}
 
 } // namespace GPT

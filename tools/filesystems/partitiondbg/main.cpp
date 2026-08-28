@@ -36,6 +36,36 @@ void tryMBR() {
     iprintf("Finished MBR\n");
 }
 
+void tryGPT() 
+{
+    iprintf("Trying GPT\n");
+    auto gptReaderResult = GPT::GPTReader::readGPT(SDIODriver::instance());
+    size_t retryCount = 0;
+    while(!gptReaderResult && retryCount < 5) {
+        iprintf("Error while reading from device\n");
+        gptReaderResult = GPT::GPTReader::readGPT(SDIODriver::instance());
+        retryCount++;
+        Thread::sleep(1);
+    }
+
+    if (!gptReaderResult) {
+        iprintf("Excedeed the retry count while reading the device.\n");
+        return;
+    }
+
+    auto gptReader = std::move(*gptReaderResult);
+
+    auto checkResult = gptReader.checkGPT();
+    if (checkResult != GPT::ReaderResult::Ok) {
+        iprintf("Error checking GPT, reasonID: %d\n", static_cast<int>(checkResult));
+        return;
+    }
+
+    /// UUIDS are in big endian format, so we need to convert them to little endian format for printing
+
+    gptReader.printGPTInfo();
+}
+
 int main()
 {
     iprintf("Starting partitiondbg\n");
@@ -45,13 +75,10 @@ int main()
     SDIODriver::instance()->ioctl(IOCTL_GET_VOLUME_SIZE, &cardSize);
 
     iprintf("SDIO device size: %llu bytes\n", cardSize);
+    
     tryMBR();
-    iprintf("Trying GPT\n");
-    auto gptReaderResult = GPT::GPTReader::readGPT(SDIODriver::instance());
-    // auto gptReader = std::move(gptReaderResult.second);
-    // if (gptReaderResult.first != GPT::ReaderResult::Ok) {
-    //     printf("Error reading gpt partition, reasonID: %d", static_cast<int>(gptReaderResult.first));
-    // }
+    tryGPT();
+
     // TODO: here we can try to try-loop mount the partitions coming from the mbr header
     // We can also create virtual devices showing the partitions in devfs
     // linux does that, so we can have read/write ops on the partition directly
@@ -59,7 +86,6 @@ int main()
     // or in general for all filesystems
     // for the automount the partition reader should also create a file like fstab in the 
     // root directory or some virtual file somewhere
-
 
     for(;;) {
         ledOn();

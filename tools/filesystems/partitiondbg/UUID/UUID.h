@@ -66,6 +66,14 @@ namespace UUID {
             }
             return uuid;
         }
+
+        void printUUID() {
+            auto bytesPacked = reinterpret_cast<uint16_t*>(bytes);
+            iprintf("%04X%04X-%04X-%04X-%04X-%04X%04X%04X", 
+                bytesPacked[0], bytesPacked[1], bytesPacked[2], bytesPacked[3],
+                bytesPacked[4], bytesPacked[5], bytesPacked[6], bytesPacked[7]);
+        }
+
     private:
         uint8_t bytes[UUID_LEN];
 
