@@ -15,7 +15,7 @@ namespace GPT {
 // and the address of that is given in the primary GPT header in the field Alternate LBA
 constexpr off_t  MAIN_GPT_POSITION_LBA = 1; 
 constexpr const char*  GPT_SIGNATURE = "EFI PART";
-constexpr size_t GPT_PARTITION_NAME_SIZE = 72;
+constexpr size_t GPT_PARTITION_NAME_SIZE = 72/2; // 36 UTF-16 characters, 2 bytes each
 constexpr size_t MAX_GPT_PARTITIONS = 16;
 
 enum class ReaderResult {
@@ -41,7 +41,7 @@ struct GPTPartitionEntry {
     off_t    startingLBA;
     off_t    endingLBA;
     uint64_t attributes;
-    char     partitionName[GPT_PARTITION_NAME_SIZE];
+    char16_t partitionName[GPT_PARTITION_NAME_SIZE];
     /* 
      * The reserved bytes depends on GPTHeader::partitionEntrySize 
      * since it is reserved for UEFI software only we can safely ignore it

@@ -1,5 +1,6 @@
 #include "gpt.h"
 #include "../MBR/mbr.h"
+#include <util/unicode.h>
 
 namespace GPT {
 std::expected<GPTReader, ReaderResult> GPTReader::readGPT(miosix::intrusive_ref_ptr<miosix::Device> device) {
@@ -149,6 +150,7 @@ void GPTReader::printHeaderInfo(GPTHeader& header)
     iprintf("Number of Partition Entries: %lu\n", header.numberOfPartitionEntries);
     iprintf("Partition Entry Size: %lu\n", header.partitionEntrySize);
     iprintf("Partition Entry Table CRC32: %lu\n", header.partitionEntryTableCRC32);
+    iprintf("\n\n");
 }
 
 void GPTReader::printTableInfo(GPTTableReader& tableReader)
@@ -161,7 +163,7 @@ void GPTReader::printTableInfo(GPTTableReader& tableReader)
         iprintf("Partition Type GUID: ");
         const auto partitionUUID = UUID::UUID::fromBigEndian(partitionEntry.partitionTypeGUID);
         partitionUUID.printUUID();
-        printf(" (");
+        printf("\nPartition Type Name: ");
         auto it = std::find_if(GPT_PARTITION_IDS.begin(), GPT_PARTITION_IDS.end(), 
             [& partitionUUID](auto& pair) { return pair.first == partitionUUID; });
         if (it != GPT_PARTITION_IDS.end()) {
@@ -169,7 +171,6 @@ void GPTReader::printTableInfo(GPTTableReader& tableReader)
         } else {
             iprintf("Unknown");
         }
-        iprintf(")");
         iprintf("\n");
 
         iprintf("Unique Partition GUID: ");
@@ -179,8 +180,23 @@ void GPTReader::printTableInfo(GPTTableReader& tableReader)
         iprintf("Starting LBA: %llu\n", partitionEntry.startingLBA);
         iprintf("Ending LBA: %llu\n", partitionEntry.endingLBA);
         iprintf("Attributes: %llu\n", partitionEntry.attributes);
-        iprintf("Partition Name: %s\n", partitionEntry.partitionName);
-        iprintf("-----------------------------\n");
+        char partName[GPT_PARTITION_NAME_SIZE * 3 + 1]; // UTF-16 to UTF-8 conversion may take up to 3 bytes per character
+        size_t bufSize = GPT_PARTITION_NAME_SIZE * 3; // Initialize buffer size for UTF-8 string
+        size_t bufIdx = 0;
+        for (size_t i = 0; i < GPT_PARTITION_NAME_SIZE; i++) 
+        {
+            auto result = miosix::Unicode::putUtf8(&partName[bufIdx], partitionEntry.partitionName[i], bufSize);
+            if (result.first != miosix::Unicode::error::OK) 
+            {
+                iprintf("Error converting partition name to UTF-8\n");
+                break;
+            }
+            bufSize -= result.second;
+            bufIdx += result.second;
+        }
+        partName[bufSize] = 0; // Null-terminate the UTF-8 string
+        iprintf("Partition Name: %s\n", partName);
+        iprintf("\n-----------------------------\n\n");
     }
 }
 
@@ -195,6 +211,8 @@ void GPTReader::printGPTInfo() {
         uuid.printUUID();
         iprintf(" - %s\n", name);
     }
+
+    iprintf("\n\n");
 
     iprintf("=============================\n");
     iprintf("=  Primary Partition Header =\n");
