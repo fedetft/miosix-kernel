@@ -104,29 +104,25 @@ ReaderResult GPTTableReader::loadPartitonEntry(GPTPartitionEntry* entry) {
         return ReaderResult::ErrorReadingPartitionTableEntry;
     }
 
-    if (partitionEntrySize == 128) {
-        memcpy(entry, &buff[currentPartitionIndex % 4], sizeof(GPTPartitionEntry));
-    } else if (partitionEntrySize == 256) {
-        memcpy(entry, &buff[currentPartitionIndex % 2], sizeof(GPTPartitionEntry));
-    } else {
-        memcpy(entry, &buff[0], sizeof(GPTPartitionEntry));
-    }
+    memcpy(entry, &buff[currentPartitionIndexWithinBlock], sizeof(GPTPartitionEntry));
 
     if (partitionEntrySize == 128) {
-        currentPartitionIndex++;
-        if (currentPartitionIndex % 4 == 0) {
+        currentPartitionIndexWithinBlock++;
+        if (currentPartitionIndexWithinBlock == 4) {
             currentBlockIndex++;
+            currentPartitionIndexWithinBlock = 0;
         }
     } else if (partitionEntrySize == 256) {
-        currentPartitionIndex++;
-        if (currentPartitionIndex % 2 == 0) {
+        currentPartitionIndexWithinBlock++;
+        if (currentPartitionIndexWithinBlock == 2) {
             currentBlockIndex++;
+            currentPartitionIndexWithinBlock = 0;
         }
     } else {
-        currentPartitionIndex++;
         currentBlockIndex += partitionEntrySize / 512;
     }
 
+    currentPartitionIndex++;
     return ReaderResult::Ok;
 }
 
@@ -141,7 +137,7 @@ void GPTReader::printHeaderInfo(GPTHeader& header)
     iprintf("First Usable LBA: %llu\n", header.firstUsableLBA);
     iprintf("Last Usable LBA: %llu\n", header.lastUsableLBA);
     iprintf("Disk GUID: ");
-    UUID::UUID(header.diskGUID).printUUID();
+    UUID::UUID::fromBigEndian(header.diskGUID).printUUID();
     iprintf("\n");
     iprintf("Partition Entry Table LBA: %llu\n", header.partitionEntryTableLBA);
     iprintf("Number of Partition Entries: %lu\n", header.numberOfPartitionEntries);
@@ -152,16 +148,26 @@ void GPTReader::printHeaderInfo(GPTHeader& header)
 void GPTReader::printTableInfo(GPTTableReader& tableReader)
 {
     for (auto entry = tableReader.getNextPartitionEntry(); 
-            entry.has_value(); 
+            entry.has_value() && !entry->isEmpty(); 
             entry = tableReader.getNextPartitionEntry()) 
     {
         auto partitionEntry = *entry;
         iprintf("Partition Type GUID: ");
-        UUID::UUID(partitionEntry.partitionTypeGUID).printUUID();
+        const auto partitionUUID = UUID::UUID::fromBigEndian(partitionEntry.partitionTypeGUID);
+        partitionUUID.printUUID();
+        printf(" (");
+        auto it = std::find_if(GPT_PARTITION_IDS.begin(), GPT_PARTITION_IDS.end(), 
+            [& partitionUUID](auto& pair) { return pair.first == partitionUUID; });
+        if (it != GPT_PARTITION_IDS.end()) {
+            iprintf("%s", it->second);
+        } else {
+            iprintf("Unknown");
+        }
+        iprintf(")");
         iprintf("\n");
 
         iprintf("Unique Partition GUID: ");
-        UUID::UUID(partitionEntry.uniquePartitionGUID).printUUID();
+        UUID::UUID::fromBigEndian(partitionEntry.uniquePartitionGUID).printUUID();
         iprintf("\n");
 
         iprintf("Starting LBA: %llu\n", partitionEntry.startingLBA);
@@ -176,6 +182,14 @@ void GPTReader::printGPTInfo() {
     auto gptValid = checkGPT() == ReaderResult::Ok;
     iprintf("Is GPT Valid? %s\n", gptValid ? "Yes" : "No.\nExiting");
     if (!gptValid) return;
+
+    iprintf("Available partition types (Size: %d):\n", GPT::GPT_PARTITION_IDS.size());
+    for (const auto& [uuid, name] : GPT::GPT_PARTITION_IDS) {
+        iprintf("Partition Type GUID: ");
+        uuid.printUUID();
+        iprintf(" - %s\n", name);
+    }
+
     iprintf("=============================\n");
     iprintf("=  Primary Partition Header =\n");
     iprintf("=============================\n");

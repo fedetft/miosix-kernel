@@ -52,6 +52,17 @@ struct GPTPartitionEntry {
      * we read all the partition entries.
      */
     // uint8_t* reserved;
+    
+    /*
+     * Check if the partition entry is empty
+     * \return true if the partition entry is empty, false otherwise
+     * An empty partition entry is defined as having a partition type GUID of
+     * all zeros
+     */
+    bool isEmpty() const {
+        return memcmp(partitionTypeGUID, 
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", UUID::UUID_LEN) == 0;
+    };
 } __attribute__((packed));
 
 struct GPTHeader {
@@ -77,15 +88,19 @@ static_assert(sizeof(GPTHeader) == 512, "GPT Header size must equal the Logic Bl
 class GPTTableReader {
 public:
     std::expected<GPTPartitionEntry, ReaderResult> getNextPartitionEntry();
-    void reset() { currentPartitionIndex = 0; currentBlockIndex = 0; }
+    void reset() { 
+        currentPartitionIndexWithinBlock = 0;
+        currentBlockIndex = 0; 
+        currentPartitionIndex = 0; 
+    }
 
 private:
     GPTTableReader(miosix::intrusive_ref_ptr<miosix::Device> device, 
         unsigned long long partitionTableLBA, uint32_t partitionEntrySize, 
         uint32_t numberOfPartitionEntries)
         : device{device}, partitionTableLBA{partitionTableLBA}, partitionEntrySize{partitionEntrySize}, 
-          numberOfPartitionEntries{numberOfPartitionEntries}, currentPartitionIndex{0}, 
-          currentBlockIndex{0}
+          numberOfPartitionEntries{numberOfPartitionEntries}, currentPartitionIndexWithinBlock{0}, 
+          currentBlockIndex{0}, currentPartitionIndex{0}
     {}
 
     ReaderResult loadPartitonEntry(GPTPartitionEntry* entry);
@@ -94,11 +109,11 @@ private:
     
     miosix::intrusive_ref_ptr<miosix::Device> device;
     unsigned long long partitionTableLBA;
-    uint32_t partitionEntrySize;
-    uint32_t numberOfPartitionEntries;
-    size_t   currentPartitionIndex;
-    uint32_t currentBlockIndex;
-    
+    const uint32_t partitionEntrySize;
+    const uint32_t numberOfPartitionEntries;
+    uint8_t  currentPartitionIndexWithinBlock;
+    uint64_t currentBlockIndex;
+    uint32_t currentPartitionIndex;
 };
 
 class GPTReader {
@@ -122,8 +137,8 @@ public:
     GPTReader& operator=(GPTReader&& other);
 private:
     GPTReader(miosix::intrusive_ref_ptr<miosix::Device> device) : 
-        device{device}, primaryHeader{}, backupHeader{} 
-    {};
+        device{device}, primaryHeader{}, backupHeader{}
+    {}
 
     void printHeaderInfo(GPTHeader& header);
     void printTableInfo(GPTTableReader& tableReader);
