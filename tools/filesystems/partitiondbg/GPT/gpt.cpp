@@ -99,10 +99,16 @@ ReaderResult GPTTableReader::loadPartitonEntry(GPTPartitionEntry* entry) {
 
     GPTPartitionEntry buff[4];
 
+    // TODO: Maybe if partitionEntrySize < 512 we can read multiple partition entries 
+    // in a single block read but this will add 512 bytes of used memory
+    // I guess it might not be necessary a drawback since GPT is pretty heavy 
+    // on memory by itself. But I will live it like this for now, it is to be decided
+    // when we benchmark the code.
     auto result = device->readBlock(buff, 512, (partitionTableLBA + currentBlockIndex) * 512);
     if (result < 0) {
         return ReaderResult::ErrorReadingPartitionTableEntry;
     }
+
 
     memcpy(entry, &buff[currentPartitionIndexWithinBlock], sizeof(GPTPartitionEntry));
 
