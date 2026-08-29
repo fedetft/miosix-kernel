@@ -13,14 +13,41 @@ namespace UUID {
             std::memcpy(this->bytes, bytes, UUID_LEN);
         } 
 
-        friend bool operator==(UUID& a, UUID& b) {
+        static UUID fromBigEndian(uint8_t bytes[UUID_LEN]) {
+            UUID uuid;
+            // first pack of 4 bytes are in big endian, so we need to reverse them
+            uuid.bytes[0] = bytes[3];
+            uuid.bytes[1] = bytes[2];
+            uuid.bytes[2] = bytes[1];
+            uuid.bytes[3] = bytes[0];
+
+            // second pack of 2 bytes are in big endian, so we need to reverse them
+            uuid.bytes[4] = bytes[5];
+            uuid.bytes[5] = bytes[4];
+
+            // third pack of 2 bytes are in big endian, so we need to reverse them
+            uuid.bytes[6] = bytes[7];
+            uuid.bytes[7] = bytes[6];
+
+            // the last 8 bytes are single bytes, endianness does not matter 
+            // so we can just copy them as is
+            std::memcpy(&uuid.bytes[8], &bytes[8], 8);
+
+            return uuid;
+        }
+
+        friend bool operator==(const UUID& a, const UUID& b) {
             return memcmp(a.bytes, b.bytes, UUID_LEN) == 0;
         }
 
+        friend bool operator<(const UUID& a, const UUID& b) {
+            return memcmp(a.bytes, b.bytes, UUID_LEN) < 0;
+        }
+
         static consteval char toUpperAndDecimal(const char c) {
-            if (c >= 'a' && c <= 'f') return c - 'a';
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
             if (c >= '0' && c <= '9') return c - '0';
-            if (c >= 'A' && c <= 'F') return c - 'A';
+            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
             throw "Invalid UUID";
         }
 
@@ -32,7 +59,7 @@ namespace UUID {
 
         static consteval UUID fromString(const char stringUUID[36]) {
             UUID uuid;
-            auto bytes = uuid.bytes;
+            auto* bytes = uuid.bytes;
             size_t byteIdx = 0, i = 0;
             for (i = 0; i < 8; i+= 2, byteIdx++) {
                 bytes[byteIdx] = toUpperAndDecimal(stringUUID[i]) << 4 | toUpperAndDecimal(stringUUID[i + 1]);
@@ -64,57 +91,21 @@ namespace UUID {
             for(; i < 36; i+=2, byteIdx++) {
                 bytes[byteIdx] = toUpperAndDecimal(stringUUID[i]) << 4 | toUpperAndDecimal(stringUUID[i + 1]);
             }
+
             return uuid;
         }
 
-        void printUUID() {
-            auto bytesPacked = reinterpret_cast<uint16_t*>(bytes);
-            iprintf("%04X%04X-%04X-%04X-%04X-%04X%04X%04X", 
-                bytesPacked[0], bytesPacked[1], bytesPacked[2], bytesPacked[3],
-                bytesPacked[4], bytesPacked[5], bytesPacked[6], bytesPacked[7]);
+        void printUUID() const {
+            iprintf("%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X", 
+                bytes[0], bytes[1], bytes[2], bytes[3],
+                bytes[4], bytes[5], bytes[6], bytes[7],
+                bytes[8], bytes[9], bytes[10], bytes[11], 
+                bytes[12], bytes[13], bytes[14], bytes[15]);
         }
 
     private:
         uint8_t bytes[UUID_LEN];
-
-        friend struct std::formatter<UUID>;
     };
 }
-
-
-/**
- * This formatter specialization is used to generate the UUID string equivalent 
- * of the provided uuid. It follows the RFC9562 (https://www.rfc-editor.org/info/rfc9562/) 
- * Section 4. UUID Format:
- * The formal definition of the UUID string representation is provided by the following ABNF [RFC5234]:
-    ~~~
-    UUID     = 4hexOctet "-"
-               2hexOctet "-"
-               2hexOctet "-"
-               2hexOctet "-"
-               6hexOctet
-    hexOctet = HEXDIG HEXDIG
-    DIGIT    = %x30-39
-    HEXDIG   = DIGIT / "A" / "B" / "C" / "D" / "E" / "F"
-    ~~~   
- */
-template <>
-struct std::formatter<UUID::UUID> : std::formatter<std::string> {
-    auto format(UUID::UUID uuid, format_context& ctx) const {
-        auto bytes = uuid.bytes;
-        return formatter<std::string>::format(
-        std::format(
-        "{:04x}{:04x}-{:04x}-{:04x}-{:04x}-{:04x}{:04x}{:04x}", 
-            reinterpret_cast<uint16_t*>(bytes)[0],
-            reinterpret_cast<uint16_t*>(bytes)[1],
-            reinterpret_cast<uint16_t*>(bytes)[2],
-            reinterpret_cast<uint16_t*>(bytes)[3],
-            reinterpret_cast<uint16_t*>(bytes)[4],
-            reinterpret_cast<uint16_t*>(bytes)[5],
-            reinterpret_cast<uint16_t*>(bytes)[6],
-            reinterpret_cast<uint16_t*>(bytes)[7]
-        ), ctx);
-    }
-};
 
 #define DEF_UUID(x) UUID::UUID::fromString(x)
