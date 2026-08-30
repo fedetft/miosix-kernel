@@ -761,6 +761,8 @@ void DebugMon_Handler()
     // - Set debugstate flag to true when no more threads of the process are running (last stopping thread)
     // - only the first event is reported or switch to a list of events
     Process *process = static_cast<Process*>(thread->getProcess());
+    // TODO: Multithreaded-processes debugging: send an inter-core interrupt and handle \
+    // process stop on multiple cores,
     thread->IRQdebugWait();
 
     // Notify the deubugger if the thread belongs to debugged process, otherwise the thread is stopped indefinetly
@@ -768,7 +770,6 @@ void DebugMon_Handler()
     {
         // Set thread and wakeup debugger
         Debugger::attached.thread = thread;
-        // Valid for sinle thread, need more
         Debugger::attached.debugState = process->IRQdebugState();
 
         // Set stopReason for the thread if not set already
@@ -777,6 +778,9 @@ void DebugMon_Handler()
             Debugger::attached.event.IRQset(StopReason::DEBUGEVENT, 0);
         }
         // Wakeup debugger thread if waiting (this should always be non-null if attached.process is set)
+        //
+        // TODO: Multithreaded-processes debugging: resume debugger thread when all threads of debugged process\
+        // enters debugwait
         Debugger::thread->IRQwakeup();
     }
     // Clear DFSR (only useful when reporting event type in stopReason (`T05...`)

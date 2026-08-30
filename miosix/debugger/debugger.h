@@ -413,6 +413,9 @@ private:
      * @brief Waits for the attached process to enter debugstate
      */
     inline void waitAttached() {
+        // TODO: multithreaded-processes debugger: need a method to wait on \
+        // attached.process->IRQdebugState(), in order to wait for all threads to stop,\
+        // without relying on Process structure, which may be freed (e.g.: event == EXIT)
         FastGlobalIrqLock dLock;
         // While process is not in debugstate (at least one thread running)
         while(attached.debugState == false) {
@@ -636,11 +639,11 @@ public:
         // Configure breakpoint unit:
         //
         // - PEND: pending exception takes precedence over all the other as it
-        //   triggers as son as interrupts are enabled
+        //   triggers as soon as interrupts are enabled
         // - STEP: need to clar PEND if previous thread was pending eventually
         //   but there is no need to disable other units, as GDB already removes
         //   all breakpoints and watchpoints before stepping
-        // - RUN: enable comparators, disable stepping and clear pending,
+        // - RUN: clear PEND and enable comparators, disable stepping and clear pending,
         //   if cpu is dirty, update all comparators
         //
         switch(t->debugStatus) {
