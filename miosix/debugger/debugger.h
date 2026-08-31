@@ -370,7 +370,7 @@ private:
 
     // FileNo forcommunication with GDB
     int serial = -1;
-    
+
     // To start and stop process
     GDBBuffer buffer;
     GDBFeatures features;
@@ -413,8 +413,8 @@ private:
      * @brief Waits for the attached process to enter debugstate
      */
     inline void waitAttached() {
-        // TODO: multithreaded-processes debugger: need a method to wait on \
-        // attached.process->IRQdebugState(), in order to wait for all threads to stop,\
+        // TODO: multithreaded-processes debugger: need a method to wait on 
+        // attached.process->IRQdebugState(), in order to wait for all threads to stop,
         // without relying on Process structure, which may be freed (e.g.: event == EXIT)
         FastGlobalIrqLock dLock;
         // While process is not in debugstate (at least one thread running)

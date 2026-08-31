@@ -761,7 +761,7 @@ void DebugMon_Handler()
     // - Set debugstate flag to true when no more threads of the process are running (last stopping thread)
     // - only the first event is reported or switch to a list of events
     Process *process = static_cast<Process*>(thread->getProcess());
-    // TODO: Multithreaded-processes debugging: send an inter-core interrupt and handle \
+    // TODO: Multithreaded-processes debugging: send an inter-core interrupt and handle
     // process stop on multiple cores,
     thread->IRQdebugWait();
 
@@ -779,7 +779,7 @@ void DebugMon_Handler()
         }
         // Wakeup debugger thread if waiting (this should always be non-null if attached.process is set)
         //
-        // TODO: Multithreaded-processes debugging: resume debugger thread when all threads of debugged process\
+        // TODO: Multithreaded-processes debugging: resume debugger thread when all threads of debugged process
         // enters debugwait
         Debugger::thread->IRQwakeup();
     }
