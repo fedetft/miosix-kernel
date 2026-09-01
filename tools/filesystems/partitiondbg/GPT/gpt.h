@@ -1,3 +1,29 @@
+/***************************************************************************
+ *   Copyright (C) 2026 by Radu Raul                                       *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   As a special exception, if other files instantiate templates or use   *
+ *   macros or inline functions from this file, or you compile this file   *
+ *   and link it with other works to produce a work based on this file,    *
+ *   this file does not by itself cause the resulting work to be covered   *
+ *   by the GNU General Public License. However the source code for this   *
+ *   file must still be made available in accordance with the GNU General  *
+ *   Public License. This exception does not invalidate any other reasons  *
+ *   why a work based on this file might be covered by the GNU General     *
+ *   Public License.                                                       *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
+ ***************************************************************************/
 #pragma once
 #include <array>
 #include <cstdint>
@@ -9,16 +35,17 @@
 #include "../MBR/mbr.h"
 #include "partition_uuids.h"
 
-namespace GPT {
-
+namespace GPT 
+{
 // The primary GPT header is located at LBA 1, the backup GPT header is located at the end of the device
 // and the address of that is given in the primary GPT header in the field Alternate LBA
-constexpr off_t  MAIN_GPT_POSITION_LBA = 1; 
-constexpr const char*  GPT_SIGNATURE = "EFI PART";
-constexpr size_t GPT_PARTITION_NAME_SIZE = 72/2; // 36 UTF-16 characters, 2 bytes each
-constexpr size_t MAX_GPT_PARTITIONS = 16;
+constexpr off_t  MAIN_GPT_POSITION_LBA=1; 
+constexpr const char*  GPT_SIGNATURE="EFI PART";
+constexpr size_t GPT_PARTITION_NAME_SIZE=72/2; // 36 UTF-16 characters, 2 bytes each
+constexpr size_t MAX_GPT_PARTITIONS=16;
 
-enum class ReaderResult {
+enum class ReaderResult 
+{
     Ok = 0,
     ErrorReadingMBR,
     ErrorInvalidMBR,
@@ -35,7 +62,8 @@ enum class ReaderResult {
     ErrorReadingBackupPartitions
 };
 
-struct GPTPartitionEntry {
+struct GPTPartitionEntry 
+{
     uint8_t  partitionTypeGUID[UUID::UUID_LEN];
     uint8_t  uniquePartitionGUID[UUID::UUID_LEN];
     off_t    startingLBA;
@@ -59,13 +87,15 @@ struct GPTPartitionEntry {
      * An empty partition entry is defined as having a partition type GUID of
      * all zeros
      */
-    bool isEmpty() const {
+    bool isEmpty() const
+    {
         return memcmp(partitionTypeGUID, 
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", UUID::UUID_LEN) == 0;
     };
 } __attribute__((packed));
 
-struct GPTHeader {
+struct GPTHeader 
+{
     char signature[8];
     uint32_t revision;
     uint32_t headerSize;
@@ -85,13 +115,15 @@ struct GPTHeader {
 
 static_assert(sizeof(GPTHeader) == 512, "GPT Header size must equal the Logic Block Size (512)");
 
-class GPTTableReader {
+class GPTTableReader 
+{
 public:
     std::expected<GPTPartitionEntry, ReaderResult> getNextPartitionEntry();
-    void reset() { 
-        currentPartitionIndexWithinBlock = 0;
-        currentBlockIndex = 0; 
-        currentPartitionIndex = 0; 
+    void reset() 
+    { 
+        currentPartitionIndexWithinBlock=0;
+        currentBlockIndex=0; 
+        currentPartitionIndex=0; 
     }
 
 private:
@@ -114,6 +146,7 @@ private:
     uint8_t  currentPartitionIndexWithinBlock;
     uint64_t currentBlockIndex;
     uint32_t currentPartitionIndex;
+    GPTPartitionEntry buffer[4];
 };
 
 class GPTReader {
@@ -123,12 +156,14 @@ public:
 
     void printGPTInfo();
 
-    GPTTableReader getPrimaryPartitionTableReader() {
+    GPTTableReader getPrimaryPartitionTableReader() 
+    {
         return GPTTableReader(device, primaryHeader.partitionEntryTableLBA, 
             primaryHeader.partitionEntrySize, primaryHeader.numberOfPartitionEntries);
     }
 
-    GPTTableReader getBackupPartitionTableReader() {
+    GPTTableReader getBackupPartitionTableReader() 
+    {
         return GPTTableReader(device, backupHeader.partitionEntryTableLBA, 
             backupHeader.partitionEntrySize, backupHeader.numberOfPartitionEntries);
     }
