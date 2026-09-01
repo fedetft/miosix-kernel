@@ -29,6 +29,8 @@
 
 #if defined(_CHIP_STM32F2) || defined(_CHIP_STM32F4) || defined(_CHIP_STM32F7)
 #include "stm32_eth_desc_f2_f4_f7.h"
+#elif defined(_CHIP_STM32H7)
+#include "stm32_eth_desc_h7.h"
 #else
 #error "No Ethernet DMA descriptor implmentation for the current chip"
 #endif

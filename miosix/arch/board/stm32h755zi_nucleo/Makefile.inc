@@ -11,9 +11,12 @@ CHIP_INC := arch/chip/stm32h7
 
 ## Select architecture specific files
 ## These are the files in arch/<arch name>/<board name>
-BOARD_SRC :=                                  \
-$(BOARD_INC)/boot.cpp                        \
-arch/drivers/stm32_hardware_rng.cpp   \
+BOARD_SRC :=                                \
+$(BOARD_INC)/boot.cpp                       \
+arch/drivers/stm32_hardware_rng.cpp         \
+arch/drivers/stm32_uid.cpp                  \
+arch/drivers/eth/stm32_eth_h7.cpp           \
+arch/drivers/eth/stm32_eth_desc_h7.cpp      \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
 
 ## Add a #define to allow querying board name
