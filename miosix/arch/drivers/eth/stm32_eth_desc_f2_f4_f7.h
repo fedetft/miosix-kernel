@@ -29,8 +29,6 @@
 
 #include <cstdint>
 
-#include "miosix_settings.h"
-
 namespace miosix::stm32_eth {
 
 struct alignas(uint32_t) RxDmaDescriptor {
@@ -79,7 +77,7 @@ struct alignas(uint32_t) RxDmaDescriptor {
 
   private:
     volatile uint32_t status = 0;
-    uint32_t size = 0;
+    uint32_t size = 0; // end of ring [15], buffer size [12:0]
     void *buffer = nullptr;
     void *buffer2 = nullptr; // unused
     volatile uint32_t statusExt = 0;
@@ -148,99 +146,12 @@ struct alignas(uint32_t) TxDmaDescriptor {
 
   private:
     volatile uint32_t control = 0;
-    uint32_t size = 0;
+    uint32_t size = 0; // buffer size [12:0]
     void *buffer = nullptr;
     void *buffer2 = nullptr; // unused
     uint32_t reserved[2] = {};
     volatile uint32_t timestamp[2] = {};
 };
 static_assert(sizeof(TxDmaDescriptor) == 32);
-
-/**
- * STM32 Ethernet hardware interface.
- * Provides low level access to the STM32 Ethernet MAC and DMA.
- */
-namespace STM32Ethernet {
-
-using EthernetIrqHandler = void (*)(void *);
-
-/**
- * Ethernet IRQ status generic interface.
- * Presents a generic interface to read Ethernet IRQ status flags, decoupled
- * from the underlying hardware registers.
- */
-class IrqStatus {
-  public:
-    IrqStatus(volatile uint32_t *r) : reg(r) {}
-
-    /**
-     * Returns true if an RX interrupt is pending.
-     */
-    bool rx();
-    /**
-     * Clears RX IRQ flags.
-     */
-    void clearRx();
-
-    /**
-     * Returns true if a TX interrupt is pending.
-     */
-    bool tx();
-    /**
-     * Clears TX IRQ flags.
-     */
-    void clearTx();
-
-  private:
-    volatile uint32_t *const reg; // Const pointer to maximize optimization
-};
-
-/**
- * Initialize the Ethernet hardware (MAC and DMA).
- * \note MII/RMII *must* be selected prior to calling this function. If the
- * incorrect configuration is selected, the ETH peripheral will be enabled but
- * won't be able to communicate with the PHY: no RX buffers will be filled, and
- * no TX buffers will be sent out.
- * \param rxDesc pointer to the RX DMA descriptor list
- * \param txDesc pointer to the TX DMA descriptor list
- * \param hwaddr hardware MAC address
- * \param irqHandler optional IRQ handler to register for Ethernet
- * interrupts
- * \param irqParam optional parameter to pass to the IRQ handler
- */
-void init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc, uint8_t *hwaddr,
-          EthernetIrqHandler irqHandler = nullptr, void *irqArg = nullptr);
-
-IrqStatus getIrqStatus();
-
-/**
- * Polls the DMA to resume RX processing.
- *
- * If the DMA RX engine was suspended (e.g. no RX descriptors available),
- * this function notifies the DMA to fetch the next descriptor and resume
- * reception.
- */
-void pollRx();
-
-void restartRx();
-
-/**
- * Polls the DMA to resume TX processing.
- *
- * If the DMA TX engine was suspended (e.g. all TX descriptors were
- * processed, no descriptors to send), this function notifies the DMA to
- * fetch the next descriptor and resume transmission.
- */
-void pollTx();
-
-void restartTx();
-
-/**
- * Prints the status register ETH->DMASR to the default console for debugging
- * purposes. Can only be called from an IRQ context.
- */
-[[maybe_unused]] void IRQprintStatus();
-
-}; // namespace STM32Ethernet
 
 } // namespace miosix::stm32_eth

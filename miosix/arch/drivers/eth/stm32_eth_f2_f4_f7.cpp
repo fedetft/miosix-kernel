@@ -35,37 +35,6 @@
 
 namespace miosix::stm32_eth {
 
-void RxDmaDescriptor::syncToCpu() {
-#if defined(STM32F7) || defined(STM32H7)
-    SCB_InvalidateDCache_by_Addr(reinterpret_cast<uint32_t *>(buffer),
-                                 size & 0x1FFF);
-    SCB_InvalidateDCache_by_Addr(reinterpret_cast<uint32_t *>(this),
-                                 sizeof(RxDmaDescriptor));
-#endif
-}
-
-void RxDmaDescriptor::syncToDma() {
-#if defined(STM32F7) || defined(STM32H7)
-    SCB_CleanDCache_by_Addr(reinterpret_cast<uint32_t *>(this),
-                            sizeof(RxDmaDescriptor));
-#endif
-}
-
-void TxDmaDescriptor::syncToCpu() {
-#if defined(STM32F7) || defined(STM32H7)
-    SCB_InvalidateDCache_by_Addr(reinterpret_cast<uint32_t *>(this),
-                                 sizeof(RxDmaDescriptor));
-#endif
-}
-
-void TxDmaDescriptor::syncToDma() {
-#if defined(STM32F7) || defined(STM32H7)
-    SCB_CleanDCache_by_Addr(reinterpret_cast<uint32_t *>(buffer), size);
-    SCB_CleanDCache_by_Addr(reinterpret_cast<uint32_t *>(this),
-                            sizeof(RxDmaDescriptor));
-#endif
-}
-
 bool STM32Ethernet::IrqStatus::rx() { return *reg & ETH_DMASR_RS; }
 
 void STM32Ethernet::IrqStatus::clearRx() {
@@ -78,9 +47,9 @@ void STM32Ethernet::IrqStatus::clearTx() {
     *reg &= (ETH_DMASR_TS | ETH_DMASR_NIS | ETH_DMASR_TBUS | ETH_DMASR_ETS);
 }
 
-void STM32Ethernet::init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc,
-                         uint8_t *hwaddr, EthernetIrqHandler irqHandler,
-                         void *irqArg) {
+void STM32Ethernet::init(std::span<RxDmaDescriptor> rxDesc,
+                         std::span<TxDmaDescriptor> txDesc, uint8_t *hwaddr,
+                         EthernetIrqHandler irqHandler, void *irqArg) {
     {
         miosix::FastGlobalIrqLock dLock;
         // Enable ETH clock
@@ -134,8 +103,8 @@ void STM32Ethernet::init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc,
     ETH->DMAOMR = ETH_DMAOMR_RSF | ETH_DMAOMR_TSF;
 
     // Set up DMA descriptor lists
-    ETH->DMARDLAR = reinterpret_cast<uint32_t>(rxDesc);
-    ETH->DMATDLAR = reinterpret_cast<uint32_t>(txDesc);
+    ETH->DMARDLAR = reinterpret_cast<uint32_t>(rxDesc.data());
+    ETH->DMATDLAR = reinterpret_cast<uint32_t>(txDesc.data());
 
     // Setup DMA interrupt
     ETH->DMAIER = ETH_DMAIER_NISE   // Normal interrupt summary
@@ -154,7 +123,7 @@ void STM32Ethernet::init(RxDmaDescriptor *rxDesc, TxDmaDescriptor *txDesc,
 
 STM32Ethernet::IrqStatus STM32Ethernet::getIrqStatus() { return &ETH->DMASR; }
 
-void STM32Ethernet::pollRx() {
+void STM32Ethernet::pollRx(void * /* unused */) {
     ETH->DMARPDR = 0; // Poll RX
 }
 
@@ -162,7 +131,7 @@ void STM32Ethernet::restartRx() {
     ETH->DMAOMR |= ETH_DMAOMR_SR; // Start RX
 }
 
-void STM32Ethernet::pollTx() {
+void STM32Ethernet::pollTx(void * /* unused */) {
     ETH->DMATPDR = 0; // Poll TX
 }
 

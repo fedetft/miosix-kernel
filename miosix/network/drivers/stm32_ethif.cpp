@@ -27,7 +27,7 @@
  ***************************************************************************/
 
 #include "ethernetif_debug.h"
-#include <arch/drivers/stm32_eth.h>
+#include <arch/drivers/eth/stm32_eth.h>
 #include <arch/drivers/stm32_uid.h>
 #include <kernel/thread.h>
 #include <util/cityhash.h>
@@ -252,7 +252,7 @@ class RxInterface {
     bool isPending() const { return pending; }
     void setPending() { pending = true; }
 
-    RxDmaDescriptor *descriptorList() { return descriptors.data(); }
+    std::span<RxDmaDescriptor> descriptorList() { return descriptors; }
 
   private:
     std::array<RxDmaDescriptor, DescriptorCount>
@@ -420,7 +420,7 @@ class TxInterface {
     bool isPending() const { return pending; }
     void setPending() { pending = true; }
 
-    TxDmaDescriptor *descriptorList() { return descriptors.data(); }
+    std::span<TxDmaDescriptor> descriptorList() { return descriptors; }
 
   private:
     std::array<TxDmaDescriptor, DescriptorCount>

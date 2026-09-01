@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include <arch/drivers/stm32_eth.h>
+#include <arch/drivers/eth/stm32_eth.h>
 
 #include <cstdio>
 #include <span>
