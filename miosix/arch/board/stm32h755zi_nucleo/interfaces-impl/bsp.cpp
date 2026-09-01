@@ -47,12 +47,41 @@
 #include "interfaces/serial.h"
 #include "drivers/sdmmc/stm32h7_sd.h"
 #include "board_settings.h"
+#include "hwmapping.h"
 
 namespace miosix {
 
 //
 // Initialization
 //
+
+void configureEthernet()
+{
+    // Select RMII
+    RCC->APB4ENR |= RCC_APB4ENR_SYSCFGEN;
+    RCC_SYNC();
+    SYSCFG->PMCR = (SYSCFG->PMCR & ~SYSCFG_PMCR_EPIS_SEL)
+                   | SYSCFG_PMCR_EPIS_SEL_2;
+
+    eth::mdc::alternateFunction(11);
+    eth::mdc::mode(Mode::ALTERNATE);
+    eth::mdio::alternateFunction(11);
+    eth::mdio::mode(Mode::ALTERNATE);
+    eth::ref_clk::alternateFunction(11);
+    eth::ref_clk::mode(Mode::ALTERNATE);
+    eth::crs_dv::alternateFunction(11);
+    eth::crs_dv::mode(Mode::ALTERNATE);
+    eth::rxd0::alternateFunction(11);
+    eth::rxd0::mode(Mode::ALTERNATE);
+    eth::rxd1::alternateFunction(11);
+    eth::rxd1::mode(Mode::ALTERNATE);
+    eth::txen::alternateFunction(11);
+    eth::txen::mode(Mode::ALTERNATE);
+    eth::txd0::alternateFunction(11);
+    eth::txd0::mode(Mode::ALTERNATE);
+    eth::txd1::alternateFunction(11);
+    eth::txd1::mode(Mode::ALTERNATE);
+}
 
 void IRQbspInit()
 {
