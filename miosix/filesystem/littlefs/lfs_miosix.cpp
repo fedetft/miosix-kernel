@@ -233,7 +233,7 @@ int LittleFS::openDirectory(intrusive_ref_ptr<FileBase> &directory,
     }
 
     directory = intrusive_ref_ptr<LittleFSDirectory>(new LittleFSDirectory(
-        shared_from_this(), std::move(dir), lvl)); //FIXME: use shared_from_this
+        intrusive_ref_ptr<LittleFS>(this), std::move(dir), lvl));
 
     return 0;
 }
@@ -515,7 +515,6 @@ int miosixBlockDeviceProg(const lfs_config *c, lfs_block_t block,
                           lfs_off_t off, const void *buffer, lfs_size_t size)
 {
     FileBase *drv = GET_DRIVER_FROM_LFS_CONTEXT(c);
-
     if(drv->lseek(static_cast<off_t>(c->block_size * block + off), SEEK_SET) < 0)
     {
         return LFS_ERR_IO;
