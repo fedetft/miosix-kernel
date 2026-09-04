@@ -1,6 +1,6 @@
 /***************************************************************************
  *   Copyright (C) 2012 by Terraneo Federico                               *
- *   Copyright (C) 2026 by Radu Raul                                       *    
+ *   Copyright (C) 2026 by Raul Radu, Terraneo Federico                    *    
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -29,8 +29,18 @@
 #include "spi-flash.h"
 #include <interfaces/delays.h>
 #include <interfaces/bsp.h>
+#include <interfaces/endianness.h>
 
 using namespace miosix;
+
+//Note: enabling debugging might cause deadlock when using sleep() or reboot()
+//The bug won't be fixed because debugging is only useful for driver development
+///\internal Debug macro, for normal conditions
+//#define DBG iprintf
+#define DBG(x,...) do {} while(0)
+///\internal Debug macro, for errors only
+//#define DBGERR iprintf
+#define DBGERR(x,...) do {} while(0)
 
 //Gpio mapping
 using miso=Gpio<PA,6>;
@@ -38,35 +48,25 @@ using mosi=Gpio<PA,7>;
 using sck=Gpio<PA,5>;
 using cs=Gpio<PA,4>;
 
-/**
- * Transfer a byte through SPI2 where the mram is connected
- * \param data byte to send
- * \return byte received
- */
-// static unsigned char spi2sendRecv(unsigned char data=0)
-// {
-//     SPI2->DR=data;
-//     while((SPI2->SR & SPI_SR_RXNE)==0) ;
-//     return SPI2->DR;
-// }
     
 unsigned int SPIFlash::size() const { return 4*1024*1024; }
 
 void SPIFlash::doWrite(const char *data, int size)
 {
+    error=false;
     //Wait until the SPI is (not?) busy, required otherwise the last byte is not
     //fully sent
-    while((SPI1->SR & SPI_SR_TXE)==0);
-    while(SPI1->SR & SPI_SR_BSY);
-
-    SPI1->CR1=0;
+    // iprintf("Waiting for SPI1 to be free... ");
+    // while((SPI1->SR & SPI_SR_TXE)==0);
+    // while(SPI1->SR & SPI_SR_BSY);
+    //iprintf("Ok\nSetupping SPI...");
+    // SPI1->CR1=0;
     SPI1->CR2=SPI_CR2_TXDMAEN;
     SPI1->CR1=SPI_CR1_SSM
-            | SPI_CR1_SSI
-            | SPI_CR1_MSTR
-            | SPI_CR1_SPE
-            | SPI_CR1_BR_2;
-
+    | SPI_CR1_SSI
+    | SPI_CR1_MSTR
+    | SPI_CR1_SPE;
+    
     waiting=Thread::getCurrentThread();
 
     DMA2_Stream2->CR=0;
@@ -86,44 +86,31 @@ void SPIFlash::doWrite(const char *data, int size)
         FastGlobalIrqLock dLock;
         while(waiting) Thread::IRQglobalIrqUnlockAndWait(dLock);
     }
+    if (error)
+        iprintf("Error\n");
 
-    if (error) {
-        for (size_t i = 0; i < 10; i++)
-        {
-            ledOn();
-            Thread::sleep(50);
-            ledOff();
-            Thread::sleep(50);
-        }
-    }
+    if(DMA2_Stream2->NDTR!=0) iprintf("Error, NDTR=%d\n",DMA2_Stream2->NDTR);
 
     //Wait for last byte to be sent
     while((SPI1->SR & SPI_SR_TXE)==0);
     while(SPI1->SR & SPI_SR_BSY);
-    
+
     SPI1->CR1=0;
     SPI1->CR2=0;
-    SPI1->CR1=SPI_CR1_SSM
-            | SPI_CR1_SSI
-            | SPI_CR1_MSTR
-            | SPI_CR1_SPE;
-    
-    //Quirk: reset RXNE by reading DR, or a byte remains in the input buffer
-    volatile short temp=SPI1->DR;
-    (void)temp;
+
+    volatile short temp;    
+    while(SPI1->SR & SPI_SR_RXNE) temp=SPI1->DR;
+    (void) temp;
 }
 
 void SPIFlash::doRead(char *data, int size)
 {
-    //Wait until the SPI is busy, required otherwise the last byte is not
-    //fully sent
-    while((SPI1->SR & SPI_SR_TXE)==0) ;
-    while(SPI1->SR & SPI_SR_BSY) ;
-    //Quirk: reset RXNE by reading DR before starting the DMA, or the first
-    //byte in the DMA buffer is garbage
-    volatile short temp=SPI1->DR;
-    (void)temp;
-    SPI1->CR1=0;
+    error=false;
+
+    // //Quirk: reset RXNE by reading DR before starting the DMA, or the first
+    // //byte in the DMA buffer is garbage
+    // volatile short temp=SPI1->DR;
+    // (void)temp;
     SPI1->CR2=SPI_CR2_RXDMAEN;
 
     waiting=Thread::getCurrentThread();
@@ -153,22 +140,71 @@ void SPIFlash::doRead(char *data, int size)
         while(waiting) Thread::IRQglobalIrqUnlockAndWait(dLock);
     }
 
-
     SPI1->CR1=0;
-    
+    SPI1->CR2=0;
+
+    volatile short temp;
+
     //Quirk, disabling the SPI in RXONLY mode is difficult
     while(SPI1->SR & SPI_SR_RXNE) temp=SPI1->DR;
     delayUs(1); //The last transfer may still be in progress
     while(SPI1->SR & SPI_SR_RXNE) temp=SPI1->DR;
-    
-    SPI1->CR2=0;
-    SPI1->CR1=SPI_CR1_SSM
-            | SPI_CR1_SSI
-            | SPI_CR1_MSTR
-            | SPI_CR1_SPE;
+    (void) temp;
+    // SPI1->CR2=0;
+    // SPI1->CR1=SPI_CR1_SSM
+    //         | SPI_CR1_SSI
+    //         | SPI_CR1_MSTR
+    //         | SPI_CR1_SPE;
 }
 
-bool SPIFlash::write(unsigned int addr, const void *data, int size)
+int SPIFlash::ioctl(int cmd, void *arg)
+{
+    switch (cmd)
+    {
+        case IOCTL_GET_VOLUME_SIZE: 
+        {
+            DBG("IOCTL_GET_VOLUME_SIZE\n");
+            unsigned long long* sizePtr=static_cast<unsigned long long*>(arg);
+            if (sizePtr==nullptr) {
+                return -EINVAL;
+            }
+            Lock<KernelMutex> l(mutex);
+            *sizePtr=cardSize;
+            return 0;
+        }
+        case IOCTL_GET_ERASE_SIZE: 
+        {
+            DBG("IOCTL_GET_ERASE_SIZE\n");
+            unsigned long long* eraseSizePtr=static_cast<unsigned long long*>(arg);
+            if (eraseSizePtr==nullptr) {
+                return -EINVAL;
+            }
+            Lock<KernelMutex> l(mutex);
+            *eraseSizePtr=eraseBlockSize;
+            return 0;
+        }
+        case IOCTL_ERASE: 
+        {
+            DBG("IOCTL_ERASE\n");
+            off_t* eraseAddrPtr=static_cast<off_t*>(arg);
+            if (eraseAddrPtr==nullptr) {
+                return -EINVAL;
+            }
+            Lock<KernelMutex> l(mutex);
+            eraseBlock(*eraseAddrPtr);
+            return 0;
+        }
+        case IOCTL_SYNC: 
+        {
+            DBG("IOCTL_SYNC\n");
+            return 0; 
+        }
+        default:
+            return -EINVAL;
+    }
+}
+
+ssize_t SPIFlash::writeBlock(const void *buffer, size_t size, off_t where)
 {
     // // Write time, with CPU @ 120MHz and SPI2 @ 15MHz, is
     // // 2    us fixed time (mutex locking)
@@ -177,53 +213,127 @@ bool SPIFlash::write(unsigned int addr, const void *data, int size)
     // // 4.5  us fixed time (context switch and peripheral register cleanup)
     // // 2    us fixed time (mutex unlock)
     
-    // if(addr>=this->size() || addr+size>this->size()) return false;
-    // cs::low();
-    // spi2sendRecv(0x02); //Write command
-    // spi2sendRecv((addr>>16) & 0xff);
-    // spi2sendRecv((addr>>8) & 0xff);
-    // spi2sendRecv(addr & 0xff);
-    
-    // //DMA1 stream 4 channel 0 = SPI2_TX
-    
-    // error=false;
+    if(where % 512 || size % 512) return -EFAULT;
+    if (where+size > 0xFFFFFF) return -EFAULT; //Final Address out of range, max 2^24 -1
+    Lock<KernelMutex> l(mutex);
+    DBG("SPIFlash::writeBlock(): size=%d [bytes]\n", size);
 
-    
-    
-    // cs::high();
-    // bool result=!error;
-    // return result;
-    return false;
+    for(size_t i = 0; i * 256 < size; i++)
+    {
+        cs::low();
+        doWrite("\x06", 1);
+        cs::high();
+        
+        // we use this computation timing to wait for the write enable to complete
+        unsigned int writecmd = 0x02 << 24 | (where + (i * 256));
+        writecmd = toBigEndian32(writecmd);
+        char readS1 = 0x05;
+        char s1;
+        
+        cs::low();
+        doWrite(&readS1, 1);
+        doRead(&s1, 1);
+        while ((s1 & 0x02)==0) // wait for Write Enable Latch to be set
+        {
+            doRead(&s1, 1);
+        }
+        cs::high();
+        
+        delayUs(1);
+        
+        cs::low();
+        doWrite(reinterpret_cast<const char*>(&writecmd), 4);
+        doWrite(reinterpret_cast<const char*>(buffer) + (i * 256), 256);
+        cs::high();
+        
+        delayUs(1);
+        cs::low();
+        doWrite(&readS1, 1);
+        doRead(&s1, 1);
+        while (s1 & 0x3) // wait for Write Enable Latch and BSY to be reset
+        {
+            doRead(&s1, 1);
+        }
+        cs::high();
+        delayUs(1);
+    }
+    return size;
 }
 
-bool SPIFlash::read(unsigned int addr, void *data, int size)
+ssize_t SPIFlash::readBlock(void *buffer, size_t size, off_t where)
 {
-    // if(addr>=this->size() || addr+size>this->size()) return false;
-    // cs::low();
-    // spi2sendRecv(0x03); //Read command
-    // spi2sendRecv((addr>>16) & 0xff);
-    // spi2sendRecv((addr>>8) & 0xff);
-    // spi2sendRecv(addr & 0xff);
+    if(where % 512 || size % 512) return -EFAULT;
+    if (where+size > 0xFFFFFF) return -EFAULT; //Address out of range, max 2^24 -1
     
+    unsigned int readcmd = 0x0b << 24 | where; 
+    readcmd = toBigEndian32(readcmd);
+    char data[5] = {0x00};
+    memcpy(data, &readcmd, 4);
+    data[4]=0;
 
+    Lock<KernelMutex> l(mutex);
+    DBG("SPIFlash::readBlock(): size=%d [bytes]\n", size);
+    cs::low();
+    doWrite(data, 5);
+    doRead(reinterpret_cast<char*>(buffer), size);
+    cs::high();
 
-    // cs::high();
-    // bool result=!error;
-    // return result;
-    return false;
+    return size;
 }
 
-SPIFlash::SPIFlash()
+void SPIFlash::eraseBlock(off_t where)
+{
+    if(where % 512 || where > 0xFFFFFF) return; //Address out of range, max 2^24 -1
+    cs::low();
+    doWrite("\x06", 1);
+    cs::high();
+    
+ 
+    // we use this computation timing to wait for the write enable to complete
+    unsigned int erasecmd = 0x20 << 24 | where;
+    erasecmd = toBigEndian32(erasecmd);
+    char readS1 = 0x05;
+    char s1;
+    
+    cs::low();
+    doWrite(&readS1, 1);
+    doRead(&s1, 1);
+    while ((s1 & 0x02)==0) // wait for Write Enable Latch to be set
+    {
+        doRead(&s1, 1);
+    }
+    cs::high();
+    delayUs(1);
+    cs::low();
+    doWrite(reinterpret_cast<char*>(&erasecmd), 4);
+    cs::high();
+    delayUs(1);
+    cs::low();
+    doWrite(&readS1, 1);
+    doRead(&s1, 1);
+    while (s1 & 0x03) // wait for Write Enable Latch to be reset and BSY to be reset
+    {
+        doRead(&s1, 1);
+    }
+    cs::high();
+}
+
+SPIFlash::SPIFlash() : miosix::Device(miosix::Device::BLOCK)
 {
     GlobalIrqLock dLock;
     mosi::mode(Mode::ALTERNATE);
+    mosi::speed(Speed::_100MHz);
     mosi::alternateFunction(5);
     miso::mode(Mode::ALTERNATE);
+    miso::speed(Speed::_100MHz);
     miso::alternateFunction(5);
     sck::mode(Mode::ALTERNATE);
+    sck::speed(Speed::_100MHz);
     sck::alternateFunction(5);
     cs::mode(Mode::OUTPUT);
+    cs::speed(Speed::_100MHz);
     cs::high();
+
     RCC->AHB1ENR |= RCC_AHB1ENR_DMA2EN;
     RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
     SPI1->CR2=0;
@@ -249,10 +359,13 @@ SPIFlash::~SPIFlash()
  */
 void SPIFlash::dmaRxHandler()
 {
+    SPI1->CR1 &= ~SPI_CR1_RXONLY;
+
     if(DMA2->LISR & (DMA_LISR_TEIF0 | DMA_LISR_DMEIF0)) error=true;
     DMA2->LIFCR=DMA_LIFCR_CTCIF0
               | DMA_LIFCR_CTEIF0
               | DMA_LIFCR_CDMEIF0;
+
     if(waiting) waiting->IRQwakeup();
     waiting=nullptr;
 }
@@ -262,7 +375,7 @@ void SPIFlash::dmaRxHandler()
  */
 void SPIFlash::dmaTxHandler()
 {
-    if(DMA2->LISR & (DMA_LISR_TEIF2 | DMA_LISR_DMEIF2)) error=true;
+    if(DMA2->LISR & (DMA_LISR_TEIF2)) error=true;
 
     DMA2->LIFCR=DMA_LIFCR_CTCIF2
               | DMA_LIFCR_CTEIF2

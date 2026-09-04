@@ -25,19 +25,18 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
-#include <miosix.h>
-
 #pragma once
+#include <miosix.h>
+#include <filesystem/devfs/devfs.h>
+#include <kernel/sync.h>
+#include <filesystem/ioctl.h>
 
 /**
  * Class to access the raw spi flash memory
  */
-class SPIFlash
+class SPIFlash : public miosix::Device
 {
 public:
-    /**
-     * Constructor
-     */
     SPIFlash();
     
     /**
@@ -45,37 +44,30 @@ public:
      */
     unsigned int size() const;
     
-    /**
-     * Write a block of data into the mram
-     * \param addr start address into the mram where the data block will be
-     * written
-     * \param data data block
-     * \param size data block size
-     * \return true on success, false on failure
-     */
-    bool write(unsigned int addr, const void *data, int size);
+    virtual ssize_t readBlock(void *buffer, size_t size, off_t where);
     
-    /**
-     * Read a block of data from the mram
-     * \param addr start address into the mram where the data block will be read
-     * \param data data block
-     * \param size data block size
-     * \return true on success, false on failure
-     */
-    bool read(unsigned int addr, void *data, int size);
+    virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
+
+    virtual int ioctl(int cmd, void *arg);
+
+    void eraseBlock(off_t where);
 
     void doWrite(const char *data, int size);
     void doRead(char *data, int size);
     
     ~SPIFlash();
 private:
+    /**
+     * Constructor
+     */
     SPIFlash(const SPIFlash&)=delete;
     SPIFlash& operator= (const SPIFlash&)=delete;
     void dmaRxHandler();
     void dmaTxHandler();
 
-
-
     miosix::Thread *waiting;
     bool error;
+    const unsigned long long eraseBlockSize=4*1024; // 4 KiB erase size
+    const unsigned long long cardSize=4*1024*1024; // 32 Mib = 4 MiB 
+    miosix::KernelMutex mutex{miosix::MutexOptions::RECURSIVE};
 };
