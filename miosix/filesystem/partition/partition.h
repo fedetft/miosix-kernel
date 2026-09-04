@@ -69,7 +69,7 @@ public:
     {
         auto whereLBA=where/512;
         auto sizeLBA=size/512;
-        if (where<0 || static_cast<unsigned long long>(whereLBA+sizeLBA)>=sectorsCount) 
+        if (where<0 || static_cast<unsigned long long>(whereLBA+sizeLBA)>sectorsCount) 
         {
             return -EFAULT; // out of bounds
         }
@@ -87,7 +87,7 @@ public:
     {
         auto whereLBA=where/512;
         auto sizeLBA=size/512;
-        if (where<0 || static_cast<unsigned long long>(whereLBA+sizeLBA)>=sectorsCount) 
+        if (where<0 || static_cast<unsigned long long>(whereLBA+sizeLBA)>sectorsCount) 
         {
             return -EFAULT; // out of bounds
         }
