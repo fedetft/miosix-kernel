@@ -214,7 +214,7 @@ ssize_t SPIFlash::writeBlock(const void *buffer, size_t size, off_t where)
     // // 2    us fixed time (mutex unlock)
     
     if(where % 512 || size % 512) return -EFAULT;
-    if (where+size > 0xFFFFFF) return -EFAULT; //Final Address out of range, max 2^24 -1
+    if (where+size > cardSize) return -EFAULT; //Final Address out of range, max 2^24 -1
     Lock<KernelMutex> l(mutex);
     DBG("SPIFlash::writeBlock(): size=%d [bytes]\n", size);
 
@@ -263,7 +263,7 @@ ssize_t SPIFlash::writeBlock(const void *buffer, size_t size, off_t where)
 ssize_t SPIFlash::readBlock(void *buffer, size_t size, off_t where)
 {
     if(where % 512 || size % 512) return -EFAULT;
-    if (where+size > 0xFFFFFF) return -EFAULT; //Address out of range, max 2^24 -1
+    if (where+size > cardSize) return -EFAULT; //Address out of range, max 2^24 -1
     
     unsigned int readcmd = 0x0b << 24 | where; 
     readcmd = toBigEndian32(readcmd);
