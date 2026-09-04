@@ -47,6 +47,7 @@
 #include "interfaces/serial.h"
 #include "drivers/sdmmc/stm32f2_f4_f7_sd.h"
 #include "board_settings.h"
+#include "drivers/spi-flash.h"
 
 namespace miosix {
 
@@ -81,7 +82,15 @@ void IRQbspInit()
 void bspInit2()
 {
     #ifdef WITH_FILESYSTEM
-    basicFilesystemSetup(SDIODriver::instance());
+    intrusive_ref_ptr<Device> flashDriver(new SPIFlash());
+    intrusive_ref_ptr<Partition> partition {
+        new Partition(flashDriver,0,4*1024*1024/512)
+    };
+    
+    MountHelper::mountRoot()
+        .doMount(
+            std::make_pair(partition,PartitionType::LITTLEFS), "/sd");
+    // basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
 }
 
