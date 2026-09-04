@@ -163,12 +163,25 @@ LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
       context(disk.get())
 {
     int err;
-    drv = disk;
+    drv=disk;
+    unsigned long long eraseSize=0;
+    if(drv->ioctl(IOCTL_GET_ERASE_SIZE, &eraseSize)<0)
+    {
+        mountError = -EIO;
+        return;
+    }
+    unsigned long long volumeSize=0;
+    if(drv->ioctl(IOCTL_GET_VOLUME_SIZE, &volumeSize)<0)
+    {
+        mountError = -EIO;
+        return;
+    }
 
     config = {};
     config.read_size = 512;
     config.prog_size = 512;
-    config.block_size = 512;
+    config.block_size = eraseSize;
+    config.block_count = volumeSize / eraseSize;
     config.block_cycles = 500;
     config.cache_size = 512;
     config.lookahead_size = 512;
@@ -184,6 +197,11 @@ LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
     config.unlock = miosixLfsUnlock;
 
     err = lfs_mount(&lfs, &config);
+    if (err)
+    {
+        lfs_format(&lfs, &config);
+        err = lfs_mount(&lfs, &config);
+    }
     mountError = lfsErrorToPosix(err);
 }
 
@@ -215,7 +233,7 @@ int LittleFS::openDirectory(intrusive_ref_ptr<FileBase> &directory,
     }
 
     directory = intrusive_ref_ptr<LittleFSDirectory>(new LittleFSDirectory(
-        intrusive_ref_ptr<LittleFS>(this), std::move(dir), lvl)); //FIXME: use shared_from_this
+        shared_from_this(), std::move(dir), lvl)); //FIXME: use shared_from_this
 
     return 0;
 }
@@ -511,6 +529,12 @@ int miosixBlockDeviceProg(const lfs_config *c, lfs_block_t block,
 
 int miosixBlockDeviceErase(const lfs_config *c, lfs_block_t block)
 {
+    FileBase *drv = GET_DRIVER_FROM_LFS_CONTEXT(c);
+    off_t blockAddr = c->block_size * block;
+    if (drv->ioctl(IOCTL_ERASE, &blockAddr)<0)
+    {
+        return LFS_ERR_IO;
+    }
     return LFS_ERR_OK;
 }
 
