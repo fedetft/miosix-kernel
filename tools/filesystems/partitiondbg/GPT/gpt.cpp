@@ -102,24 +102,14 @@ ReaderResult GPTReader::checkGPT()
         return ReaderResult::ErrorInvalidBackupHeader;
     }
 
-    // Is it guaranteed that the conversoin from headerCopy to GPTHeader
-    // is endiannes safe? no, also headerCRC32 is not set to 0
-    uint8_t headerCopy[512];
-    memcpy(headerCopy, &primaryHeader, sizeof(GPTHeader));
-    reinterpret_cast<GPTHeader *>(headerCopy)->headerCRC32=0;
+    uint32_t crcCopy = primaryHeader.headerCRC32; 
 
-    uint32_t initialBuff=*reinterpret_cast<uint32_t *>(headerCopy+0);
-    uint32_t nextBuff=*reinterpret_cast<uint32_t *>(headerCopy+4);
-    CRC32Calculator crcCalculator{initialBuff, nextBuff};
+    primaryHeader.headerCRC32=0;
 
-    for (int i=2; i < (512/4)-1; i++) 
-    {
-        crcCalculator.calculateNextStep(nextBuff);
-        nextBuff=*reinterpret_cast<uint32_t *>(headerCopy+(i*4));
-    }
-    crcCalculator.calculateNextStep(nextBuff);
+    CRC32Calculator crcCalculator;
+    crcCalculator.addBytes(reinterpret_cast<uint8_t*>(&primaryHeader), primaryHeader.headerSize);
     uint32_t crc=crcCalculator.finalizeCRC32();
-
+    primaryHeader.headerCRC32=crcCopy;
     if (crc!=primaryHeader.headerCRC32) 
     {
         iprintf("Primary header CRC32 mismatch: calculated 0x%08lX, expected 0x%08lX\n", 
@@ -127,13 +117,30 @@ ReaderResult GPTReader::checkGPT()
         return ReaderResult::ErrorInvalidPrimaryHeaderCRC;
     }
 
+    crcCalculator.reset();
+    crcCopy = backupHeader.headerCRC32;
+    backupHeader.headerCRC32=0;
+    crcCalculator.addBytes(reinterpret_cast<uint8_t*>(&backupHeader), backupHeader.headerSize);
+    crc=crcCalculator.finalizeCRC32();
+    backupHeader.headerCRC32=crcCopy;
+    if (crc!=backupHeader.headerCRC32) 
+    {
+        iprintf("Backup header CRC32 mismatch: calculated 0x%08lX, expected 0x%08lX\n", 
+            crc, backupHeader.headerCRC32);
+        return ReaderResult::ErrorInvalidBackupHeader;
+    }
 
-    // GPTHeader backupCopy = backupHeader;
-    // backupCopy.headerCRC32 = 0;
-    // const auto backupCRC = CRC32::calculate(reinterpret_cast<const uint8_t*>(&backupCopy), backupHeader.headerSize);
-    // if (backupCRC != backupHeader.headerCRC32) {
-    //     return ReaderResult::ErrorInvalidBackupHeaderCRC;
-    // }
+    // checking primary partition table
+    if (!validatePrimaryPartitionTableCRC())
+    {
+        return ReaderResult::ErrorInvalidPrimaryTableCRC;
+    }
+
+    // checking backup partition table
+    if (!validateBackupPartitionTableCRC())
+    {
+        return ReaderResult::ErrorInvalidBackupTableCRC;
+    }
 
     return ReaderResult::Ok;
 }
@@ -208,7 +215,7 @@ void GPTReader::printHeaderInfo(GPTHeader& header)
     iprintf("Signature: %.8s\n", header.signature);
     iprintf("Revision: 0x%08lX\n", header.revision);
     iprintf("Header Size: %lu\n", header.headerSize);
-    iprintf("Header CRC32: %lu\n", header.headerCRC32);
+    iprintf("Header CRC32: %lX\n", header.headerCRC32);
     iprintf("My LBA: %llu\n", header.myLBA);
     iprintf("Alternate LBA: %llu\n", header.alternateLBA);
     iprintf("First Usable LBA: %llu\n", header.firstUsableLBA);
@@ -219,7 +226,7 @@ void GPTReader::printHeaderInfo(GPTHeader& header)
     iprintf("Partition Entry Table LBA: %llu\n", header.partitionEntryTableLBA);
     iprintf("Number of Partition Entries: %lu\n", header.numberOfPartitionEntries);
     iprintf("Partition Entry Size: %lu\n", header.partitionEntrySize);
-    iprintf("Partition Entry Table CRC32: %lu\n", header.partitionEntryTableCRC32);
+    iprintf("Partition Entry Table CRC32: %lX\n", header.partitionEntryTableCRC32);
     iprintf("\n\n");
 }
 
@@ -339,6 +346,40 @@ GPTReader& GPTReader::operator=(GPTReader&& other)
         this->device=std::move(other.device);
     }
     return *this;
+}
+
+bool GPTReader::validatePrimaryPartitionTableCRC() 
+{ 
+    char buff[512];
+    size_t remainingBytes=primaryHeader.numberOfPartitionEntries*primaryHeader.partitionEntrySize;
+    CRC32Calculator crcCalc;
+    size_t nBlocks = 0;
+    for(; remainingBytes > 512; remainingBytes-=512, nBlocks++)
+    {
+        device->readBlock(buff, 512, (primaryHeader.partitionEntryTableLBA + nBlocks) * 512);
+        crcCalc.addBytes(reinterpret_cast<uint8_t*>(buff), 512);
+    }
+    device->readBlock(buff, 512, (primaryHeader.partitionEntryTableLBA + nBlocks) * 512);
+    crcCalc.addBytes(reinterpret_cast<uint8_t*>(buff), remainingBytes);
+
+    return crcCalc.finalizeCRC32()==primaryHeader.partitionEntryTableCRC32;
+}
+
+bool GPTReader::validateBackupPartitionTableCRC() 
+{ 
+    char buff[512];
+    size_t remainingBytes=backupHeader.numberOfPartitionEntries*backupHeader.partitionEntrySize;
+    CRC32Calculator crcCalc;
+    size_t nBlocks = 0;
+    for(; remainingBytes > 512; remainingBytes-=512, nBlocks++)
+    {
+        device->readBlock(buff, 512, (backupHeader.partitionEntryTableLBA + nBlocks) * 512);
+        crcCalc.addBytes(reinterpret_cast<uint8_t*>(buff), 512);
+    }
+    device->readBlock(buff, 512, (backupHeader.partitionEntryTableLBA + nBlocks) * 512);
+    crcCalc.addBytes(reinterpret_cast<uint8_t*>(buff), remainingBytes);
+
+    return crcCalc.finalizeCRC32()==backupHeader.partitionEntryTableCRC32;
 }
 
 } // namespace GPT

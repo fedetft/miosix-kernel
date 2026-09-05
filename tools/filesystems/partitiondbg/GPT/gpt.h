@@ -54,9 +54,11 @@ enum class ReaderResult
     ErrorReadingPrimaryHeader,
     ErrorInvalidPrimaryHeader,
     ErrorInvalidPrimaryHeaderCRC,
+    ErrorInvalidPrimaryTableCRC,
     ErrorReadingBackupHeader,
     ErrorInvalidBackupHeader,
     ErrorInvalidBackupHeaderCRC,
+    ErrorInvalidBackupTableCRC,
     ErrorExceededMaxPartitions,
     ErrorReadingPrimaryPartitions,
     ErrorReadingBackupPartitions
@@ -119,68 +121,42 @@ static_assert(sizeof(GPTHeader) == 512, "GPT Header size must equal the Logic Bl
 class CRC32Calculator
 {
 public:
-
-    // This CRC32 calculates CRC32 only for 32 bits multiples
-    CRC32Calculator(uint32_t initialBuff, uint32_t nextBuff) 
+    CRC32Calculator() 
     {
-        buff=(static_cast<uint64_t>(initialBuff)<<32) | static_cast<uint64_t>(nextBuff);
-    };
-
-
-    /**
-     * Computes the remainder of the polynomial division of the current buffer by 
-     * the CRC32 polynomial which is 0x04C11DB7, the standard polynomial used in 
-     * the IEEE 802.3 Ethernet CRC32 algorithm.
-     * The method always leaves the buffer as 0xXXXXXXXX00000000, where XXXXXXXX 
-     * is the remainder of the division.
-     */
-    void computeRemainder() 
-    {
-        iprintf("Computing remainder for buffer: 0x%016llX\n", buff);
-        for (size_t i=0; i<32; i++) 
-        {
-            if (buff&0x8000000000000000) // the first bit is 1 
-            {
-                uint64_t part=buff>>32;
-                part^=0x04C11DB7; // we compute the remainder of the first 32 bits
-                buff=(part<<32)|(buff&0xFFFFFFFF); // we substitute the first 32 bits with the remainder
-                buff<<=1; //then we discard the first bit
-            } 
-            else 
-            {
-                buff<<=1;
-            }
-            iprintf("Step[%u]: 0x%016llX\n", i, buff);
-        }    
+        // GPT / Standard Ethernet starts with a seed of 0xFFFFFFFF
+        crc = 0xFFFFFFFF; 
     }
 
-    void calculateNextStep(uint32_t nextBuff) 
+    void addBytes(const uint8_t* data, size_t length)
     {
-        if (isFinal) 
+        for (size_t i = 0; i < length; i++)
         {
-            return; // we are at the final step, no more calculations
+            crc ^= data[i];
+            for (int bit = 0; bit < 8; bit++)
+            {
+                // GPT uses the reflected (LSB-first) polynomial 0xEDB88320
+                if (crc & 1) {
+                    crc = (crc >> 1) ^ 0xEDB88320;
+                } else {
+                    crc = (crc >> 1);
+                }
+            }
         }
-
-        computeRemainder();
-
-        iprintf("Calculating next step with buffer: 0x%016llX and nextBuff: 0x%08X\n", buff, nextBuff);
-
-        // computeRemainder is guaranteed to leave the first lsb 32 bits of
-        // buff to 0 so we can just add the next 32 bits to the end of the buffer
-        buff|=static_cast<uint64_t>(nextBuff);
-        iprintf("After adding nextBuff: 0x%016llX\n", buff);
     }
 
     uint32_t finalizeCRC32() 
     {
-        computeRemainder();
+        // Return the inverted result (Final XOR 0xFFFFFFFF)
+        return crc ^ 0xFFFFFFFF; 
+    }
 
-        return buff>>32; // the first 32 bits of the buffer are the CRC
-    };
+    void reset()
+    {
+        crc = 0xFFFFFFFF;
+    }
 
 private: 
-    bool isFinal=false;
-    uint64_t buff;
+    uint32_t crc;
 };
 
 
@@ -240,6 +216,9 @@ public:
     GPTReader(GPTReader&& other);
     GPTReader& operator=(GPTReader&& other);
 private:
+
+    bool validatePrimaryPartitionTableCRC();
+    bool validateBackupPartitionTableCRC();
     GPTReader(miosix::intrusive_ref_ptr<miosix::Device> device) : 
         device{device}, primaryHeader{}, backupHeader{}
     {}
