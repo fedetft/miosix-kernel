@@ -115,6 +115,75 @@ struct GPTHeader
 
 static_assert(sizeof(GPTHeader) == 512, "GPT Header size must equal the Logic Block Size (512)");
 
+
+class CRC32Calculator
+{
+public:
+
+    // This CRC32 calculates CRC32 only for 32 bits multiples
+    CRC32Calculator(uint32_t initialBuff, uint32_t nextBuff) 
+    {
+        buff=(static_cast<uint64_t>(initialBuff)<<32) | static_cast<uint64_t>(nextBuff);
+    };
+
+
+    /**
+     * Computes the remainder of the polynomial division of the current buffer by 
+     * the CRC32 polynomial which is 0x04C11DB7, the standard polynomial used in 
+     * the IEEE 802.3 Ethernet CRC32 algorithm.
+     * The method always leaves the buffer as 0xXXXXXXXX00000000, where XXXXXXXX 
+     * is the remainder of the division.
+     */
+    void computeRemainder() 
+    {
+        iprintf("Computing remainder for buffer: 0x%016llX\n", buff);
+        for (size_t i=0; i<32; i++) 
+        {
+            if (buff&0x8000000000000000) // the first bit is 1 
+            {
+                uint64_t part=buff>>32;
+                part^=0x04C11DB7; // we compute the remainder of the first 32 bits
+                buff=(part<<32)|(buff&0xFFFFFFFF); // we substitute the first 32 bits with the remainder
+                buff<<=1; //then we discard the first bit
+            } 
+            else 
+            {
+                buff<<=1;
+            }
+            iprintf("Step[%u]: 0x%016llX\n", i, buff);
+        }    
+    }
+
+    void calculateNextStep(uint32_t nextBuff) 
+    {
+        if (isFinal) 
+        {
+            return; // we are at the final step, no more calculations
+        }
+
+        computeRemainder();
+
+        iprintf("Calculating next step with buffer: 0x%016llX and nextBuff: 0x%08X\n", buff, nextBuff);
+
+        // computeRemainder is guaranteed to leave the first lsb 32 bits of
+        // buff to 0 so we can just add the next 32 bits to the end of the buffer
+        buff|=static_cast<uint64_t>(nextBuff);
+        iprintf("After adding nextBuff: 0x%016llX\n", buff);
+    }
+
+    uint32_t finalizeCRC32() 
+    {
+        computeRemainder();
+
+        return buff>>32; // the first 32 bits of the buffer are the CRC
+    };
+
+private: 
+    bool isFinal=false;
+    uint64_t buff;
+};
+
+
 class GPTTableReader 
 {
 public:

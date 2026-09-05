@@ -102,12 +102,30 @@ ReaderResult GPTReader::checkGPT()
         return ReaderResult::ErrorInvalidBackupHeader;
     }
 
-    // GPTHeader primaryCopy = primaryHeader;
-    // primaryCopy.headerCRC32 = 0;
-    // const auto primaryCRC = CRC32::calculate(reinterpret_cast<const uint8_t*>(&primaryCopy), primaryHeader.headerSize);
-    // if (primaryCRC != primaryHeader.headerCRC32) {
-    //     return ReaderResult::ErrorInvalidPrimaryHeaderCRC;
-    // }
+    // Is it guaranteed that the conversoin from headerCopy to GPTHeader
+    // is endiannes safe? no, also headerCRC32 is not set to 0
+    uint8_t headerCopy[512];
+    memcpy(headerCopy, &primaryHeader, sizeof(GPTHeader));
+    reinterpret_cast<GPTHeader *>(headerCopy)->headerCRC32=0;
+
+    uint32_t initialBuff=*reinterpret_cast<uint32_t *>(headerCopy+0);
+    uint32_t nextBuff=*reinterpret_cast<uint32_t *>(headerCopy+4);
+    CRC32Calculator crcCalculator{initialBuff, nextBuff};
+
+    for (int i=2; i < (512/4)-1; i++) 
+    {
+        crcCalculator.calculateNextStep(nextBuff);
+        nextBuff=*reinterpret_cast<uint32_t *>(headerCopy+(i*4));
+    }
+    crcCalculator.calculateNextStep(nextBuff);
+    uint32_t crc=crcCalculator.finalizeCRC32();
+
+    if (crc!=primaryHeader.headerCRC32) 
+    {
+        iprintf("Primary header CRC32 mismatch: calculated 0x%08lX, expected 0x%08lX\n", 
+            crc, primaryHeader.headerCRC32);
+        return ReaderResult::ErrorInvalidPrimaryHeaderCRC;
+    }
 
 
     // GPTHeader backupCopy = backupHeader;
@@ -254,7 +272,7 @@ void GPTReader::printTableInfo(GPTTableReader& tableReader)
 
 void GPTReader::printGPTInfo()
 {
-    auto gptValid=checkGPT()==ReaderResult::Ok;
+    auto gptValid=checkGPT() == ReaderResult::Ok;
     iprintf("Is GPT Valid? %s\n", gptValid ? "Yes" : "No.\nExiting");
     if (!gptValid) return;
 
