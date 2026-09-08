@@ -127,9 +127,9 @@ void EDFScheduler::IRQsetPriority(Thread *thread, EDFSchedulerPriority newPriori
     //    to keep it sorted
     // Thus a thread will need to be removed/re-inserted unless it is and will
     // remain non-real-time
-    if(oldRR==true || newRR==true)
+    if(oldRR==true && newRR==true)
     {
-        thread->schedData.deadline=newPriority;
+        //No need to thread->schedData.deadline=newPriority; priority hasn't changed
         return;
     }
     // Remove from old queue
