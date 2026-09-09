@@ -25,11 +25,12 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 
-#include "debugger.h"
-#include "interfaces-impl/debug_registers.h"
 #include "miosix_settings.h"
 
 #ifdef PROCESS_DEBUGGER
+
+#include "debugger.h"
+#include "interfaces-impl/debug_registers.h"
 
 #include <kernel/process.h>
 #include <kernel/thread.h>
@@ -605,6 +606,10 @@ void Debugger::handleCommand_cs() {
     auto t = attached.thread;
 
     {
+        const auto value = (buffer.getData()[0] == 'c')
+                                     ? DebugStatus::RUN
+                                     : DebugStatus::STEP
+                                     ;
         FastGlobalIrqLock dLock;
         // NOTE: It's mandatory to set stopreason to NONE as only the first thread
         // which triggers an event can set attached.reason, this is done by checking
@@ -613,10 +618,7 @@ void Debugger::handleCommand_cs() {
         attached.debugState = false;
         attached.event.reason = StopReason::NONE;
         // Wakeup thread
-        t->debugStatus = (buffer.getData()[0] == 'c')
-                                     ? DebugStatus::RUN
-                                     : DebugStatus::STEP
-                                     ;
+        t->debugStatus = value;
         t->IRQdebugWakeup();
     }
 
@@ -759,26 +761,21 @@ void Debugger::handleCommand_zZ() {
         return;
     }
 
+    static const WatchpointType wt_type_lut[3] = {WatchpointType::WRITE, WatchpointType::READ, WatchpointType::ACCESS};
+
     int idx = -1;
-    switch(buffer.getData()[1]) {
-    case '1': {
-        if (kind != 2 && kind != 4) break;
+    const auto type_char = buffer.getData()[1];
+    if (type_char == '1') {
+        if (kind != 2 && kind != 4) {
+            buffer.setReturnCode(BREAKPOINT_SET_FAIL);
+            return;
+        }
         idx = insert ? BreakpointUnit::addBreakpoint(   baseAddress, kind)
                      : BreakpointUnit::removeBreakpoint(baseAddress, kind);
-    } break;
-    case '2': {
-        idx = insert ? BreakpointUnit::addWatchpoint(   baseAddress, kind, WatchpointType::WRITE)
-                     : BreakpointUnit::removeWatchpoint(baseAddress, kind, WatchpointType::WRITE);
-    } break;
-    case '3': {
-        idx = insert ? BreakpointUnit::addWatchpoint(   baseAddress, kind, WatchpointType::READ)
-                     : BreakpointUnit::removeWatchpoint(baseAddress, kind, WatchpointType::READ);
-    } break;
-    case '4': {
-        idx = insert ? BreakpointUnit::addWatchpoint(   baseAddress, kind, WatchpointType::ACCESS)
-                     : BreakpointUnit::removeWatchpoint(baseAddress, kind, WatchpointType::ACCESS);
-    } break;
-    default:
+    } else if (type_char >= '2' && type_char <= '4') {
+        idx = insert ? BreakpointUnit::addWatchpoint(   baseAddress, kind, wt_type_lut[type_char - '2'])
+                     : BreakpointUnit::removeWatchpoint(baseAddress, kind, wt_type_lut[type_char - '2']);
+    } else {
         buffer.clear();
         // Default behaviour: not implemented, empty reply
         return;
@@ -835,17 +832,17 @@ void Debugger::vrun() {
 
     char** a = args;
     while(*a) {
-        printf("\"%s\" ", *a);
+        iprintf("\"%s\" ", *a);
         a++;
     }
-    printf("\n");
+    iprintf("\n");
 
     // posix_spawn cannot be modified:
     // In posix_spawn implementation: check if Debugger::thread == currentThread
     int pid = 0,ec = 0;
     ec = posix_spawn(&pid,args[0],nullptr,nullptr,args, nullptr);
     if (ec != 0) {
-        printf("ec: %d\n", ec);
+        iprintf("ec: %d\n", ec);
         buffer.setReturnCode(GDBReturnCode::SPAWN_FAIL);
         return;
     }

@@ -480,6 +480,8 @@ private:
     unsigned int    address;
     unsigned int    mask;
     WatchpointType  type    = WatchpointType::NONE;
+    // NOTE: probably not safe
+    unsigned int _PADDING   = 0;
 
 };
 
@@ -487,6 +489,11 @@ class BreakpointUnit {
 public:
     BreakpointUnit ();
     ~BreakpointUnit ();
+
+    // FIXME: I have no Idea on how to make them static inline & impl-dependant
+    // static inline void IRQsetLocalBreakpoints();
+    // static inline void IRQsetLocalWatchpoints();
+#include <interfaces-impl/breakpointunit_interface.h>
 
     /**
      * @brief Sets a breakpoint at the specified address
@@ -666,8 +673,8 @@ public:
             // If cpu is valid: return
             if (!IRQcpuDirty(coreId)) return;
             // Update CPU debug register
-            for (int i = 0; i < breakpointsNum; i++) breakpoints[i].IRQsetLocal(i);
-            for (int i = 0; i < watchpointsNum; i++) watchpoints[i].IRQsetLocal(i);
+            IRQsetLocalBreakpoints();
+            IRQsetLocalWatchpoints();
             IRQclearDirtyBit(coreId);
         }
     }
