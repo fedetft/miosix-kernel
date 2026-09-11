@@ -605,11 +605,12 @@ void Debugger::handleCommand_cs() {
 
     auto t = attached.thread;
 
+    const auto value = (buffer.getData()[0] == 'c')
+                                 ? DebugStatus::RUN
+                                 : DebugStatus::STEP
+                                 ;
+
     {
-        const auto value = (buffer.getData()[0] == 'c')
-                                     ? DebugStatus::RUN
-                                     : DebugStatus::STEP
-                                     ;
         FastGlobalIrqLock dLock;
         // NOTE: It's mandatory to set stopreason to NONE as only the first thread
         // which triggers an event can set attached.reason, this is done by checking
