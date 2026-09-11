@@ -60,8 +60,16 @@ typedef enum : int {
     const int REGISTER_FILE_SIZE_BYTES = (17*4);
 #endif
 
-// Used to ensure the communication buffer is big enough to fit a 'qSupported' package
+// Used to ensure the communication buffer is big enough to fit all packages
+
+#if __FPU_PRESENT == 1
+// FPU present, biggest message is 'G'
+// 'G' + 2 character for each byte + '\n'
 const int MINIMUM_GDB_BUFFER_SIZE = 402;
+#else
+// FPU not present, biggest message is reply to 'qXfer:memory-map:read'
+const int MINIMUM_GDB_BUFFER_SIZE = 208;
+#endif
 
 #if __FPU_PRESENT == 1
 const int MAX_REGISTER_SIZE_BYTES = 8;
