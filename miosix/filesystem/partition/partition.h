@@ -29,19 +29,21 @@
 #include "filesystem/ioctl.h"
 #include "kernel/sync.h"
 #include "miosix_settings.h"
+#include "partition_type.h"
 #include <vector>
+#include "filesystem/partition/MBR/mbr.h"
 
-namespace miosix {
-
-enum class PartitionType : unsigned char
+namespace miosix 
 {
-    FAT32 = 0,
-    EXFAT,
-    LITTLEFS,
-    NONE, // KEEP JUST BEFORE UNKOWN
-    UNKNOWN // KEEP AS LAST
+
+enum class PartitionTableType
+{
+    MBR,
+    GPT,
+    INVALID,
+    DISK_ERR
 };
-    
+
 /**
  * This class represents a partition on a device. It is a subclass of Device,
  * and it is used to access the partition as if it were a separate device.
@@ -114,22 +116,40 @@ public:
         }
         return backend->ioctl(cmd, arg);
     }
-
-    /**
-     * This helper method allows to enumerate all available partitions on a drive
-     * It supports MBR and (if enabled) GPT partition tables.
-     * Returns a list of partitions as virtual devices and a hint of what type of 
-     * filesystem that partition can be. It will be later used by doMount or mountRoot
-     * to try to mount the partition. 
-     * \param physicalDevice is the physical memory device that contains the partitions
-     */
-    static std::vector<
-        std::pair<intrusive_ref_ptr<Partition>, PartitionType>
-    > enumeratePartitions(intrusive_ref_ptr<Device> physicalDevice);
+    
 private:
     const intrusive_ref_ptr<Device> backend; ///< the device that contains the partition, can be physical or logical
     const unsigned long long startSector;    ///< starting sector of the partition in the backend device
     const unsigned long long sectorsCount;   ///< size in sectors
+};
+
+class DevicePartitionManager
+{
+public:
+    DevicePartitionManager(intrusive_ref_ptr<Device> device) 
+        : mbrReader{nullptr}, device{device}, type{PartitionTableType::INVALID} {};
+
+    /**
+     * @brief this method loads the partition table and checks for error
+     * @returns MBR, GPR, INVALID if the loading fails or DISK_ERR if there is 
+     * an error with the disk. 
+     */
+    PartitionTableType loadPartitionTable();
+
+    std::pair<intrusive_ref_ptr<Partition>, PartitionType> getNextEntry();
+
+    MBR::MBRFormatter beginFormatAsMBR(unsigned long uniqueTableId);
+
+    PartitionTableType getTableType()
+    {
+        return type;
+    }
+
+private:
+    std::unique_ptr<MBR::MBRReader> mbrReader;
+    //std::unique_ptr<GPT::GPTReader> gptReader;
+    intrusive_ref_ptr<Device> device;
+    PartitionTableType type;
 };
 
 } //namespace miosix

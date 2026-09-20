@@ -242,26 +242,71 @@ void IRQbspInit()
             defaultSerialFlowctrl,defaultSerialDma));
 }
 
+void formatDisk(DevicePartitionManager& tableReader)
+{
+    auto formatter = tableReader.beginFormatAsMBR(0x01230124);
+    formatter.addPartition(PartitionType::FAT32, 4llu*1024llu*1024llu*1024llu);
+    formatter.addPartition(PartitionType::FAT32, 4llu*1024llu*1024llu*1024llu);
+    formatter.addPartition(PartitionType::FAT32, 4llu*1024llu*1024llu*1024llu);
+    formatter.writeMBRToDisk();
+}
+
+bool loadDiskOrFormat(DevicePartitionManager& tableReader)
+{
+   for (size_t trials=0; trials<4; trials++)
+    {
+        if (tableReader.loadPartitionTable()!=PartitionTableType::MBR)
+        {
+            formatDisk(tableReader);
+        } else return true;
+    }
+
+    return false;
+}
+
+void loadFilesystem()
+{
+    auto tableReader = DevicePartitionManager(SDIODriver::instance());
+    bootlog("Loading partitions from SD Card... ");
+ 
+    auto res = loadDiskOrFormat(tableReader);
+
+    if (!res || tableReader.getTableType()!=PartitionTableType::MBR) {
+        bootlog("Missing SD Card\n");
+        return;
+    }
+
+    bootlog("Ok\n");
+
+    auto firstPartition = tableReader.getNextEntry();
+    if (firstPartition.second==PartitionType::NONE || firstPartition.second==PartitionType::UNKNOWN)
+    {
+        bootlog("Not correctly partitioned\n");
+        formatDisk(tableReader);
+        auto res = loadDiskOrFormat(tableReader);
+
+        if (!res || tableReader.getTableType()!=PartitionTableType::MBR) {
+            bootlog("Failed loading partitions from disks\n");
+            return;
+        }
+        
+        firstPartition = tableReader.getNextEntry();
+        if (firstPartition.second==PartitionType::NONE || firstPartition.second==PartitionType::UNKNOWN)
+        {
+            bootlog("Failed loading partitions from disks\n");
+            return;
+        }
+    }
+
+    MountHelper mh = MountHelper::mountRoot(firstPartition, SDIODriver::instance());
+    mh.doMount(tableReader.getNextEntry(), "/sd");
+    mh.doMount(tableReader.getNextEntry(), "/sd1");
+}
+
 void bspInit2()
 {
 #ifdef WITH_FILESYSTEM
-    auto partitions = Partition::enumeratePartitions(SDIODriver::instance());
-    if (partitions.size() > 0) 
-    {
-        MountHelper mh = MountHelper::mountRoot(partitions[0], SDIODriver::instance());
-        mh.doMount(partitions[1], "/sd");
-        char sdMountDir[5] = "/sd0";
-        for (size_t i = 2; i < partitions.size(); i++)
-        {
-            if (partitions[i].second == PartitionType::NONE) continue; // skip over empty partitions
-
-            sdMountDir[3]++;
-            mh.doMount(partitions[i], sdMountDir);
-        }
-    } else {
-        bootlog("Missing SD Card or no partition table on SD card\n");
-    }
-//    basicFilesystemSetup(SDIODriver::instance());
+    loadFilesystem();
 #endif  // WITH_FILESYSTEM
 }
 
