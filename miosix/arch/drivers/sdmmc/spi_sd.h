@@ -559,7 +559,7 @@ int SPISD<SPI>::ioctl(int cmd, void* arg)
     }
     case IOCTL_GET_VOLUME_SIZE: {
         dbg("IOCTL_GET_VOLUME_SIZE\n");
-        off_t* sizePtr=static_cast<off_t*>(arg);
+        unsigned long long* sizePtr=static_cast<unsigned long long*>(arg);
         if (sizePtr==nullptr) {
             return -EINVAL;
         }
