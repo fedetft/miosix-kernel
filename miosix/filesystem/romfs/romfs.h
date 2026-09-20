@@ -119,6 +119,12 @@ public:
     virtual int rmdir(StringPart& name);
 
     /**
+     * Format the disk with the implemented filesystem
+     * \return 0 on success, 1 on failure
+     */
+    virtual int mkfs();
+
+    /**
      * Follows a symbolic link
      * \param path path identifying a symlink, relative to the local filesystem
      * \param target the link target is returned here if the call succeeds.

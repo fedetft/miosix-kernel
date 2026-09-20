@@ -36,8 +36,8 @@ MBRPartitionRecord MBRReader::getNextPartitionEntry()
     if (currEntryIdx>=NUM_OF_PARTITIONS)
         return MBRPartitionRecord::createEmpty();
 
-    return header.partitionRecords[currEntryIdx];
     currEntryIdx++;
+    return header.partitionRecords[currEntryIdx-1];
 }
 
 MBRFormatter::MBRFormatter(miosix::intrusive_ref_ptr<Device> device, uint32_t uniqueSignature)
@@ -83,15 +83,12 @@ MBRFormatResult MBRFormatter::addPartition(PartitionType type,
         }
     }
 
-    // also it allows us to virtually shrink the device size
-    deviceSize-=position+size; 
-
     auto& partitionEntry=header.partitionRecords[partitionIndex];
 
     partitionEntry.bootIndicatorAndStartingCHS[0]=0; // never mark as boot
-    partitionEntry.bootIndicatorAndStartingCHS[1]=0; // do we need to calculate the CHS addresses?
-    partitionEntry.bootIndicatorAndStartingCHS[2]=0; 
-    partitionEntry.bootIndicatorAndStartingCHS[3]=0;
+    partitionEntry.bootIndicatorAndStartingCHS[1]=0xff; // do we need to calculate the CHS addresses?
+    partitionEntry.bootIndicatorAndStartingCHS[2]=0xff; 
+    partitionEntry.bootIndicatorAndStartingCHS[3]=0xff;
 
     switch (type)
     {
@@ -114,9 +111,9 @@ MBRFormatResult MBRFormatter::addPartition(PartitionType type,
             return MBRFormatResult::InvalidPartitionType;
     }
 
-    partitionEntry.osTypeAndEndingCHS[1]=0;
-    partitionEntry.osTypeAndEndingCHS[2]=0;
-    partitionEntry.osTypeAndEndingCHS[3]=0;
+    partitionEntry.osTypeAndEndingCHS[1]=0xff;
+    partitionEntry.osTypeAndEndingCHS[2]=0xff;
+    partitionEntry.osTypeAndEndingCHS[3]=0xff;
     partitionEntry.sizeInLBA=sizeLBA;
     partitionEntry.startingLBA=positionLBA;
 
@@ -134,7 +131,7 @@ MBRFormatResult MBRFormatter::addPartition(PartitionType type,
 
     const auto& partitionEntry=header.partitionRecords[partitionIndex-1];
 
-    return addPartition(type, size, (partitionEntry.startingLBA+partitionEntry.sizeInLBA)*512);
+    return addPartition(type, size, (partitionEntry.startingLBA+partitionEntry.sizeInLBA)*512llu);
 }
 
 int MBRFormatter::writeMBRToDisk()

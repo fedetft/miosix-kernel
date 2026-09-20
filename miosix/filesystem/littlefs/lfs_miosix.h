@@ -120,6 +120,12 @@ public:
     virtual int rmdir(StringPart &name);
 
     /**
+     * Format the disk with the implemented filesystem
+     * \return 0 on success, 1 on failure
+     */
+    virtual int mkfs();
+
+    /**
      * \return true if the filesystem failed to mount
      */
     bool mountFailed() override { return mountError != 0; }

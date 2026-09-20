@@ -568,6 +568,19 @@ int Fat32Fs::rmdir(StringPart& name)
     return unlinkRmdirHelper(name,true);
 }
 
+int Fat32Fs::mkfs()
+{
+    uint8_t workingBuffer[512];
+    MKFS_PARM params;
+    params.n_fat=2; // Number of FAT tables, 2 is good since it gives a bkp FAT table
+    params.align=0; // this will retrieve the block size from memory (512)
+    params.n_root=0; // this has no effect on fat32
+    params.au_size=0; // let fatfs decide allocation unit for clusters
+    params.fmt=FM_FAT32 | FM_SFD; // with SFD fatfs doesn't create partition table
+    auto res=f_mkfs(&filesystem, &params, workingBuffer, 512); 
+    return res==FR_OK ? 0 : 1;
+}
+
 Fat32Fs::~Fat32Fs()
 {
     if(failed) return;

@@ -197,11 +197,6 @@ LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
     config.unlock = miosixLfsUnlock;
 
     err = lfs_mount(&lfs, &config);
-    if (err)
-    {
-        lfs_format(&lfs, &config);
-        err = lfs_mount(&lfs, &config);
-    }
     mountError = lfsErrorToPosix(err);
 }
 
@@ -324,6 +319,11 @@ int LittleFS::rmdir(StringPart &name)
 
     int err = lfs_remove(&lfs, name.c_str());
     return lfsErrorToPosix(err);
+}
+
+int LittleFS::mkfs()
+{
+    return lfs_format(&lfs, &config) < 0 ? 1 : 0;
 }
 
 LittleFS::~LittleFS()

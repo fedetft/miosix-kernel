@@ -204,6 +204,11 @@ int MountpointFs::rmdir(StringPart& name)
     return -ENOENT;
 }
 
+int MountpointFs::mkfs()
+{
+    return 1;
+}
+
 #endif //WITH_FILESYSTEM
 
 } //namespace miosix

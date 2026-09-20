@@ -266,6 +266,12 @@ public:
      */
     virtual int rmdir(StringPart& name);
     
+    /**
+     * Format the disk with the implemented filesystem
+     * \return 0 on success, 1 on failure
+     */
+    virtual int mkfs();
+
 private:
     
     KernelMutex mutex;

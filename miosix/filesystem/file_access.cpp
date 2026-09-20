@@ -943,7 +943,7 @@ static inline const char* getPartitionTypeName(PartitionType partition)
 
 MountHelper MountHelper::mountRoot(
     std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
-    intrusive_ref_ptr<Device> physicalDevice)
+    intrusive_ref_ptr<Device> physicalDevice, PartitionType formatOnFail)
 {
     MountHelper mh;
     bootlog("Mounting %s as / ... ", getPartitionTypeName(partition.second));
@@ -977,7 +977,31 @@ MountHelper MountHelper::mountRoot(
         partitionType++)
     {
         if(fsImpl && !fsImpl->mountFailed()) break;
-        bootlog("Failed\nTrying another partition type... ");
+        bootlog("Failed (Partition Type was: %s)\n",
+            getPartitionTypeName(static_cast<PartitionType>(partitionType)));
+
+        if (formatOnFail!=PartitionType::NONE && formatOnFail!=PartitionType::UNKNOWN)
+        {
+            bootlog("formatOnFail is defined, formatting as %",
+                getPartitionTypeName(static_cast<PartitionType>(formatOnFail)));
+            fsImpl=tryMount(disk, formatOnFail);
+            
+            if (!fsImpl->mountFailed())
+            {
+                bootlog("Partition could be mounted without format\n");
+                break;
+            }
+
+            if(fsImpl->mkfs()==0)
+            {
+                bootlog("Successfully formatted the disk\n");
+                bootlog("Mounting the disk...");
+                fsImpl=tryMount(disk, formatOnFail);
+                break;
+            }
+        }
+
+        bootlog("Trying another partition type... ");
         if(partitionType==static_cast<unsigned char>(partition.second)) continue;
         fsImpl=tryMount(disk, static_cast<PartitionType>(partitionType));
     }
@@ -1008,7 +1032,7 @@ MountHelper MountHelper::mountRoot(
 
 int MountHelper::doMount(
     std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, 
-    const char* mountPoint)
+    const char* mountPoint, PartitionType formatOnFail)
 {
     bootlog("Mounting %s as %s ... ", 
         getPartitionTypeName(partition.second), mountPoint);
@@ -1057,7 +1081,31 @@ int MountHelper::doMount(
         partitionType++)
     {
         if(fsImpl && !fsImpl->mountFailed()) break;
-        bootlog("Failed (Partition Type was: %s)\nTrying another partition type... ",
+        bootlog("Failed (Partition Type was: %s)\n",
+            getPartitionTypeName(static_cast<PartitionType>(partitionType)));
+
+        if (formatOnFail!=PartitionType::NONE && formatOnFail!=PartitionType::UNKNOWN)
+        {
+            bootlog("formatOnFail is defined, formatting as %s\n",
+                getPartitionTypeName(formatOnFail));
+            fsImpl=tryMount(disk, formatOnFail);
+            
+            if (!fsImpl->mountFailed())
+            {
+                bootlog("Ok\nPartition could be mounted without format\n");
+                break;
+            }
+
+            if(fsImpl->mkfs()==0)
+            {
+                bootlog("Ok\nSuccessfully formatted the disk\n");
+                bootlog("Mounting the disk...");
+                fsImpl=tryMount(disk, formatOnFail);
+                break;
+            }
+        }
+
+        bootlog("Trying another partition type... ",
             getPartitionTypeName(static_cast<PartitionType>(partitionType)));
         if(partitionType==static_cast<unsigned char>(partition.second)) continue;
         fsImpl=tryMount(disk, static_cast<PartitionType>(partitionType));

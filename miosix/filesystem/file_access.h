@@ -40,7 +40,8 @@
 #include "kernel/intrusive.h"
 #include "kernel/thread.h"
 #include "miosix_settings.h"
-#include "partition/partition.h"
+#include "filesystem/partition/partition.h"
+#include "filesystem/partition/partition_type.h"
 
 #ifdef WITH_FILESYSTEM
 
@@ -608,11 +609,13 @@ public:
      * Mounts RomFs as /bin, if WITH_ROMFS is defined.    
      * \param partition the partition that will be mounted as the root 
      * \param physicalDevice the physicalDevice that holds the partition (this sucks)
+     * \param formatOnFail if the type is different than NONE and the mouting fails then this function will
+     *                     try to format the partition with the given type
      * \returns an instance of mounthelper
      */
     static MountHelper mountRoot(
         std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
-        intrusive_ref_ptr<Device> physicalDevice);
+        intrusive_ref_ptr<Device> physicalDevice, PartitionType formatOnFail=PartitionType::NONE);
 
     /**
      * Tries to mount the partition with the given partition type at the given mount point.
@@ -620,10 +623,12 @@ public:
      * partition with all supported partition types, until one succeeds or all fail.
      * \param partition the partition to mount
      * \param mountPoint the mount point where to mount the partition
+     * \param formatOnFail if the type is different than NONE and the mouting fails then this function will
+     *                     try to format the partition with the given type
      * \return 0 on success, a negative number on failure
      */
     int doMount(std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition, 
-        const char* mountPoint);
+        const char* mountPoint, PartitionType formatOnFail=PartitionType::NONE);
 
 private:
 

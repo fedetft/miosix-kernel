@@ -91,9 +91,24 @@ DRESULT disk_ioctl (
         case CTRL_TRIM:
             return RES_ERROR; //unimplemented, so enabling FF_USE_TRIM does not work
         case GET_SECTOR_COUNT:
-            return RES_ERROR; //unimplemented, so f_mkfs() does not work
+        {
+            if(buff==nullptr) return RES_PARERR;
+
+            off_t devSize=0;
+            if(pdrv->ioctl(IOCTL_GET_VOLUME_SIZE, &devSize)==0)
+            {
+                *reinterpret_cast<LBA_t*>(buff) = devSize/512;
+
+                return RES_OK;
+            }
+            return RES_ERROR;
+        }
         case GET_BLOCK_SIZE:
-            return RES_ERROR; //unimplemented, so f_mkfs() does not work
+        {
+            if (buff==nullptr) return RES_PARERR;
+            *reinterpret_cast<DWORD*>(buff) = 512;
+            return RES_OK;
+        }
         default:
             return RES_PARERR;
     }

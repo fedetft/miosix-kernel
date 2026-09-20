@@ -203,6 +203,11 @@ void FilesystemBase::fileCloseHook()
         if(result<0) errorHandler(Error::UNEXPECTED);
 }
 
+int FilesystemBase::mkfs()
+{
+    return 1;
+}
+
 FilesystemBase::~FilesystemBase() {}
 
 #endif //WITH_FILESYSTEM

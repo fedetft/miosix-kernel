@@ -278,29 +278,35 @@ void loadFilesystem()
 
     bootlog("Ok\n");
 
-    auto firstPartition = tableReader.getNextEntry();
-    if (firstPartition.second==PartitionType::NONE || firstPartition.second==PartitionType::UNKNOWN)
+    for (int trials=0; trials < 4; trials++)
     {
-        bootlog("Not correctly partitioned\n");
-        formatDisk(tableReader);
-        auto res = loadDiskOrFormat(tableReader);
-
-        if (!res || tableReader.getTableType()!=PartitionTableType::MBR) {
-            bootlog("Failed loading partitions from disks\n");
-            return;
-        }
+        tableReader.reset();
+        auto partition=tableReader.getNextEntry();
         
-        firstPartition = tableReader.getNextEntry();
-        if (firstPartition.second==PartitionType::NONE || firstPartition.second==PartitionType::UNKNOWN)
+        for (int i=0; i<3; i++)
         {
-            bootlog("Failed loading partitions from disks\n");
-            return;
-        }
-    }
+            if (partition.second==PartitionType::NONE || partition.second==PartitionType::UNKNOWN)
+            {
+                bootlog("SDCard not correctly partitioned\n");
+                formatDisk(tableReader);
+                auto res = loadDiskOrFormat(tableReader);
 
-    MountHelper mh = MountHelper::mountRoot(firstPartition, SDIODriver::instance());
-    mh.doMount(tableReader.getNextEntry(), "/sd");
-    mh.doMount(tableReader.getNextEntry(), "/sd1");
+                if (!res || tableReader.getTableType()!=PartitionTableType::MBR) {
+                    bootlog("Failed loading partitions from disks\n");
+                    return;
+                }
+                
+                break;
+            }
+            partition=tableReader.getNextEntry();
+        }
+        tableReader.reset();
+    }
+    
+    tableReader.reset();
+    MountHelper mh = MountHelper::mountRoot(tableReader.getNextEntry(), SDIODriver::instance(), PartitionType::FAT32);
+    mh.doMount(tableReader.getNextEntry(), "/sd", PartitionType::FAT32);
+    mh.doMount(tableReader.getNextEntry(), "/sd1", PartitionType::FAT32);
 }
 
 void bspInit2()

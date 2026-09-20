@@ -145,6 +145,12 @@ public:
         return type;
     }
 
+    void reset()
+    {
+        if (type==PartitionTableType::MBR) mbrReader->reset();
+        //else if(type==PartitionTableType::GPT) gptReader.reset();
+    }
+
 private:
     std::unique_ptr<MBR::MBRReader> mbrReader;
     //std::unique_ptr<GPT::GPTReader> gptReader;

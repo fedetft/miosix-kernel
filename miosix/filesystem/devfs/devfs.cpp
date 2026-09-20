@@ -414,6 +414,11 @@ int DevFs::rmdir(StringPart& name)
     return -EACCES; // No directories support in DevFs yet
 }
 
+int DevFs::mkfs()
+{
+    return 1; // there is no formatting in devfs
+}
+
 #endif //WITH_DEVFS
 
 } //namespace miosix
