@@ -350,6 +350,7 @@ int MemoryMappedRomFs::unlink(StringPart& name) { return -EROFS; }
 int MemoryMappedRomFs::rename(StringPart& oldName, StringPart& newName) { return -EROFS; }
 int MemoryMappedRomFs::mkdir(StringPart& name, int mode) { return -EROFS; }
 int MemoryMappedRomFs::rmdir(StringPart& name) { return -EROFS; }
+int MemoryMappedRomFs::mkfs() { return 1; }
 
 int MemoryMappedRomFs::readlink(StringPart& name, string& target)
 {
