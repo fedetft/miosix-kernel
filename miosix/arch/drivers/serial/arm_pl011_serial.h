@@ -108,6 +108,13 @@ public:
      */
     int ioctl(int cmd, void *arg);
     
+#ifdef WITH_DEVFS
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("S");
+    }
+#endif
+
     /**
      * Destructor
      */

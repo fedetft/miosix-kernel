@@ -98,6 +98,13 @@ public:
     virtual int isatty() const;
     
     #endif //WITH_FILESYSTEM
+
+    #ifdef WITH_DEVFS
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("S");
+    }
+    #endif
     
     /**
      * Perform various operations on a file descriptor

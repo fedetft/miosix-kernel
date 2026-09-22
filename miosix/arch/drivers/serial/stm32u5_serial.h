@@ -219,6 +219,13 @@ public:
     {
         return STM32SerialBase::ioctl(cmd, arg);
     }
+
+#ifdef WITH_DEVFS
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("S");
+    }
+#endif
     
     /**
      * Destructor
@@ -321,6 +328,13 @@ public:
     {
         return STM32SerialBase::ioctl(cmd, arg);
     }
+
+#ifdef WITH_DEVFS
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("S");
+    }
+#endif
     
     /**
      * Destructor

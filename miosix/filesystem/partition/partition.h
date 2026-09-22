@@ -117,6 +117,23 @@ public:
         return backend->ioctl(cmd, arg);
     }
     
+    virtual StringPart getPrefix() const
+    {
+        char partNamePrefix[250];
+        if (!backend->hasName())
+        {
+            return StringPart("unkowndevpart");
+        }
+        auto& backendName = backend->getName();
+        snprintf(partNamePrefix, 250, "%sp", backendName.c_str());
+        return StringPart(partNamePrefix);
+    }
+
+    intrusive_ref_ptr<Device> getBackend()
+    {
+        return backend;
+    }
+
 private:
     const intrusive_ref_ptr<Device> backend; ///< the device that contains the partition, can be physical or logical
     const unsigned long long startSector;    ///< starting sector of the partition in the backend device

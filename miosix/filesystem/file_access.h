@@ -614,8 +614,8 @@ public:
      * \returns an instance of mounthelper
      */
     static MountHelper mountRoot(
-        std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
-        intrusive_ref_ptr<Device> physicalDevice, PartitionType formatOnFail=PartitionType::NONE);
+        std::pair<intrusive_ref_ptr<Partition>, PartitionType> rootPartition,
+        PartitionType formatOnFail=PartitionType::NONE);
 
     /**
      * Tries to mount the partition with the given partition type at the given mount point.
@@ -631,6 +631,9 @@ public:
         const char* mountPoint, PartitionType formatOnFail=PartitionType::NONE);
 
 private:
+
+    intrusive_ref_ptr<FilesystemBase> doRamMount(intrusive_ref_ptr<Device> dev, 
+        PartitionType partType, PartitionType formatOnFail);
 
 #ifdef WITH_DEVFS
     int mountDevFs();

@@ -327,6 +327,28 @@ DevFs::DevFs() : mutex(MutexOptions::RECURSIVE), inodeCount(rootDirInode+1)
     addDevice("zero",intrusive_ref_ptr<Device>(new Device(Device::STREAM)));
 }
 
+bool DevFs::addDevice(intrusive_ref_ptr<Device> dev)
+{
+    if (dev->hasName())
+    {
+        return true; // Already registered so we can consider this call a success.
+    }
+    char devNameBuf[255]; // maybe this should be configured.
+    auto const& devPrefix = dev->getPrefix();
+    auto const isTTY = dev->isatty();
+    for(uint16_t postfix = 0; postfix < 0xffff; postfix++) // we can add up to 2^16 devices of the same type
+    {
+        
+        snprintf(devNameBuf, 255, "%s%s%hu", isTTY ? "tty" : "", devPrefix.c_str(), postfix);
+        if (addDevice(devNameBuf, dev))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev)
 {
     if(name==0 || name[0]=='\0') return false;
@@ -335,7 +357,7 @@ bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev)
     Lock<KernelMutex> l(mutex);
     bool result=files.insert(make_pair(StringPart(name),dev)).second;
     //Assign inode to the file
-    if(result) dev->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId);
+    if(result) dev->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId, StringPart(name));
     return result;
 }
 
@@ -399,6 +421,7 @@ int DevFs::rename(StringPart& oldName, StringPart& newName)
         if(newName[i]=='/')
             return -EACCES; //DevFs does not support subdirectories
     files.erase(newName); //If it exists
+    it->second->setName(newName);
     files.insert(make_pair(newName,it->second));
     files.erase(it);
     return 0;

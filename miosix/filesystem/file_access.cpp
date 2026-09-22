@@ -941,34 +941,26 @@ static inline const char* getPartitionTypeName(PartitionType partition)
     }
 }
 
-MountHelper MountHelper::mountRoot(
-    std::pair<intrusive_ref_ptr<Partition>, PartitionType> partition,
-    intrusive_ref_ptr<Device> physicalDevice, PartitionType formatOnFail)
+intrusive_ref_ptr<FilesystemBase> MountHelper::doRamMount(
+    intrusive_ref_ptr<Device> dev, PartitionType partType, 
+    PartitionType formatOnFail)
 {
-    MountHelper mh;
-    bootlog("Mounting %s as / ... ", getPartitionTypeName(partition.second));
-
     intrusive_ref_ptr<FileBase> disk;
-    FilesystemManager& fsm=FilesystemManager::instance();
-#ifdef WITH_DEVFS
-    intrusive_ref_ptr<DevFs> devfs(new DevFs); // we must create devFs here
-    mh.devFs=devfs;
 
-    // TODO: remove this hardcoded mmcblk0
-    if(physicalDevice) mh.devFs->addDevice("mmcblk0", physicalDevice);
-    if(partition.first) mh.devFs->addDevice("mmcblk0p0", partition.first);
-    StringPart part0("mmcblk0p0");
-    if(mh.devFs->open(disk, part0, O_RDWR, 0)<0)
-#else // WITH_DEVFS
-    if(partition.first && 
-        partition.first->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
-#endif // WITH_DEVFS
+#ifdef WITH_DEVFS
+    if (!devFs->addDevice(dev))
     {
-        bootlog("Failed\n");
-        return mh;
+        return intrusive_ref_ptr<FilesystemBase>{nullptr};
+    }
+    if(devFs->open(disk, dev->getName(), O_RDWR, 0)<0)
+#else
+    if(dev && dev->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
+#endif
+    {
+        return intrusive_ref_ptr<FilesystemBase>{nullptr};
     }
 
-    intrusive_ref_ptr<FilesystemBase> fsImpl=tryMount(disk, partition.second);
+    intrusive_ref_ptr<FilesystemBase> fsImpl=tryMount(disk, partType);
 
     // If the filesystem is unknown or has failed then we try to mount all 
     // partition types except for the one hinted, which has already failed
@@ -976,7 +968,11 @@ MountHelper MountHelper::mountRoot(
         partitionType<static_cast<unsigned char>(PartitionType::UNKNOWN); 
         partitionType++)
     {
-        if(fsImpl && !fsImpl->mountFailed()) break;
+        if(fsImpl && !fsImpl->mountFailed())
+        {
+            return fsImpl;
+        }
+
         bootlog("Failed (Partition Type was: %s)\n",
             getPartitionTypeName(static_cast<PartitionType>(partitionType)));
 
@@ -989,7 +985,7 @@ MountHelper MountHelper::mountRoot(
             if (!fsImpl->mountFailed())
             {
                 bootlog("Partition could be mounted without format\n");
-                break;
+                return fsImpl;
             }
 
             if(fsImpl->mkfs()==0)
@@ -997,14 +993,40 @@ MountHelper MountHelper::mountRoot(
                 bootlog("Successfully formatted the disk\n");
                 bootlog("Mounting the disk...");
                 fsImpl=tryMount(disk, formatOnFail);
-                break;
+                return fsImpl;
             }
         }
 
         bootlog("Trying another partition type... ");
-        if(partitionType==static_cast<unsigned char>(partition.second)) continue;
+        if(partitionType==static_cast<unsigned char>(partType)) continue;
         fsImpl=tryMount(disk, static_cast<PartitionType>(partitionType));
     }
+    
+    return intrusive_ref_ptr<FilesystemBase>(nullptr); // we have tried them all
+}
+
+
+MountHelper MountHelper::mountRoot(
+    std::pair<intrusive_ref_ptr<Partition>, PartitionType> rootPartition, PartitionType formatOnFail)
+{
+    MountHelper mh;
+    bootlog("Mounting %s as / ... ", getPartitionTypeName(rootPartition.second));
+
+    intrusive_ref_ptr<FileBase> disk;
+    FilesystemManager& fsm=FilesystemManager::instance();
+#ifdef WITH_DEVFS
+    intrusive_ref_ptr<DevFs> devfs(new DevFs); // we must create devFs here
+    mh.devFs=devfs;
+
+    if (!(rootPartition.first && mh.devFs->addDevice(rootPartition.first->getBackend())))
+    {
+        bootlog("Failed\n");
+        return mh;
+    } 
+#endif // WITH_DEVFS
+    
+    intrusive_ref_ptr<FilesystemBase> fsImpl=mh.doRamMount(rootPartition.first,
+         rootPartition.second, formatOnFail);
     
     if (!fsImpl || fsImpl->mountFailed()) 
     {
@@ -1046,70 +1068,19 @@ int MountHelper::doMount(
     intrusive_ref_ptr<FileBase> disk;
     FilesystemManager& fsm=FilesystemManager::instance();
     
-    #ifdef WITH_DEVFS
-    // TODO: remove this constant name
-    char devPartName[10]="mmcblk0p0";
-    StringPart part0("mmcblk0p0");
+#ifdef WITH_DEVFS
     if (partition.first)
     {
-        // TOOD: What is the max number of partitions and where to put this number?
-        constexpr unsigned char MAX_NUM_OF_PARTITIONS=32;
-        for (unsigned char partitionNumber=0; 
-            partitionNumber<MAX_NUM_OF_PARTITIONS; partitionNumber++) 
+        if (!devFs->addDevice(partition.first->getBackend()))
         {
-            if (devFs->addDevice(devPartName, partition.first)) break;
-            devPartName[8]++;
-            part0=StringPart{devPartName};
+            bootlog("Failed (failed registering backend)");
+            return -1;
         }
     }
-    if(partition.first && devFs->open(disk, part0, O_RDWR, 0)<0)
-    #else // WITH_DEVFS
-    if(partition.first && 
-        partition.first->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
-    #endif // WITH_DEVFS
-    {
-        bootlog("Failed (failed opening disk)\n");
-        return -1;
-    }
+#endif // WITH_DEVFS
 
-    intrusive_ref_ptr<FilesystemBase> fsImpl=tryMount(disk, partition.second);
-
-    // If the filesystem is unknown or has failed then we try to mount all 
-    // partition types except for the one hinted, which has already failed
-    for(auto partitionType=static_cast<unsigned char>(PartitionType::FAT32); 
-        partitionType<static_cast<unsigned char>(PartitionType::NONE); 
-        partitionType++)
-    {
-        if(fsImpl && !fsImpl->mountFailed()) break;
-        bootlog("Failed (Partition Type was: %s)\n",
-            getPartitionTypeName(static_cast<PartitionType>(partitionType)));
-
-        if (formatOnFail!=PartitionType::NONE && formatOnFail!=PartitionType::UNKNOWN)
-        {
-            bootlog("formatOnFail is defined, formatting as %s\n",
-                getPartitionTypeName(formatOnFail));
-            fsImpl=tryMount(disk, formatOnFail);
-            
-            if (!fsImpl->mountFailed())
-            {
-                bootlog("Ok\nPartition could be mounted without format\n");
-                break;
-            }
-
-            if(fsImpl->mkfs()==0)
-            {
-                bootlog("Ok\nSuccessfully formatted the disk\n");
-                bootlog("Mounting the disk...");
-                fsImpl=tryMount(disk, formatOnFail);
-                break;
-            }
-        }
-
-        bootlog("Trying another partition type... ",
-            getPartitionTypeName(static_cast<PartitionType>(partitionType)));
-        if(partitionType==static_cast<unsigned char>(partition.second)) continue;
-        fsImpl=tryMount(disk, static_cast<PartitionType>(partitionType));
-    }
+    intrusive_ref_ptr<FilesystemBase> fsImpl=doRamMount(partition.first, 
+        partition.second, formatOnFail);
     
     if (!fsImpl || fsImpl->mountFailed()) 
     {

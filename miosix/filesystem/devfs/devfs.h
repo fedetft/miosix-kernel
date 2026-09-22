@@ -68,7 +68,7 @@ public:
      * Constructor
      * \param d device type
      */
-    Device(DeviceType d) : seekable(d==BLOCK), block(d==BLOCK), tty(d==TTY)
+    Device(DeviceType d) : seekable(d==BLOCK), block(d==BLOCK), tty(d==TTY), device_name{}
     {}
 
     #if defined(WITH_FILESYSTEM) || defined(WITH_DEVFS)
@@ -106,12 +106,33 @@ public:
      * \internal
      * Called be DevFs to assign a device and inode to the Device
      */
-    void setFileInfo(ino_t st_ino, short st_dev)
+    void setFileInfo(ino_t st_ino, short st_dev, StringPart device_name)
     {
         this->st_ino=st_ino;
         this->st_dev=st_dev;
+        this->device_name = device_name;
     }
     
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("unkowndev");
+    };
+
+    bool hasName() const
+    {
+        return !device_name.empty();
+    }
+
+    bool nameEquals(StringPart& other) const
+    {
+        return device_name == other;
+    }
+
+    StringPart& getName()
+    {
+        return device_name;
+    }
+
     #endif //WITH_DEVFS
     
     /**
@@ -162,6 +183,15 @@ protected:
     const bool seekable; ///< If true, device is seekable
     const bool block;    ///< If true, it is a block device
     const bool tty;      ///< If true, it is a tty
+    StringPart device_name; ///< Device name given by devfs
+
+private:
+    void setName(StringPart& newName)
+    {
+        device_name = newName;
+    }
+
+    friend class DevFs;
 };
 
 #ifdef WITH_DEVFS
@@ -188,6 +218,14 @@ public:
      * Constructor
      */
     DevFs();
+
+    /**
+     * Add a device file to DevFs. The name will be automatically generated
+     * by DevFS using the device prefix.
+     * \param df Device file. Every open() call will return the same file
+     * \return true if the file was successfully added
+     */
+    bool addDevice(intrusive_ref_ptr<Device> dev);
     
     /**
      * Add a device file to DevFs

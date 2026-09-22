@@ -92,6 +92,13 @@ public:
      */
     int ioctl(int cmd, void *arg);
     
+#ifdef WITH_DEVFS
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("S");
+    }
+#endif
+
     /**
      * \internal the serial port interrupts call this member function.
      * Never call this from user code.

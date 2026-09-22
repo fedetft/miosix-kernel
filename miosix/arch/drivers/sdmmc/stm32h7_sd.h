@@ -50,6 +50,14 @@ public:
     virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where);
     
     virtual int ioctl(int cmd, void *arg);
+
+#ifdef WITH_DEVFS
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("mmcblk");
+    }
+#endif
+
 private:
     /**
      * Constructor

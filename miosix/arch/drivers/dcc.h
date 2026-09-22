@@ -86,6 +86,13 @@ public:
      * \return the exact return value depends on CMD, -1 is returned on error
      */
     int ioctl(int cmd, void *arg);
+
+#ifdef WITH_DEVFS
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("armdcc");
+    }
+#endif
     
 private:
     /**

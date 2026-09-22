@@ -43,6 +43,13 @@ public:
     void IRQwrite(const char *str);
     ssize_t writeBlock(const void *buffer, size_t size, off_t where);
 
+#ifdef WITH_DEVFS
+    virtual StringPart getPrefix() const
+    {
+        return StringPart("S");
+    }
+#endif
+
     void printIRQ();
 private:
     Queue<string, 20> input_queue;

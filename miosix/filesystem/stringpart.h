@@ -191,6 +191,11 @@ public:
     {
         return strcmp(this->c_str(),rhs.c_str())<0;
     }
+
+    bool operator==(const StringPart& rhs) const
+    {
+        return strcmp(this->c_str(),rhs.c_str())==0;
+    }
     
     /**
      * \param rhs a StringPart

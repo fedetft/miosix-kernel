@@ -266,7 +266,8 @@ bool loadDiskOrFormat(DevicePartitionManager& tableReader)
 
 void loadFilesystem()
 {
-    auto tableReader = DevicePartitionManager(SDIODriver::instance());
+    DevicePartitionManager tableReader{SDIODriver::instance()};
+
     bootlog("Loading partitions from SD Card... ");
  
     auto res = loadDiskOrFormat(tableReader);
@@ -283,7 +284,7 @@ void loadFilesystem()
         tableReader.reset();
         auto partition=tableReader.getNextEntry();
         
-        for (int i=0; i<3; i++)
+        for (int i=1; i<3; i++)
         {
             if (partition.second==PartitionType::NONE || partition.second==PartitionType::UNKNOWN)
             {
@@ -304,7 +305,7 @@ void loadFilesystem()
     }
     
     tableReader.reset();
-    MountHelper mh = MountHelper::mountRoot(tableReader.getNextEntry(), SDIODriver::instance(), PartitionType::FAT32);
+    MountHelper mh = MountHelper::mountRoot(tableReader.getNextEntry(), PartitionType::FAT32);
     mh.doMount(tableReader.getNextEntry(), "/sd", PartitionType::FAT32);
     mh.doMount(tableReader.getNextEntry(), "/sd1", PartitionType::FAT32);
 }
