@@ -176,6 +176,9 @@ set(MIOSIX_KERNEL_SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/path.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/stringpart.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/pipe/pipe.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/partition/partition.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/partition/MBR/mbr.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/partition/GPT/gpt.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/console/console_device.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/mountpointfs/mountpointfs.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filesystem/devfs/devfs.cpp

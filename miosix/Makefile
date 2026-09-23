@@ -47,6 +47,7 @@ filesystem/littlefs/lfs_util.c                                             \
 filesystem/romfs/romfs.cpp                                                 \
 filesystem/partition/partition.cpp										   \
 filesystem/partition/MBR/mbr.cpp										   \
+filesystem/partition/GPT/gpt.cpp										   \
 kercalls/libc_integration.cpp                                              \
 kercalls/libstdcpp_integration.cpp                                         \
 e20/e20.cpp                                                                \

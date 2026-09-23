@@ -32,7 +32,8 @@
 #include "partition_type.h"
 #include <vector>
 #include "filesystem/partition/MBR/mbr.h"
-
+#include "filesystem/partition/GPT/gpt.h"
+#ifdef WITH_FILESYSTEM
 namespace miosix 
 {
 
@@ -165,14 +166,19 @@ public:
     void reset()
     {
         if (type==PartitionTableType::MBR) mbrReader->reset();
-        //else if(type==PartitionTableType::GPT) gptReader.reset();
+#ifdef WITH_GPT
+        else if(type==PartitionTableType::GPT) gptReader.reset();
+#endif
     }
 
 private:
     std::unique_ptr<MBR::MBRReader> mbrReader;
-    //std::unique_ptr<GPT::GPTReader> gptReader;
+#ifdef WITH_GPT
+    std::unique_ptr<GPT::GPTTableReader> gptReader;
+#endif
     intrusive_ref_ptr<Device> device;
     PartitionTableType type;
 };
 
 } //namespace miosix
+#endif

@@ -92,7 +92,7 @@ namespace miosix {
 /// \def WITH_AUTOMOUNTER
 /// Allows to enable/disable filesystem automounter support to save code size
 /// By default it is defined (filesystem automounter is enabled)
-#define WITH_AUTOMOUNTER
+//#define WITH_AUTOMOUNTER
 
 /// \def WITH_DEVFS
 /// Allows to enable/disable DevFs support to save code size
@@ -130,6 +130,11 @@ constexpr unsigned int FATFS_EXTEND_BUFFER=512;
 /// Allows to enable/disable RomFS support to save code size
 /// By default it is not defined (RomFS is disabled)
 //#define WITH_ROMFS
+
+/// \def WITH_GPT
+/// Allows to enable/disable support for GPT partition table
+/// By default is not defined (GPT table is disabled)
+//#define WITH_GPT
 
 /// \def SYNC_AFTER_WRITE
 /// Increases filesystem write robustness. After each write operation the
