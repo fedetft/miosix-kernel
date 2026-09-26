@@ -89,11 +89,6 @@ namespace miosix {
 // always left undefined otherwise
 #ifdef WITH_FILESYSTEM
 
-/// \def WITH_POSIX_PERMISSIONS
-/// Allows to enable/disable support for POSIX permission bits
-/// By default is undefined (permissions are disabled)
-//#define WITH_POSIX_PERMISSIONS
-
 /// \def WITH_AUTOMOUNTER
 /// Allows to enable/disable filesystem automounter support to save code size
 /// By default it is defined (filesystem automounter is enabled)
@@ -165,6 +160,14 @@ const unsigned char MAX_OPEN_FILES=8;
 /// lines if you want to use processes without RomFS.
 #if defined(WITH_PROCESSES) && !defined(WITH_ROMFS)
 #define WITH_ROMFS
+#endif
+
+#ifdef WITH_PROCESSES
+/// \def WITH_POSIX_PERMISSIONS
+/// Allows to enable/disable support for POSIX permission bits
+/// if processes are enabled
+/// By default is undefined (permissions are disabled)
+//#define WITH_POSIX_PERMISSIONS
 #endif
 
 #endif // WITH_FILESYSTEM
