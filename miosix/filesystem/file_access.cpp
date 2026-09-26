@@ -562,7 +562,9 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         }
         if(S_ISLNK(st.st_mode)) return followSymlink(path);
         else if(index<=path.length() && !S_ISDIR(st.st_mode)) return -ENOTDIR;
+        #ifdef WITH_POSIX_PERMISSIONS
         if (!processHasSearchAccess(st)) return -EACCES;
+        #endif
     #ifndef WITH_POSIX_PERMISSIONS
     }
     #endif
