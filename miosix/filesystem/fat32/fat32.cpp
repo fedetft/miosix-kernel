@@ -41,6 +41,7 @@
 #include "filesystem/stringpart.h"
 #include "filesystem/ioctl.h"
 #include "util/unicode.h"
+#include "kernel/process.h"
 
 using namespace std;
 
@@ -57,25 +58,25 @@ static int translateError(int ec)
 {
     switch(ec)
     {
-        case FR_OK:
-            return 0;
-        case FR_NO_FILE:
-        case FR_NO_PATH:
-            return -ENOENT;
-        case FR_DENIED:
-            return -EINVAL;
-        case FR_EXIST:
-            return -EEXIST;
-        case FR_WRITE_PROTECTED:
-            return -EROFS;
-        case FR_LOCKED:
-            return -EBUSY;
-        case FR_NOT_ENOUGH_CORE:
-            return -ENOMEM;
-        case FR_TOO_MANY_OPEN_FILES:
-            return -ENFILE;
-        default:
-            return -EACCES;
+    case FR_OK:
+        return 0;
+    case FR_NO_FILE:
+    case FR_NO_PATH:
+        return -ENOENT;
+    case FR_DENIED:
+        return -EINVAL;
+    case FR_EXIST:
+        return -EEXIST;
+    case FR_WRITE_PROTECTED:
+        return -EROFS;
+    case FR_LOCKED:
+        return -EBUSY;
+    case FR_NOT_ENOUGH_CORE:
+        return -ENOMEM;
+    case FR_TOO_MANY_OPEN_FILES:
+        return -ENFILE;
+    default:
+        return -EACCES;
     }
 }
 
@@ -87,7 +88,7 @@ class Fat32Directory : public DirectoryBase
 public:
     /**
      * \param parent parent filesystem
-     * \param mutex mutex to lock when accessing the fiesystem
+     * \param mutex mutex to lock when accessing the filesystem
      * \param currentInode inode value for '.' entry
      * \param parentInode inode value for '..' entry
      */
@@ -101,12 +102,12 @@ public:
         fi.lfname=lfn;
         fi.lfsize=sizeof(lfn);
     }
-    
+
     /**
      * \return the underlying directory object 
      */
     DIR_ *directory() { return &dir; }
-    
+
     /**
      * Also directories can be opened as files. In this case, this system call
      * allows to retrieve directory entries.
@@ -117,7 +118,7 @@ public:
      * failure.
      */
     virtual int getdents(void *dp, int len);
-    
+
     /**
      * Destructor
      */
@@ -144,7 +145,7 @@ int Fat32Directory::getdents(void *dp, int len)
     char *begin=reinterpret_cast<char*>(dp);
     char *buffer=begin;
     char *end=buffer+len;
-    
+
     Lock<KernelMutex> l(mutex);
     if(first)
     {
@@ -234,7 +235,7 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     virtual int fstat(struct stat *pstat) const;
-    
+
     /**
      * Perform various operations on a file descriptor
      * \param cmd specifies the operation to perform
@@ -242,25 +243,25 @@ public:
      * \return the exact return value depends on CMD, -1 is returned on error
      */
     virtual int ioctl(int cmd, void *arg);
-    
+
     /**
-     * \return the FatFs FIL object 
+     * \return the FatFs FIL object
      */
     FIL *fil() { return &file; }
-    
+
     /**
      * \param inode file inode
      */
     void setInode(ino_t inode) { this->inode=inode; }
-    
+
     /**
      * Destructor
      */
     ~Fat32File();
-    
+
 private:
     FIL file;
-    KernelMutex& mutex;
+    KernelMutex &mutex;
     ino_t inode=0;
     /// Used to map FatFs behavior into POSIX. Variable is 0 as long as we seek
     /// within, contains by how many bytes we seeked past the end otherwise
@@ -272,7 +273,7 @@ private:
 //
 
 Fat32File::Fat32File(intrusive_ref_ptr<FilesystemBase> parent, int flags, KernelMutex& mutex)
-        : FileBase(parent,flags), mutex(mutex) {}
+    : FileBase(parent,flags), mutex(mutex) {}
 
 ssize_t Fat32File::write(const void *data, size_t len)
 {
@@ -303,7 +304,7 @@ ssize_t Fat32File::write(const void *data, size_t len)
     if(int res=translateError(f_write(&file,data,len,&bytesWritten))) return res;
     #ifdef SYNC_AFTER_WRITE
     if(f_sync(&file)!=FR_OK) return -EIO;
-    #endif //SYNC_AFTER_WRITE    
+    #endif //SYNC_AFTER_WRITE
     return static_cast<int>(bytesWritten);
 }
 
@@ -324,17 +325,17 @@ off_t Fat32File::lseek(off_t pos, int whence)
     off_t offset, fileSize=static_cast<off_t>(f_size(&file));
     switch(whence)
     {
-        case SEEK_CUR:
-            offset=static_cast<off_t>(f_tell(&file))+seekPastEnd+pos;
-            break;
-        case SEEK_SET:
-            offset=pos;
-            break;
-        case SEEK_END:
-            offset=fileSize+pos;
-            break;
-        default:
-            return -EINVAL;
+    case SEEK_CUR:
+        offset=static_cast<off_t>(f_tell(&file))+seekPastEnd+pos;
+        break;
+    case SEEK_SET:
+        offset=pos;
+        break;
+    case SEEK_END:
+        offset=fileSize+pos;
+        break;
+    default:
+        return -EINVAL;
     }
     if(offset<0) return -EOVERFLOW;
     //Checks passed, now we do the actual seek
@@ -383,10 +384,13 @@ int Fat32File::ftruncate(off_t size)
 
 int Fat32File::fstat(struct stat *pstat) const
 {
+    auto parent=getParent();
     memset(pstat,0,sizeof(struct stat));
-    pstat->st_dev=getParent()->getFsId();
+    pstat->st_uid = reinterpret_cast<Fat32Fs*>(parent.get())->uid;
+    pstat->st_gid = reinterpret_cast<Fat32Fs*>(parent.get())->gid;
+    pstat->st_dev=parent->getFsId();
     pstat->st_ino=inode;
-    pstat->st_mode=S_IFREG | 0755; //-rwxr-xr-x
+    pstat->st_mode=S_IFREG | Fat32::DEFAULT_FIL_PERM; //-rw-r--r--
     pstat->st_nlink=1;
     pstat->st_size=f_size(&file);
     pstat->st_blksize=512;
@@ -411,16 +415,17 @@ Fat32File::~Fat32File()
 // class Fat32Fs
 //
 
-Fat32Fs::Fat32Fs(intrusive_ref_ptr<FileBase> disk)
-        : mutex(MutexOptions::RECURSIVE), failed(true)
+Fat32Fs::Fat32Fs(intrusive_ref_ptr<FileBase> disk, uid_t uid, gid_t gid)
+        : uid{uid}, gid{gid}, mutex(MutexOptions::RECURSIVE), failed(true)
 {
     filesystem.pdrv=disk;
     failed=f_mount(&filesystem,1,false)!=FR_OK;
     
     // In case of wrong file system type, make fail the mount
-    if(!failed && filesystem.fs_type != FS_FAT12 && filesystem.fs_type != FS_FAT16 && filesystem.fs_type != FS_FAT32) {
+    if(!failed && filesystem.fs_type != FS_FAT12 && filesystem.fs_type != FS_FAT16 && filesystem.fs_type != FS_FAT32) 
+    {
+        failed = true;
         f_mount(&filesystem, 0, true); //Unmount the filesystem
-        failed = true; //TODO: Is it really a "NO FILESYSTEM?"
     }
 }
 
@@ -429,13 +434,13 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 {
     if(failed) return -ENOENT;
     flags++; //To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
-    
+
     // Code path checklist:
     // Not existent | Regular file | Directory |
     //      ok      |      ok      |    ok     | _FREAD
     //      ok      |      ok      |    ok     | _FWRITE
     //      ok      |      ok      |    ok     | _FWRITE | _FCREAT
-    
+
     struct stat st;
     bool statFailed=false;
     if(int result=lstat(name,&st))
@@ -444,10 +449,52 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         if((flags & (_FWRITE | _FCREAT)) != (_FWRITE | _FCREAT)) return result;
         else statFailed=true;
     }
-        
-    //Using if short circuit, as st is not initialized if statFailed
-    if(statFailed || !S_ISDIR(st.st_mode))
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    auto process=Thread::getCurrentThread()->getProcess(); 
+
+    auto euid=0;
+    auto egid=0;
+
+    if(process)
     {
+        euid=process->geteuid();
+        egid=process->getegid();
+    }
+    #endif
+
+    // Using if short circuit, as st is not initialized if statFailed
+    if (statFailed || !S_ISDIR(st.st_mode))
+    {
+        #ifdef WITH_POSIX_PERMISSIONS
+        // get the parent directory stats 
+        // if permissions are enabled this is useful to check if the user
+        // has write permissions in the owning directory for O_CREAT (_FCREAT)
+        struct stat parentStat;
+ 
+        unsigned int lastSlash = name.findLastOf('/');
+        if (lastSlash != string::npos)
+        {
+            StringPart parent(name, lastSlash);
+            if (int result = lstat(parent, &parentStat))
+                return result;
+        } else { // the parent is root
+            StringPart parent("/");
+            if (int result = lstat(parent, &parentStat))
+                return result;
+        }
+    
+        if (statFailed && flags & _FCREAT && !DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
+        {
+            return -EACCES;
+        }
+        if (!statFailed) {
+            if ((flags & _FWRITE || flags & _FAPPEND) && !FileBase::canWriteInFile(euid, egid, st))
+                return -EACCES;
+            if (flags & _FREAD && !FileBase::canReadFromFile(euid, egid, st))
+                return -EACCES;
+        }
+        #endif
         //About to open a file
         BYTE openflags=0;
         if(flags & _FREAD)  openflags|=FA_READ;
@@ -478,7 +525,13 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     } else {
         //About to open a directory
         if(flags & (_FWRITE | _FAPPEND | _FCREAT | _FTRUNC)) return -EISDIR;
-        
+
+        #ifdef WITH_POSIX_PERMISSIONS
+        if (!DirectoryBase::canReadDirectory(euid, egid, st))
+        {
+            return -EACCES;
+        }
+        #endif
         ino_t parentInode;
         if(name.empty()==false)
         {
@@ -491,15 +544,13 @@ int Fat32Fs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
                 parentInode=st2.st_ino;
             } else parentInode=1; //Asked to list subdir of root
         } else parentInode=parentFsMountpointInode; //Asked to list root dir
-        
-        
         intrusive_ref_ptr<Fat32Directory> d(
             new Fat32Directory(shared_from_this(),mutex,st.st_ino,parentInode));
-         
+
         Lock<KernelMutex> l(mutex);
         if(int res=translateError(f_opendir(&filesystem,d->directory(),name.c_str())))
             return res;
-         
+
         file=d;
     }
     return 0;
@@ -512,14 +563,15 @@ int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
     pstat->st_dev=filesystemId;
     pstat->st_nlink=1;
     pstat->st_blksize=512;
-    
+    pstat->st_uid=uid;
+    pstat->st_gid=gid;
     Lock<KernelMutex> l(mutex);
     if(name.empty())
     {
         //We are asked to stat the filesystem's root directory
         //By convention, we use 1 for root dir inode, see INODE() macro in ff.c
         pstat->st_ino=1;
-        pstat->st_mode=S_IFDIR | 0755;  //drwxr-xr-x
+        pstat->st_mode=S_IFDIR | Fat32::DEFAULT_DIR_PERM; // drwxr-xr-x
         return 0;
     }
     FILINFO info;
@@ -529,8 +581,8 @@ int Fat32Fs::lstat(StringPart& name, struct stat *pstat)
     
     pstat->st_ino=info.inode;
     pstat->st_mode=(info.fattrib & AM_DIR) ?
-        S_IFDIR | 0755  //drwxr-xr-x
-      : S_IFREG | 0755; //-rwxr-xr-x
+        S_IFDIR | Fat32::DEFAULT_DIR_PERM  //drwxr-xr-x
+      : S_IFREG | Fat32::DEFAULT_FIL_PERM; //-rw-r--r--
     pstat->st_size=info.fsize;
     pstat->st_blocks=(info.fsize+511)/512;
     return 0;
@@ -553,6 +605,42 @@ int Fat32Fs::rename(StringPart& oldName, StringPart& newName)
 {
     if(failed) return -ENOENT;
     Lock<KernelMutex> l(mutex);
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    // get the parent directory stats 
+    // if permissions are enabled this is useful to check if the user
+    // has write permissions in the owning directory for O_CREAT (_FCREAT)
+    struct stat parentStat;
+
+    unsigned int lastSlash = oldName.findLastOf('/');
+    if (lastSlash != string::npos)
+    {
+        StringPart parent(oldName, lastSlash);
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    } else { // the parent is root
+        StringPart parent("/");
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    }
+
+    auto process=Thread::getCurrentThread()->getProcess();
+    
+    uid_t euid=0;
+    gid_t egid=0;
+
+    if (process)
+    {
+        euid=process->geteuid();
+        egid=process->getegid();
+    }
+
+    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
+    {
+        return -EACCES;
+    }
+    #endif
+
     return translateError(f_rename(&filesystem,oldName.c_str(),newName.c_str()));
 }
 
@@ -560,6 +648,42 @@ int Fat32Fs::mkdir(StringPart& name, int mode)
 {
     if(failed) return -ENOENT;
     Lock<KernelMutex> l(mutex);
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    // get the parent directory stats 
+    // if permissions are enabled this is useful to check if the user
+    // has write permissions in the owning directory for O_CREAT (_FCREAT)
+    struct stat parentStat;
+
+    unsigned int lastSlash = name.findLastOf('/');
+    if (lastSlash != string::npos)
+    {
+        StringPart parent(name, lastSlash);
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    } else { // the parent is root
+        StringPart parent("/");
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    }
+
+    auto process=Thread::getCurrentThread()->getProcess();
+    
+    uid_t euid=0;
+    gid_t egid=0;
+
+    if (process)
+    {
+        euid=process->geteuid();
+        egid=process->getegid();
+    }
+
+    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
+    {
+        return -EACCES;
+    }
+    #endif
+
     return translateError(f_mkdir(&filesystem,name.c_str()));
 }
 
@@ -576,7 +700,7 @@ int Fat32Fs::mkfs()
     params.align=0; // this will retrieve the block size from memory (512)
     params.n_root=0; // this has no effect on fat32
     params.au_size=0; // let fatfs decide allocation unit for clusters
-    params.fmt=FM_FAT32 | FM_SFD; // with SFD fatfs doesn't create partition table
+    params.fmt=FM_FAT32|FM_SFD; // with SFD fatfs doesn't create partition table
     auto res=f_mkfs(&filesystem, &params, workingBuffer, 512); 
     return res==FR_OK ? 0 : 1;
 }
@@ -599,6 +723,42 @@ int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
     {
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
     } else if(S_ISDIR(st.st_mode)) return -EISDIR;
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    // get the parent directory stats 
+    // if permissions are enabled this is useful to check if the user
+    // has write permissions in the owning directory for O_CREAT (_FCREAT)
+    struct stat parentStat;
+
+    unsigned int lastSlash = name.findLastOf('/');
+    if (lastSlash != string::npos)
+    {
+        StringPart parent(name, lastSlash);
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    } else { // the parent is root
+        StringPart parent("/");
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    }
+
+    auto process=Thread::getCurrentThread()->getProcess();
+    
+    uid_t euid=0;
+    gid_t egid=0;
+
+    if (process)
+    {
+        euid=process->geteuid();
+        egid=process->getegid();
+    }
+
+    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
+    {
+        return -EACCES;
+    }
+    #endif
+
     return translateError(f_unlink(&filesystem,name.c_str()));
 }
 

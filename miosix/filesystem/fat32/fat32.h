@@ -25,16 +25,23 @@
  *   along with this program; if not, see <http://www.gnu.org/licenses/>   *
  ***************************************************************************/
 #pragma once
- #include "filesystem/fatfs/ffconf.h"
+#include "filesystem/fatfs/ffconf.h"
 
 #include "filesystem/file.h"
 #include "kernel/sync.h"
 #include "filesystem/fatfs/ff.h"
 #include "miosix_settings.h"
 
-namespace miosix {
+namespace miosix
+{
     
 #ifdef WITH_FILESYSTEM
+
+namespace Fat32
+{
+constexpr auto DEFAULT_DIR_PERM = 0755;
+constexpr auto DEFAULT_FIL_PERM = 0644;
+}
 
 /**
  * Fat32 Filesystem.
@@ -45,7 +52,7 @@ public:
     /**
      * Constructor
      */
-    Fat32Fs(intrusive_ref_ptr<FileBase> disk);
+    Fat32Fs(intrusive_ref_ptr<FileBase> disk, uid_t uid=0, gid_t gid=0);
     
     /**
      * Open a file
@@ -126,7 +133,12 @@ public:
      */
     ~Fat32Fs();
     
+    const uid_t uid;
+    const gid_t gid;
+    
 private:
+
+    friend class FilesystemManager;
     
     int unlinkRmdirHelper(StringPart& name, bool delDir);
     
