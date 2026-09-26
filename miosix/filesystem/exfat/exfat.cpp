@@ -44,8 +44,7 @@
 
 using namespace std;
 
-namespace miosix
-{
+namespace miosix {
 
 #ifdef WITH_FILESYSTEM
 
@@ -56,7 +55,7 @@ namespace miosix
  */
 static int translateError(int ec)
 {
-    switch (ec)
+    switch(ec)
     {
     case FR_OK:
         return 0;
@@ -93,14 +92,14 @@ public:
      * \param parentInode inode value for '..' entry
      */
     ExFatDirectory(intrusive_ref_ptr<FilesystemBase> parent, KernelMutex &mutex,
-                    ino_t currentInode, ino_t parentInode) : DirectoryBase(parent),
-                                                        mutex(mutex), currentInode(currentInode), parentInode(parentInode),
-                                                        first(true), unfinished(false)
+            ino_t currentInode, ino_t parentInode) : DirectoryBase(parent),
+            mutex(mutex), currentInode(currentInode), parentInode(parentInode),
+            first(true), unfinished(false)
     {
-        // Make sure a closedir of an uninitialized dir won't do any damage
-        dir.obj.fs = 0;
-        fi.lfname = lfn;
-        fi.lfsize = sizeof(lfn);
+        //Make sure a closedir of an uninitialized dir won't do any damage
+        dir.obj.fs=0;
+        fi.lfname=lfn;
+        fi.lfsize=sizeof(lfn);
     }
 
     /**
@@ -141,39 +140,36 @@ private:
 
 int ExFatDirectory::getdents(void *dp, int len)
 {
-    if (len < minimumBufferSize)
-        return -EINVAL;
-    char *begin = reinterpret_cast<char *>(dp);
-    char *buffer = begin;
-    char *end = buffer + len;
+    if(len<minimumBufferSize) return -EINVAL;
+    char *begin=reinterpret_cast<char*>(dp);
+    char *buffer=begin;
+    char *end=buffer+len;
 
     Lock<KernelMutex> l(mutex);
-    if (first)
+    if(first)
     {
-        first = false;
-        addDefaultEntries(&buffer, currentInode, parentInode);
+        first=false;
+        addDefaultEntries(&buffer,currentInode,parentInode);
     }
-    if (unfinished)
+    if(unfinished)
     {
-        unfinished = false;
-        char type = fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
-        if (addEntry(&buffer, end, fi.inode, type, fi.lfname) < 0)
-            return -EINVAL;
+        unfinished=false;
+        char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
+        if(addEntry(&buffer,end,fi.inode,type,fi.lfname)<0) return -EINVAL;
     }
-    for (;;)
+    for(;;)
     {
-        if (int res = translateError(f_readdir(&dir, &fi)))
-            return res;
-        if (fi.lfname[0] == '\0')
+        if(int res=translateError(f_readdir(&dir,&fi))) return res;
+        if(fi.lfname[0]=='\0')
         {
-            addTerminatingEntry(&buffer, end);
-            return buffer - begin;
+            addTerminatingEntry(&buffer,end);
+            return buffer-begin;
         }
-        char type = fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
-        if (addEntry(&buffer, end, fi.inode, type, fi.lfname) < 0)
+        char type=fi.fattrib & AM_DIR ? DT_DIR : DT_REG;
+        if(addEntry(&buffer,end,fi.inode,type,fi.lfname)<0)
         {
-            unfinished = true;
-            return buffer - begin;
+            unfinished=true;
+            return buffer-begin;
         }
     }
 }
@@ -225,9 +221,8 @@ public:
      */
     virtual off_t lseek(off_t pos, int whence);
 
-    
     /**
-     * Truncate the file, replaced by 64-bit version
+     * Truncate the file
      * \param size new file size
      * \return 0 on success, or a negative number on failure
      */
@@ -266,10 +261,10 @@ public:
 private:
     FIL file;
     KernelMutex &mutex;
-    ino_t inode = 0;
+    ino_t inode=0;
     /// Used to map FatFs behavior into POSIX. Variable is 0 as long as we seek
     /// within, contains by how many bytes we seeked past the end otherwise
-    FSIZE_t seekPastEnd = 0;
+    off_t seekPastEnd=0;
 };
 
 //
@@ -277,9 +272,7 @@ private:
 //
 
 ExFatFile::ExFatFile(intrusive_ref_ptr<FilesystemBase> parent, int flags, KernelMutex &mutex)
-    : FileBase(parent, flags), mutex(mutex)
-{
-}
+    : FileBase(parent, flags), mutex(mutex) {}
 
 ssize_t ExFatFile::write(const void *data, size_t len)
 {
@@ -289,32 +282,28 @@ ssize_t ExFatFile::write(const void *data, size_t len)
     // is >0. We need to handle this special case by filling the gap with zeros
     // Note that in this case write should not return the number of bytes written
     // to fill the gap
-    if (seekPastEnd > 0)
+    if (seekPastEnd>0)
     {
         // If filling the gap would overflow we should not even start
-        if (seekPastEnd + static_cast<FSIZE_t>(f_size(&file)) + len > 0xffffffffffffffff)
+        if (seekPastEnd+static_cast<unsigned long long>(f_size(&file))+len>0xffffffffffffffff)
             return -EOVERFLOW;
         // To write zeros efficiently we have to allocate a buffer of zeros
-        unsigned long long bufSize = min<unsigned long long>(seekPastEnd, FATFS_EXTEND_BUFFER);
-        unique_ptr<char, decltype(&free)> buffer(
-            reinterpret_cast<char *>(calloc(1, bufSize)), &free);
-        if (buffer.get() == nullptr)
-            return -ENOMEM; // Not enough memory
-        while (seekPastEnd > 0)
+        unsigned long long bufSize=min<unsigned long long>(seekPastEnd,FATFS_EXTEND_BUFFER);
+        unique_ptr<char,decltype(&free)> buffer(
+            reinterpret_cast<char*>(calloc(1,bufSize)),&free);
+        if(buffer.get()==nullptr) return -ENOMEM; // Not enough memory
+        while(seekPastEnd>0)
         {
-            unsigned int toWrite = min<unsigned long long>(seekPastEnd, bufSize);
-            int res = translateError(f_write(&file, buffer.get(), toWrite, &bytesWritten));
-            if (res || bytesWritten == 0)
-                return res; // Error while filling the gap
-            seekPastEnd -= bytesWritten;
+            unsigned int toWrite=min<unsigned long long>(seekPastEnd,bufSize);
+            int res=translateError(f_write(&file,buffer.get(),toWrite,&bytesWritten));
+            if(res || bytesWritten==0) return res; //Error while filling the gap
+            seekPastEnd-=bytesWritten;
         }
     }
-    if (int res = translateError(f_write(&file, data, len, &bytesWritten)))
-        return res;
-#ifdef SYNC_AFTER_WRITE
-    if (f_sync(&file) != FR_OK)
-        return -EIO;
-#endif // SYNC_AFTER_WRITE
+    if(int res=translateError(f_write(&file,data,len,&bytesWritten))) return res;
+    #ifdef SYNC_AFTER_WRITE
+    if(f_sync(&file)!=FR_OK) return -EIO;
+    #endif //SYNC_AFTER_WRITE
     return static_cast<long int>(bytesWritten);
 }
 
@@ -325,106 +314,93 @@ ssize_t ExFatFile::read(void *data, size_t len)
     // NOTE: if we lseek'd past the end, we f_lseek'd to the end and seekPastEnd
     // is >0. Either reading at the end or past the end shall return 0 (eof), so
     // there's no need to handle the read past the end case specially
-    if (int res = translateError(f_read(&file, data, len, &bytesRead)))
-        return res;
+    if (int res=translateError(f_read(&file, data, len, &bytesRead))) return res;
     return static_cast<int>(bytesRead);
 }
 
 off_t ExFatFile::lseek(off_t pos, int whence) 
 {
     Lock<KernelMutex> l(mutex);
-    off_t offset, fileSize = static_cast<off_t>f_size(&file);
-    switch (whence)
+    off_t offset, fileSize=static_cast<off_t>f_size(&file);
+    switch(whence)
     {
     case SEEK_CUR:
-        offset = static_cast<off_t>(f_tell(&file)) + seekPastEnd + pos;
+        offset=static_cast<off_t>(f_tell(&file))+seekPastEnd+pos;
         break;
     case SEEK_SET:
-        offset = pos;
+        offset=pos;
         break;
     case SEEK_END:
-        offset = fileSize + pos;
+        offset=fileSize+pos;
         break;
     default:
         return -EINVAL;
     }
-
-    if (offset < 0)
-        return -EOVERFLOW;
-
-    if (offset > fileSize) {
-        // We can't f_lseek past the end of the file as FatFs deviates from POSIX.
-        // f_lseek would preallocate seekPastEnd bytes immediately, leaving them
-        // uninitialized, while POSIX specifies that no data should be added to
-        // the file unless an actual write occurs at the past the end location,
-        // and that the gap should be filled with zeros. For this reason, we seek
-        // at the end instead, and remember by how many bytes we are past the end
-        // in the seekPastEnd variable
-        seekPastEnd = offset - fileSize;
-        offset = fileSize;
-    } 
-    else
-        seekPastEnd = 0;
-
-    if (int result = translateError(
-        f_lseek(&file, static_cast<off_t>(offset))))
-        return result;
-    return offset + seekPastEnd;
+    if(offset<0) return -EOVERFLOW;
+    //Checks passed, now we do the actual seek
+    if(offset>fileSize)
+    {
+        //We can't f_lseek past the end of the file as FatFs deviates from POSIX.
+        //f_lseek would preallocate seekPastEnd bytes immediately, leaving them
+        //uninitialized, while POSIX specifies that no data should be added to
+        //the file unless an actual write occurs at the past the end location,
+        //and that the gap should be filled with zeros. For this reason, we seek
+        //at the end instead, and remember by how many bytes we are past the end
+        //in the seekPastEnd variable
+        seekPastEnd=offset-fileSize;
+        offset=fileSize;
+    } else seekPastEnd=0;
+    if(int result=translateError(
+        f_lseek(&file,static_cast<off_t>(offset)))) return result;
+    return offset+seekPastEnd;
 }
 
 int ExFatFile::ftruncate(off_t size) 
 {
     Lock<KernelMutex> l(mutex);
-    off_t fileSize = static_cast<off_t>(f_size(&file));
-    if (size == fileSize)
-        return 0; // Nothing to do
-    off_t curPos = static_cast<off_t>(f_tell(&file)) + seekPastEnd;
+    off_t fileSize=static_cast<off_t>(f_size(&file));
+    if(size==fileSize) return 0; //Nothing to do
+    off_t curPos=static_cast<off_t>(f_tell(&file))+seekPastEnd;
 
-    int result = 0;
-    if (size < fileSize)
+    int result=0;
+    if(size<fileSize)
     {
-        // Shrinking, FatFs f_truncate truncates to the current file position
-        int r = translateError(f_lseek(&file, static_cast<FSIZE_t>(size)));
-        if (r)
-            return r;
-        result = translateError(f_truncate(&file));
+        //Shrinking, FatFs f_truncate truncates to the current file position
+        int r=translateError(f_lseek(&file,static_cast<FSIZE_t>(size)));
+        if(r) return r;
+        result=translateError(f_truncate(&file));
+    } else {
+        //Enlarging, can't use f_truncate so seek past the end an write
+        off_t r=lseek(size,SEEK_SET);
+        if(r<0) return r;
+        result=write(nullptr,0);
     }
-    else
-    {
-        // Enlarging, can't use f_truncate so seek past the end an write
-        off_t r = lseek(size, SEEK_SET);
-        if (r < 0)
-            return r;
-        result = write(nullptr, 0);
-    }
-    // Restore previous file position and return
-    off_t r = lseek(curPos, SEEK_SET);
-    if (r < 0)
-        return r;
+    //Restore previous file position and return
+    off_t r=lseek(curPos,SEEK_SET);
+    if(r<0) return r;
     return result;
 }
 
 int ExFatFile::fstat(struct stat *pstat) const
 {
-    auto parent = getParent();
+    auto parent=getParent();
 
     memset(pstat, 0, sizeof(struct stat));
     pstat->st_uid = reinterpret_cast<ExFatFs*>(parent.get())->uid;
     pstat->st_gid = reinterpret_cast<ExFatFs*>(parent.get())->gid;
-    pstat->st_dev = getParent()->getFsId();
+    pstat->st_dev = parent->getFsId();
     pstat->st_ino = inode;
-    pstat->st_mode = S_IFREG | DEFAULT_FIL_PERM; //-rw-r--r--
+    pstat->st_mode = S_IFREG | ExFat::DEFAULT_FIL_PERM; //-rw-r--r--
     pstat->st_nlink = 1;
     pstat->st_size = f_size(&file);
     pstat->st_blksize = 512;
-    pstat->st_blocks = (static_cast<unsigned long long>(f_size(&file)) + 511) / 512;
+    pstat->st_blocks = (static_cast<off_t>(f_size(&file)) + 511) / 512;
     return 0;
 }
 
 int ExFatFile::ioctl(int cmd, void *arg)
 {
-    if (cmd != IOCTL_SYNC)
-        return -ENOTTY;
+    if(cmd!=IOCTL_SYNC) return -ENOTTY;
     Lock<KernelMutex> l(mutex);
     return translateError(f_sync(&file));
 }
@@ -432,8 +408,7 @@ int ExFatFile::ioctl(int cmd, void *arg)
 ExFatFile::~ExFatFile()
 {
     Lock<KernelMutex> l(mutex);
-    if (inode)
-        f_close(&file); // TODO: what to do with error code?
+    if(inode) f_close(&file); //TODO: what to do with error code?
 }
 
 //
@@ -455,11 +430,10 @@ ExFatFs::ExFatFs(intrusive_ref_ptr<FileBase> disk, uid_t uid, gid_t gid)
 }
 
 int ExFatFs::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
-                    int flags, int mode)
+        int flags, int mode)
 {
-    if (failed)
-        return -ENOENT;
-    flags++; // To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
+    if(failed) return -ENOENT;
+    flags++; //To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
 
     // Code path checklist:
     // Not existent | Regular file | Directory |
@@ -468,14 +442,12 @@ int ExFatFs::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
     //      ok      |      ok      |    ok     | _FWRITE | _FCREAT
 
     struct stat st;
-    bool statFailed = false;
-    if (int result = lstat(name, &st))
+    bool statFailed=false;
+    if(int result=lstat(name,&st))
     {
-        // If _FCREAT the file may not yet exist as we are asked to create it
-        if ((flags & (_FWRITE | _FCREAT)) != (_FWRITE | _FCREAT))
-            return result;
-        else
-            statFailed = true;
+        //If _FCREAT the file may not yet exist as we are asked to create it
+        if((flags & (_FWRITE | _FCREAT)) != (_FWRITE | _FCREAT)) return result;
+        else statFailed=true;
     }
 
     #ifdef WITH_POSIX_PERMISSIONS
@@ -523,49 +495,36 @@ int ExFatFs::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
                 return -EACCES;
         }
         #endif
+        //About to open a file
+        BYTE openflags=0;
+        if(flags & _FREAD)  openflags|=FA_READ;
+        if(flags & _FWRITE) openflags|=FA_WRITE;
+        if(flags & _FTRUNC) openflags|=FA_CREATE_ALWAYS;//Truncate
+        else if(flags & _FCREAT) openflags|=FA_OPEN_ALWAYS;//If !exists create
+        else openflags|=FA_OPEN_EXISTING;//If not exists fail
 
-        // About to open a file
-        BYTE openflags = 0;
-        if (flags & _FREAD)
-            openflags |= FA_READ;
-        if (flags & _FWRITE)
-            openflags |= FA_WRITE;
-        if (flags & _FTRUNC)
-            openflags |= FA_CREATE_ALWAYS; // Truncate
-        else if (flags & _FCREAT)
-            openflags |= FA_OPEN_ALWAYS; // If !exists create
-        else
-            openflags |= FA_OPEN_EXISTING; // If not exists fail
-
-        intrusive_ref_ptr<ExFatFile> f(new ExFatFile(shared_from_this(), flags - 1, mutex));
+        intrusive_ref_ptr<ExFatFile> f(new ExFatFile(shared_from_this(),flags-1,mutex));
         Lock<KernelMutex> l(mutex);
-        if (int res = translateError(f_open(&filesystem, f->fil(), name.c_str(), openflags)))
+        if(int res=translateError(f_open(&filesystem,f->fil(),name.c_str(),openflags)))
             return res;
-        if (statFailed)
+        if(statFailed)
         {
-            // If we didn't stat before, stat now to get the inode
-            if (int result = lstat(name, &st))
-                return result;
+            //If we didn't stat before, stat now to get the inode
+            if(int result=lstat(name,&st)) return result;
         }
         f->setInode(st.st_ino);
 
-#ifdef SYNC_AFTER_WRITE
-        if (f_sync(f->fil()) != FR_OK)
-            return -EFAULT;
-#endif // SYNC_AFTER_WRITE
+        #ifdef SYNC_AFTER_WRITE
+        if(f_sync(f->fil())!=FR_OK) return -EFAULT;
+        #endif //SYNC_AFTER_WRITE
 
-        // If file opened for appending, seek to end of file
-        if (flags & _FAPPEND)
-            if (f_lseek(f->fil(), f_size(f->fil())) != FR_OK)
-                return -EFAULT;
-
-        file = f;
-    }
-    else
-    {
-        // About to open a directory
-        if (flags & (_FWRITE | _FAPPEND | _FCREAT | _FTRUNC))
-            return -EISDIR;
+        //If file opened for appending, seek to end of file
+        if(flags & _FAPPEND)
+            if(f_lseek(f->fil(),f_size(f->fil()))!=FR_OK) return -EFAULT;
+        file=f;
+    } else {
+        //About to open a directory
+        if(flags & (_FWRITE | _FAPPEND | _FCREAT | _FTRUNC)) return -EISDIR;
 
         #ifdef WITH_POSIX_PERMISSIONS
         if (!DirectoryBase::canReadDirectory(euid, egid, st))
@@ -573,33 +532,26 @@ int ExFatFs::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
             return -EACCES;
         }
         #endif
-
         ino_t parentInode;
-        if (name.empty() == false)
+        if(name.empty()==false)
         {
-            unsigned int lastSlash = name.findLastOf('/');
-            if (lastSlash != string::npos)
+            unsigned int lastSlash=name.findLastOf('/');
+            if(lastSlash!=string::npos)
             {
-                StringPart parent(name, lastSlash);
+                StringPart parent(name,lastSlash);
                 struct stat st2;
-                if (int result = lstat(parent, &st2))
-                    return result;
-                parentInode = st2.st_ino;
-            }
-            else
-                parentInode = 1; // Asked to list subdir of root
-        }
-        else
-            parentInode = parentFsMountpointInode; // Asked to list root dir
-
+                if(int result=lstat(parent,&st2)) return result;
+                parentInode=st2.st_ino;
+            } else parentInode=1; //Asked to list subdir of root
+        } else parentInode=parentFsMountpointInode; //Asked to list root dir
         intrusive_ref_ptr<ExFatDirectory> d(
-            new ExFatDirectory(shared_from_this(), mutex, st.st_ino, parentInode));
+            new ExFatDirectory(shared_from_this(),mutex,st.st_ino,parentInode));
 
         Lock<KernelMutex> l(mutex);
-        if (int res = translateError(f_opendir(&filesystem, d->directory(), name.c_str())))
+        if(int res=translateError(f_opendir(&filesystem,d->directory(),name.c_str())))
             return res;
 
-        file = d;
+        file=d;
     }
     return 0;
 }
@@ -614,14 +566,13 @@ int ExFatFs::lstat(StringPart &name, struct stat *pstat)
     pstat->st_blksize = 512;
     pstat->st_uid=uid;
     pstat->st_gid=gid;
-
     Lock<KernelMutex> l(mutex);
     if (name.empty())
     {
         // We are asked to stat the filesystem's root directory
         // By convention, we use 1 for root dir inode, see INODE() macro in ff.c
         pstat->st_ino = 1;
-        pstat->st_mode = S_IFDIR | DEFAULT_DIR_PERM; // drwxr-xr-x
+        pstat->st_mode = S_IFDIR | ExFat::DEFAULT_DIR_PERM; // drwxr-xr-x
         return 0;
     }
     FILINFO info;
@@ -631,18 +582,18 @@ int ExFatFs::lstat(StringPart &name, struct stat *pstat)
         return result;
 
     pstat->st_ino = info.inode;
-    pstat->st_mode = (info.fattrib & AM_DIR) ? S_IFDIR | DEFAULT_DIR_PERM  // drwxr-xr-x
-                                             : S_IFREG | DEFAULT_FIL_PERM; // -rw-r--r--
+    pstat->st_mode = (info.fattrib & AM_DIR) ? S_IFDIR | ExFat::DEFAULT_DIR_PERM  // drwxr-xr-x
+                                             : S_IFREG | ExFat::DEFAULT_FIL_PERM; // -rw-r--r--
     pstat->st_size = info.fsize;
     pstat->st_blocks = (info.fsize + 511) / 512;
     return 0;
 }
 
-int ExFatFs::truncate(StringPart &name, off_t size) {
-    // FatFs does not have a truncate, so we need to open the file and ftruncate
+int ExFatFs::truncate(StringPart& name, off_t size)
+{
+    //FatFs does not have a truncate, so we need to open the file and ftruncate
     intrusive_ref_ptr<FileBase> file;
-    if (int result = open(file, name, O_WRONLY, 0))
-        return result;
+    if(int result=open(file,name,O_WRONLY,0)) return result;
     return file->ftruncate(size);
 }
 
@@ -653,18 +604,88 @@ int ExFatFs::unlink(StringPart &name)
 
 int ExFatFs::rename(StringPart &oldName, StringPart &newName)
 {
-    if (failed)
-        return -ENOENT;
+    if(failed) return -ENOENT;
     Lock<KernelMutex> l(mutex);
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    // get the parent directory stats 
+    // if permissions are enabled this is useful to check if the user
+    // has write permissions in the owning directory for O_CREAT (_FCREAT)
+    struct stat parentStat;
+
+    unsigned int lastSlash = oldName.findLastOf('/');
+    if (lastSlash != string::npos)
+    {
+        StringPart parent(oldName, lastSlash);
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    } else { // the parent is root
+        StringPart parent("/");
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    }
+
+    auto process=Thread::getCurrentThread()->getProcess();
+    
+    uid_t euid=0;
+    gid_t egid=0;
+
+    if (process)
+    {
+        euid=process->geteuid();
+        egid=process->getegid();
+    }
+
+    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
+    {
+        return -EACCES;
+    }
+    #endif
+
     return translateError(f_rename(&filesystem, oldName.c_str(), newName.c_str()));
 }
 
-int ExFatFs::mkdir(StringPart &name, int mode)
+int ExFatFs::mkdir(StringPart& name, int mode)
 {
-    if (failed)
-        return -ENOENT;
+    if(failed) return -ENOENT;
     Lock<KernelMutex> l(mutex);
-    return translateError(f_mkdir(&filesystem, name.c_str()));
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    // get the parent directory stats 
+    // if permissions are enabled this is useful to check if the user
+    // has write permissions in the owning directory for O_CREAT (_FCREAT)
+    struct stat parentStat;
+
+    unsigned int lastSlash = name.findLastOf('/');
+    if (lastSlash != string::npos)
+    {
+        StringPart parent(name, lastSlash);
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    } else { // the parent is root
+        StringPart parent("/");
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    }
+
+    auto process=Thread::getCurrentThread()->getProcess();
+    
+    uid_t euid=0;
+    gid_t egid=0;
+
+    if (process)
+    {
+        euid=process->geteuid();
+        egid=process->getegid();
+    }
+
+    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
+    {
+        return -EACCES;
+    }
+    #endif
+
+    return translateError(f_mkdir(&filesystem,name.c_str()));
 }
 
 int ExFatFs::rmdir(StringPart &name)
@@ -687,29 +708,59 @@ int ExFatFs::mkfs()
 
 ExFatFs::~ExFatFs()
 {
-    if (failed)
-        return;
-    f_mount(&filesystem, 0, true); // TODO: what to do with error code?
-    filesystem.pdrv->ioctl(IOCTL_SYNC, 0);
+    if(failed) return;
+    f_mount(&filesystem,0,true); //TODO: what to do with error code?
+    filesystem.pdrv->ioctl(IOCTL_SYNC,0);
     filesystem.pdrv.reset();
 }
 
 int ExFatFs::unlinkRmdirHelper(StringPart &name, bool delDir)
 {
-    if (failed)
-        return -ENOENT;
+    if(failed) return -ENOENT;
     Lock<KernelMutex> l(mutex);
     struct stat st;
-    if (int result = lstat(name, &st))
-        return result;
-    if (delDir)
+    if(int result=lstat(name,&st)) return result;
+    if(delDir)
     {
-        if (!S_ISDIR(st.st_mode))
-            return -ENOTDIR;
+        if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
+    } else if(S_ISDIR(st.st_mode)) return -EISDIR;
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    // get the parent directory stats 
+    // if permissions are enabled this is useful to check if the user
+    // has write permissions in the owning directory for O_CREAT (_FCREAT)
+    struct stat parentStat;
+
+    unsigned int lastSlash = name.findLastOf('/');
+    if (lastSlash != string::npos)
+    {
+        StringPart parent(name, lastSlash);
+        if (int result = lstat(parent, &parentStat))
+            return result;
+    } else { // the parent is root
+        StringPart parent("/");
+        if (int result = lstat(parent, &parentStat))
+            return result;
     }
-    else if (S_ISDIR(st.st_mode))
-        return -EISDIR;
-    return translateError(f_unlink(&filesystem, name.c_str()));
+
+    auto process=Thread::getCurrentThread()->getProcess();
+    
+    uid_t euid=0;
+    gid_t egid=0;
+
+    if (process)
+    {
+        euid=process->geteuid();
+        egid=process->getegid();
+    }
+
+    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
+    {
+        return -EACCES;
+    }
+    #endif
+
+    return translateError(f_unlink(&filesystem,name.c_str()));
 }
 
 #endif // WITH_FILESYSTEM

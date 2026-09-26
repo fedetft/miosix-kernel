@@ -39,8 +39,11 @@ namespace miosix
 
 #ifdef WITH_FILESYSTEM
 
+namespace ExFat
+{
 constexpr auto DEFAULT_DIR_PERM = 0755;
 constexpr auto DEFAULT_FIL_PERM = 0644;
+}
 
 /**
  * exFAT Filesystem.
