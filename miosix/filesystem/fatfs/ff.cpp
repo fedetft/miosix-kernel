@@ -3322,23 +3322,25 @@ static int test_gpt_header (	/* 0:Invalid, 1:Valid */
 
 #if !FF_FS_READONLY && FF_USE_MKFS
 
-/* Generate a random value */
-static DWORD make_rand (	/* Returns a seed value for next */
-	DWORD seed,				/* Seed value */
-	BYTE *buff,				/* Output buffer */
-	UINT n					/* Data length */
-)
-{
-	UINT r;
+// By Raul Radu: this function is used to generate the MBR/GPT table but we 
+// are using our own implementation so this is useless
+// /* Generate a random value */
+// static DWORD make_rand (	/* Returns a seed value for next */
+// 	DWORD seed,				/* Seed value */
+// 	BYTE *buff,				/* Output buffer */
+// 	UINT n					/* Data length */
+// )
+// {
+// 	UINT r;
 
 
-	if (seed == 0) seed = 1;
-	do {
-		for (r = 0; r < 8; r++) seed = seed & 1 ? seed >> 1 ^ 0xA3000000 : seed >> 1;	/* Shift 8 bits the 32-bit LFSR */
-		*buff++ = (BYTE)seed;
-	} while (--n);
-	return seed;
-}
+// 	if (seed == 0) seed = 1;
+// 	do {
+// 		for (r = 0; r < 8; r++) seed = seed & 1 ? seed >> 1 ^ 0xA3000000 : seed >> 1;	/* Shift 8 bits the 32-bit LFSR */
+// 		*buff++ = (BYTE)seed;
+// 	} while (--n);
+// 	return seed;
+// }
 
 #endif
 #endif
@@ -5993,7 +5995,7 @@ FRESULT f_mkfs (
 	WORD ss;	/* Sector size */
 	DWORD sz_buf, sz_blk, n_clst, pau, nsect, n, vsn;
 	LBA_t sz_vol, b_vol, b_fat, b_data;		/* Volume size, base LBA of volume, base LBA of FAT and base LBA of data */
-	LBA_t sect, lba[2];
+	LBA_t sect;//, lba[2];
 	DWORD sz_rsv, sz_fat, sz_dir, sz_au;	/* Size of reserved area, FAT area, directry area, data area and cluster */
 	UINT n_fat, n_root, i;					/* Number of FATs, number of roor directory entries and some index */
 	int vol;
@@ -6463,7 +6465,7 @@ FRESULT f_mkfs (
 		}
 	} else {								/* Volume as a new single partition */
 		if (!(fsopt & FM_SFD)) {			/* Create partition table if not in SFD format */
-			lba[0] = sz_vol; lba[1] = 0;
+			// lba[0] = sz_vol; lba[1] = 0;
 			res = FR_OK; //create_partition(pdrv, lba, sys, buf);
 			if (res != FR_OK) LEAVE_MKFS(res);
 		}
