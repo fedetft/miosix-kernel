@@ -89,6 +89,11 @@ namespace miosix {
 // always left undefined otherwise
 #ifdef WITH_FILESYSTEM
 
+/// \def WITH_POSIX_PERMISSIONS
+/// Allows to enable/disable support for POSIX permission bits
+/// By default is undefined (permissions are disabled)
+//#define WITH_POSIX_PERMISSIONS
+
 /// \def WITH_AUTOMOUNTER
 /// Allows to enable/disable filesystem automounter support to save code size
 /// By default it is defined (filesystem automounter is enabled)

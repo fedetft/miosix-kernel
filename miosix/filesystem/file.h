@@ -74,6 +74,12 @@ public:
     FileBase(const FileBase&)=delete;
     FileBase& operator=(const FileBase&)=delete;
 
+#ifdef WITH_POSIX_PERMISSIONS
+    static bool canWriteInFile(uid_t euid, gid_t egid, struct stat& file);
+    static bool canReadFromFile(uid_t euid, gid_t egid, struct stat& file);
+    static bool canExecuteFile(uid_t euid, gid_t egid, struct stat& file);
+#endif
+
     /**
      * Constructor
      * \param parent the filesystem to which this file belongs
@@ -207,6 +213,13 @@ protected:
 class DirectoryBase : public FileBase
 {
 public:
+
+#ifdef WITH_POSIX_PERMISSIONS
+    static bool canEditDirectoryEntries(uid_t euid, gid_t egid, struct stat& file);
+    static bool canReadDirectory(uid_t euid, gid_t egid, struct stat& file);
+    static bool canSearchDirectory(uid_t euid, gid_t egid, struct stat& file);
+#endif
+
     /**
      * Constructor
      * \param parent the filesystem to which this file belongs

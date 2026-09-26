@@ -174,6 +174,10 @@ pid_t Process::create(ElfProgram&& program, ArgsBlock&& args)
         Lock<KernelMutex> l(processTable.procMutex);
         proc->pid=processTable.getNewPid();
         proc->ppid=parent->pid;
+        proc->ruid=parent->ruid;
+        proc->rgid=parent->rgid;
+        proc->euid=parent->ruid;
+        proc->egid=parent->rgid;
         parent->childs.push_back(proc.get());
         processTable.processes[proc->pid]=proc.get();
     }
@@ -908,36 +912,38 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 
             case Syscall::GETUID:
             {
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                sp.setParameter<0>(this->ruid);
                 break;
             }
 
             case Syscall::GETGID:
             {
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                sp.setParameter<0>(this->rgid);
                 break;
             }
 
             case Syscall::GETEUID:
             {
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                sp.setParameter<0>(this->euid);
                 break;
             }
 
             case Syscall::GETEGID:
             {
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                sp.setParameter<0>(this->egid);
                 break;
             }
 
             case Syscall::SETUID:
             {
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                auto result=this->setuid(sp.getParameter<0>());
+                sp.setParameter<0>(result);
                 break;
             }
 
             case Syscall::SETGID:
             {
+                auto result=this->setgid(sp.getParameter<0>());
                 sp.setParameter<0>(-EFAULT); //TODO: stub
                 break;
             }

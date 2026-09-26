@@ -39,6 +39,9 @@ namespace miosix
 
 #ifdef WITH_FILESYSTEM
 
+constexpr auto DEFAULT_DIR_PERM = 0755;
+constexpr auto DEFAULT_FIL_PERM = 0644;
+
 /**
  * exFAT Filesystem.
  */
@@ -48,7 +51,7 @@ public:
     /**
      * Constructor
      */
-    ExFatFs(intrusive_ref_ptr<FileBase> disk);
+    ExFatFs(intrusive_ref_ptr<FileBase> disk, uid_t uid=0, gid_t gid=0);
 
     /**
      * Open a file
@@ -124,6 +127,9 @@ public:
      * Destructor
      */
     ~ExFatFs();
+
+    const uid_t uid;
+    const gid_t gid;
 
 private:
     int unlinkRmdirHelper(StringPart &name, bool delDir);

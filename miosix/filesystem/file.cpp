@@ -45,6 +45,35 @@ static_assert(sizeof(off_t)==8,"");
 
 #ifdef WITH_FILESYSTEM
 
+#ifdef WITH_POSIX_PERMISSIONS
+bool FileBase::canWriteInFile(uid_t euid, gid_t egid, struct stat& filestat)
+{
+    if (euid==0) return true;
+    if (filestat.st_uid==euid && filestat.st_mode & S_IWUSR) return true;
+    if (filestat.st_gid==egid && filestat.st_mode & S_IWGRP) return true;
+    if (filestat.st_mode & S_IWOTH) return true;
+    return false;
+}
+
+bool FileBase::canReadFromFile(uid_t euid, gid_t egid, struct stat& filestat)
+{
+    if (euid==0) return true;
+    if (filestat.st_uid==euid && filestat.st_mode & S_IRUSR) return true;
+    if (filestat.st_gid==egid && filestat.st_mode & S_IRGRP) return true;
+    if (filestat.st_mode & S_IROTH) return true;
+    return false;
+}
+
+bool FileBase::canExecuteFile(uid_t euid, gid_t egid, struct stat& filestat)
+{
+    if (euid==0) return true;
+    if (filestat.st_uid==euid && filestat.st_mode & S_IXUSR) return true;
+    if (filestat.st_gid==egid && filestat.st_mode & S_IXGRP) return true;
+    if (filestat.st_mode & S_IXOTH) return true;
+    return false;
+}
+#endif
+
 FileBase::FileBase(intrusive_ref_ptr<FilesystemBase> parent, int flags)
         : parent(parent), flags(flags)
 {
@@ -90,6 +119,34 @@ MemoryMappedFile FileBase::getFileFromMemory()
 //
 // class DirectoryBase
 //
+
+#ifdef WITH_POSIX_PERMISSIONS
+bool DirectoryBase::canEditDirectoryEntries(uid_t euid, gid_t egid, struct stat& dirstat)
+{
+    // for creating or renaming or moving or unlinking a file in a directory we need write 
+    // permissions, but we also need execute permissions to access the directory, but we 
+    // have to have both permissions on the same permission set so it is not enough to do 
+    // return canWriteToFile(euid, egid, dirstat) || canExecuteFile(euid, egid, dirstat)
+    
+    if (euid==0) return true;
+    if (dirstat.st_uid==euid && dirstat.st_mode & (S_IWUSR | S_IXUSR)) return true;
+    if (dirstat.st_gid==egid && dirstat.st_mode & (S_IWGRP | S_IXGRP)) return true;
+    if (dirstat.st_mode & (S_IWOTH | S_IXOTH)) return true;
+    return false;
+}
+
+bool DirectoryBase::canReadDirectory(uid_t euid, gid_t egid, struct stat& dirstat)
+{
+    // in this case the same permission of files applies to directories
+    return FileBase::canReadFromFile(euid, egid, dirstat);
+}
+
+bool DirectoryBase::canSearchDirectory(uid_t euid, gid_t egid, struct stat& dirstat)
+{
+    // we can search a directory if it has execute bit set
+    return FileBase::canExecuteFile(euid, egid, dirstat);
+}
+#endif
 
 ssize_t DirectoryBase::write(const void *data, size_t len)
 {

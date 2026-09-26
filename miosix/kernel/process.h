@@ -74,7 +74,79 @@ public:
      * \return the process' pid 
      */
     pid_t getPid() const { return pid; }
-    
+
+    /**
+     * \return the process' effective user id
+     */
+    uid_t geteuid() const { return euid; }
+
+    /**
+     * \return the process' effective group id
+     */
+    gid_t getegid() const { return egid; }
+
+    /**
+     * \return the process' real user id
+     */
+    uid_t getuid() const { return ruid; }
+
+    /**
+     * \return the process' real group id
+     */
+    gid_t getgid() const { return rgid; }
+
+    /**
+     * This method sets the euid of the process
+     * if the process euid is 0, effectively the process is root
+     * this function can accept any value for the new user id, otherwise
+     * if the new user id is equal to the euid or the ruid it will
+     * set the euid to the new uid.
+     * \param newUid the new uid of the process
+     * \return -EPERM on failure 0 on success
+     */
+    int setuid(uid_t newUid)
+    {
+        if (euid==0) // we are root
+        {
+            ruid=newUid;
+            euid=newUid;
+            return 0;
+        }
+        
+        if (newUid==euid || newUid==ruid) {
+            euid=newUid;
+            return 0;
+        }
+        
+        return -EPERM;
+    }
+
+    /**
+     * This method sets the euid of the process
+     * if the process euid is 0, effectively the process is root
+     * this function can accept any value for the new user id, otherwise
+     * if the new user id is equal to the euid or the ruid it will
+     * set the euid to the new uid.
+     * \param newGid the new uid of the process
+     * \return -EPERM on failure 0 on success
+     */
+    int setgid(uid_t newGid)
+    {
+        if (euid==0) // we are root
+        {
+            rgid=newGid;
+            egid=newGid;
+            return 0;
+        }
+        
+        if (newGid==egid || newGid==rgid) {
+            egid=newGid;
+            return 0;
+        }
+        
+        return -EPERM;
+    }
+
     /**
      * \return the process file descriptor table
      */
@@ -83,6 +155,10 @@ public:
 protected:
     pid_t pid=0;  ///<The pid of this process
     pid_t ppid=0; ///<The parent pid of this process
+    gid_t egid=0; ///<The effective group id that will be used to check permissions against
+    uid_t euid=0; ///<The effective user id that will be used to check permissions against
+    gid_t rgid=0; ///<The process group owner (by default root)
+    uid_t ruid=0; ///<The process owner (by default root)
     std::list<Process *> childs;   ///<Living child processes are stored here
     std::list<Process *> zombies;  ///<Dead child processes are stored here
     FileDescriptorTable fileTable; ///<The file descriptor table

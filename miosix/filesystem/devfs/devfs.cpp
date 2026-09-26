@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include "filesystem/stringpart.h"
+#include "kernel/process.h"
 
 using namespace std;
 
@@ -193,6 +194,12 @@ int DevFsFile::ioctl(int cmd, void *arg)
 int Device::open(intrusive_ref_ptr<FileBase>& file,
         intrusive_ref_ptr<FilesystemBase> fs, int flags, int mode)
 {
+    #ifdef WITH_POSIX_PERMISSIONS
+    auto process=Thread::getCurrentThread()->getProcess();
+    auto euid=process->geteuid();
+    if (euid!=0) return -EACCES;
+    #endif
+    
     flags++; //To convert from O_RDONLY, O_WRONLY, ... to _FREAD, _FWRITE, ...
     file=intrusive_ref_ptr<FileBase>(
         new DevFsFile(fs,shared_from_this(),flags | (seekable ? 0 : _NOSEEK)));
@@ -201,8 +208,10 @@ int Device::open(intrusive_ref_ptr<FileBase>& file,
 
 int Device::fstat(struct stat* pstat) const
 {
-    mode_t mode=(block ? S_IFBLK : S_IFCHR) | 0750;//brwxr-x--- | crwxr-x---
+    mode_t mode=(block ? S_IFBLK : S_IFCHR) | 0700;//brwx------ | crwx------
     fillStatHelper(pstat,st_ino,st_dev,mode);
+    pstat->st_uid=0;
+    pstat->st_gid=0;
     return 0;
 }
 
@@ -363,6 +372,11 @@ bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev)
 
 bool DevFs::remove(const char* name)
 {
+    #ifdef WITH_POSIX_PERMISSIONS
+    auto process=Thread::getCurrentThread()->getProcess();
+    if (process!=nullptr && process->geteuid()!=0) return -EACCES;
+    #endif
+
     if(name==0 || name[0]=='\0') return false;
     Lock<KernelMutex> l(mutex);
     map<StringPart,intrusive_ref_ptr<Device> >::iterator it;
@@ -375,6 +389,11 @@ bool DevFs::remove(const char* name)
 int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
         int flags, int mode)
 {
+    #ifdef WITH_POSIX_PERMISSIONS
+    auto process=Thread::getCurrentThread()->getProcess();
+    if (process!=nullptr && process->geteuid()!=0) return -EACCES;
+    #endif
+    
     if(flags & (O_APPEND | O_EXCL)) return -EACCES;
     Lock<KernelMutex> l(mutex);
     if(name.empty()) //Trying to open the root directory of the fs
@@ -407,6 +426,11 @@ int DevFs::truncate(StringPart& name, off_t size) { return -EINVAL; }
 
 int DevFs::unlink(StringPart& name)
 {
+    #ifdef WITH_POSIX_PERMISSIONS
+    auto process=Thread::getCurrentThread()->getProcess();
+    if (process!=nullptr && process->geteuid()!=0) return -EACCES;
+    #endif
+
     Lock<KernelMutex> l(mutex);
     if(files.erase(name)==1) return 0;
     return -ENOENT;
@@ -414,6 +438,11 @@ int DevFs::unlink(StringPart& name)
 
 int DevFs::rename(StringPart& oldName, StringPart& newName)
 {
+    #ifdef WITH_POSIX_PERMISSIONS
+    auto process=Thread::getCurrentThread()->getProcess();
+    if (process!=nullptr && process->geteuid()!=0) return -EACCES;
+    #endif
+
     Lock<KernelMutex> l(mutex);
     map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(oldName);
     if(it==files.end()) return -ENOENT;

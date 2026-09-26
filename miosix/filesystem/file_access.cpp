@@ -395,6 +395,21 @@ private:
      */
     int followSymlink(string& path);
     
+#ifdef WITH_POSIX_PERMISSIONS
+    /**
+     * Check if process has search access to the directory.
+     * \param dirStats the file statistics for the directory that contains the mode
+     * bits
+     * \return true if 
+     * 1) the process euid corresponds to the file user owner and it the has search bit set;
+     * 2) if 1 is false and the process egid corresponds to the file group owner and it has
+     *    the search bit set;
+     * 3) if 2 is false and the other search bit is set. F
+     * if 3 is false then the function returns false too
+     */
+    bool processHasSearchAccess(struct stat& dirStats);
+#endif
+
     /**
      * Find to which filesystem this path belongs
      * \param path path string.
@@ -429,6 +444,26 @@ private:
     /// Maximum number of symbolic links to follow (to avoid endless loops)
     static const int maxLinkToFollow=2;
 };
+
+#ifdef WITH_POSIX_PERMISSIONS
+bool PathResolution::processHasSearchAccess(struct stat& dirStats)
+{
+    if (!S_ISDIR(dirStats.st_mode)) return false;
+
+    auto runningProcess=Thread::getCurrentThread()->getProcess();
+
+    auto euid=runningProcess->geteuid();
+    auto egid=runningProcess->getegid();
+
+    if (euid==0) return true; // root can do anything
+
+    if (dirStats.st_uid==euid && dirStats.st_mode & S_IXUSR) return true;
+    if (dirStats.st_gid==egid && dirStats.st_mode & S_IXGRP) return true;
+    if (dirStats.st_mode & S_IXOTH) return true;
+    return false;
+}
+#endif
+
 
 ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
 {
@@ -515,8 +550,10 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         return 0;
     }
     depthIntoFs++;
+    #ifndef WITH_POSIX_PERMISSIONS
     if(syms && followIfSymlink)
     {
+    #endif
         struct stat st;
         {
             StringPart sp(path,index-1,indexIntoFs);
@@ -525,7 +562,10 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         }
         if(S_ISLNK(st.st_mode)) return followSymlink(path);
         else if(index<=path.length() && !S_ISDIR(st.st_mode)) return -ENOTDIR;
+        if (!processHasSearchAccess(st)) return -EACCES;
+    #ifndef WITH_POSIX_PERMISSIONS
     }
+    #endif
     return 0;
 }
 
