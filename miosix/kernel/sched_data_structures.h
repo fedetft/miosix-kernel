@@ -66,7 +66,7 @@ namespace miosix {
  * \tparam T a class that must inherit from IntrusiveListItem, as items are
  * stored in IntrusiveList<T>
  * \tparam numPriorities number of priorities the queue needs to support.
- * Vald priority values rage from 0 to numPriorities-1. Note that the memory
+ * Valid priority values range from 0 to numPriorities-1. Note that the memory
  * occupied by this class is proportional to the number of priorities
  */
 template<typename T, unsigned numPriorities>

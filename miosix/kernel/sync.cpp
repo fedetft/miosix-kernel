@@ -48,9 +48,9 @@ int FastMutex::lock()
         return 0;
     }
 
-    //This check is very important. Without this attempting to lock the same
+    //This check is very important. Without this, attempting to lock the same
     //mutex twice won't cause a deadlock because the wait is enclosed in a
-    //while(owner!=cur) which is immeditely false.
+    //while(owner!=cur) which is immediately false.
     if(owner==cur)
     {
         if(recursiveDepth>=0)

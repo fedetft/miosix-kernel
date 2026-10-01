@@ -660,7 +660,7 @@ public:
 private:
     volatile unsigned int count; ///< Counter of the semaphore
     /// List of waiting threads. Can't use WaitQueue as that class is meant to
-    /// be used in PK contenxt, not IRQ context
+    /// be used in PK context, not IRQ context
     IntrusiveList<WaitToken> fifo;
 };
 

@@ -546,10 +546,7 @@ public:
     }
 
     /**
-     * Set the priority of this thread.<br>
-     * This member function changed from previous Miosix versions since it is
-     * now static. This implies a thread can no longer set the priority of
-     * another thread.
+     * Set the priority of the current thread.<br>
      * \param priority the thread's priority, whose range depends on the
      * selected scheduler, see miosix_settings.h
      */
@@ -1022,12 +1019,16 @@ private:
     CpuSet affinity; ///< Core affinity of this thread
     #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
     ThreadFlags flags;///< thread status
-    ///Saved priority.
-    ///When mutexLocked!=nullptr it stores the value of priority that this
-    ///thread will have when it unlocks all mutexes. This is because when a
-    ///thread locks a mutex its priority can change due to priority inheritance.
-    ///When not locking any Mutex,may need to be kept equal to the actual
-    ///priority, see ConditionVariable.
+    ///Saved priority. This variable contains the "original" thread priority,
+    ///that is the thread priority when not locking any mutex. Thus when a
+    ///thread isn't locking any mutex, the actual priority and savedPriority
+    ///must be the same (this assumption is used in WaitQueue). When locking
+    ///mutexes with priority inheritance (mutexLocked!=nullptr), savedPriority
+    ///does not change, but the actual thread priority may be boosted according
+    ///to the priority inheritance algorithm. When the mutex is eventually
+    ///unlocked, the actual thread priority is restored to be equal to the
+    ///savedPriority. The savedPriority can only change if the thread priority
+    ///changed by calling setPriority()
     Priority savedPriority;
     ///List of mutexes locked by this thread
     Mutex *mutexLocked;
