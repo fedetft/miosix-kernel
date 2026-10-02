@@ -753,10 +753,12 @@ static void test_4()
     if(Thread::getCurrentThread()->getPriority()!=0)
         fail("getPriority (1)");
     //Checking setPriority
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     Thread::setPriority(1);
     if(Thread::getCurrentThread()->getPriority()!=1)
         fail("setPriority (0)");
-    #if !defined(SCHED_TYPE_CONTROL_BASED) && !defined(SCHED_TYPE_EDF)
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+    #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
     //On multi-core CPUs we need as many high priority threads as cores
     Thread *other[CPU_NUM_CORES-1];
     for(int i=0;i<CPU_NUM_CORES-1;i++)
@@ -780,7 +782,7 @@ static void test_4()
         other[i]->terminate();
         other[i]->join();
     }
-    #endif //SCHED_TYPE_CONTROL_BASED
+    #endif //defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
     //Restoring original priority
     Thread::setPriority(0);
     if(Thread::getCurrentThread()->getPriority()!=0)
@@ -1169,7 +1171,7 @@ static void test_6()
     Thread::setPriority(priorityAdapter(0));
     #endif //SCHED_TYPE_EDF
     seq.clear();
-    #ifndef SCHED_TYPE_CONTROL_BASED
+    #if (defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1) || defined(SCHED_TYPE_EDF)
     //Create first thread
     if (!Thread::create(t6_p1,STACK_SMALL,priorityAdapter(0),nullptr,Thread::DETACHED))
         fail("thread creation (1)");
@@ -1204,12 +1206,15 @@ static void test_6()
 
     Thread::sleep(350);//Ensure all threads are deleted
     #endif
+
+    Thread *t;
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     //
     // Testing tryLock
     //
 
     //This thread will hold the lock until we terminate it
-    Thread *t=Thread::create(t6_p4,STACK_SMALL,0,nullptr,Thread::JOINABLE);
+    t=Thread::create(t6_p4,STACK_SMALL,0,nullptr,Thread::JOINABLE);
     //Leave time for the other thread to lock the mutex
     Thread::sleep(1);
     if(t6_m1.tryLock()==true) fail("Mutex::tryLock() (1)");
@@ -1233,8 +1238,10 @@ static void test_6()
     if(t6_v1==false) fail("Lock (2)");
     t2->terminate();
     Thread::sleep(10);
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+
     // TODO: no priority inheritance for control-based scheduler
-    #ifndef SCHED_TYPE_CONTROL_BASED
+    #if (defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1) || defined(SCHED_TYPE_EDF)
     //
     // Testing full priority inheritance algorithm
     //
@@ -1361,6 +1368,7 @@ static void test_6()
     t6_m5.unlock();
     if(checkIft6_m5IsLocked()==true) fail("unexpected");
 
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     //
     // Testing FastMutex
     //
@@ -1433,6 +1441,7 @@ static void test_6()
     if(t6_v1==false) fail("Lock (2a)");
     t2->terminate();
     Thread::sleep(10);
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 
     //
     // Testing recursive mutexes
@@ -1859,6 +1868,7 @@ void t12_p2(void *argv)
 void test_12()
 {
     test_name("Priority inheritance 2");
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     CHECK_AVAIL_HEAP(EST_THREAD_HEAP_USAGE(STACK_SMALL)*2);
     Thread::setPriority(priorityAdapter(0)); //For EDF
     Thread *t1;
@@ -1885,6 +1895,7 @@ void test_12()
     t1->join();
     t2->join();
     Thread::setPriority(0);
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     pass();
 }
 
@@ -3445,7 +3456,7 @@ static void t23_f3(void*)
 static void test_23()
 {
     test_name("Condition variable and recursive mutexes");
-    
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     {
         Lock<Mutex> l(t23_m1);
         Lock<Mutex> l2(t23_m1);
@@ -3467,7 +3478,7 @@ static void test_23()
     t->join();
     pthread_mutex_unlock(&t23_m3);
     pthread_mutex_unlock(&t23_m3);
-    
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     pass();
 }
 
@@ -4241,7 +4252,7 @@ static void test_27()
         fail("timedWait with counter == 0 not working");
     
     //Testing multiple threads enqueued on the same semaphore
-    #ifndef SCHED_TYPE_EDF
+    #if (defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1) || defined(SCHED_TYPE_CONTROL_BASED)
     Thread *thds[3];
     for(int i=0; i<3; i++)
     {
@@ -4860,7 +4871,9 @@ void b4_t1(void *argv)
 static void benchmark_4()
 {
     #ifndef SCHED_TYPE_EDF
-    Priority b4_t1_p=1; //Main priority is 0, use priority 1 for stop thread
+    //Main priority is 0, use priority 1 for stop thread.
+    //If NUM_PRIORITIES is 1 then use priority 0 as we don't have a choice
+    Priority b4_t1_p=min(1,NUM_PRIORITIES-1);
     #else //SCHED_TYPE_EDF
     Thread::setPriority(1);
     Priority b4_t1_p=0; //Main "deadline" set to 1, use "deadline" 0 for stop thread
