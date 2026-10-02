@@ -14,6 +14,7 @@ CPU_FLAGS := -mcpu=cortex-m7 -mthumb -mfloat-abi=hard -mfpu=fpv5-d16
 BOARD_SRC :=                                    \
 arch/drivers/eth/stm32_eth_f2_f4_f7.cpp         \
 arch/drivers/eth/stm32_eth_desc_f2_f4_f7.cpp    \
+arch/drivers/eth/stm32_phy_f2_f4_f7.cpp         \
 arch/drivers/stm32_uid.cpp                      \
 $(BOARD_INC)/boot.cpp                           \
 $(BOARD_INC)/interfaces-impl/bsp.cpp

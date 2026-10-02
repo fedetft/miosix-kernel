@@ -29,10 +29,32 @@
 
 #include <cstdint>
 
+namespace mdio
+{
+/**
+ * Low-level function to write a PHY register, meant to be implemented by the
+ * platform-specific driver.
+ * @param phy The PHY address.
+ * @param reg The register to write to.
+ * @param value The value to write.
+ */
+[[maybe_unused]] void write(uint16_t phy, uint16_t reg, uint16_t value);
+
+/**
+ * Low-level function to read a PHY register, meant to be implemented by the
+ * platform-specific driver.
+ * @param phy The PHY address.
+ * @param reg The register to read from.
+ * @return The value read from the register.
+ */
+uint16_t read(uint16_t phy, uint16_t reg);
+} // namespace mdio
+
+namespace phy {
 /**
  * Enumeration of standard PHY registers, from IEEE 802.3 Subsection 22.2.4.
  */
-enum class PHYRegister
+enum PHYRegister : uint16_t
 {
     Control = 0,
     Status = 1,
@@ -52,11 +74,13 @@ enum class PHYRegister
     ExtendedStatus = 15,
 };
 
-namespace phy
-{
 /**
  * Returns the PHY Link Status from the Status register.
  * See IEEE 802.3 Subsection 22.2.4.2.13 for more information.
  */
-bool getLinkStatus(uint16_t phy);
+inline bool getLinkStatus(uint16_t phy)
+{
+    uint16_t status = mdio::read(phy, PHYRegister::Status);
+    return status & (1 << 2); // Link status is bit 2 of the Status register
 }
+} // namespace phy

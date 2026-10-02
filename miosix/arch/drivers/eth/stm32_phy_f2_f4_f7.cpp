@@ -47,11 +47,11 @@ enum ClockRange {
  * STM32 MACMIIAR register bitfield mapping.
  */
 struct __attribute__((packed)) MacMiiAr {
-    bool miiBusy : 1;
-    bool miiWrite : 1;
+    bool busy : 1;
+    bool write : 1;
     ClockRange clockRange : 3;
     uint8_t : 1; // reserved
-    uint16_t miiRegister : 5;
+    uint16_t registerId : 5;
     uint16_t phyAddress : 5;
     uint16_t : 16; // reserved
 
@@ -89,41 +89,37 @@ struct __attribute__((packed)) MacMiiAr {
     }
 };
 static_assert(sizeof(MacMiiAr) == 4, "MacMiiAr should be a 32bit register");
+} // namespace
 
-[[maybe_unused]] void miiWrite(uint16_t phy, PHYRegister reg, uint16_t value) {
+namespace mdio {
+void write(uint16_t phy, uint16_t reg, uint16_t value) {
     ETH->MACMIIDR = value;
     ETH->MACMIIAR = MacMiiAr{
-        .miiBusy = 1,
-        .miiWrite = 1,
+        .busy = 1,
+        .write = 1,
         .clockRange = MacMiiAr::getClockBits(),
-        .miiRegister = static_cast<uint16_t>(reg),
+        .registerId = static_cast<uint16_t>(reg),
         .phyAddress = phy,
     };
 
     // Wait for write operation complete
-    while (MacMiiAr::from(ETH->MACMIIAR).miiBusy)
+    while (MacMiiAr::from(ETH->MACMIIAR).busy)
         ;
 }
 
-[[maybe_unused]] uint16_t miiRead(uint16_t phy, PHYRegister reg) {
+uint16_t read(uint16_t phy, uint16_t reg) {
     ETH->MACMIIAR = MacMiiAr{
-        .miiBusy = 1,
-        .miiWrite = 0,
+        .busy = 1,
+        .write = 0,
         .clockRange = MacMiiAr::getClockBits(),
-        .miiRegister = static_cast<uint16_t>(reg),
+        .registerId = static_cast<uint16_t>(reg),
         .phyAddress = phy,
     };
 
     // Wait for read operation complete
-    while (MacMiiAr::from(ETH->MACMIIAR).miiBusy)
+    while (MacMiiAr::from(ETH->MACMIIAR).busy)
         ;
 
     return ETH->MACMIIDR;
 }
-} // namespace
-
-namespace phy {
-bool getLinkStatus(uint16_t phy) {
-    return miiRead(phy, PHYRegister::Status) & (1 << 2);
-}
-} // namespace phy
+} // namespace mdio

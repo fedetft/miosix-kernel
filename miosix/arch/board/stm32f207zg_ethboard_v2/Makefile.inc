@@ -15,6 +15,7 @@ BOARD_SRC :=                                    \
 arch/drivers/sdmmc/stm32f2_f4_f7_sd.cpp         \
 arch/drivers/eth/stm32_eth_f2_f4_f7.cpp         \
 arch/drivers/eth/stm32_eth_desc_f2_f4_f7.cpp    \
+arch/drivers/eth/stm32_phy_f2_f4_f7.cpp         \
 arch/drivers/stm32_uid.cpp                      \
 $(BOARD_INC)/boot.cpp                           \
 $(BOARD_INC)/interfaces-impl/bsp.cpp
