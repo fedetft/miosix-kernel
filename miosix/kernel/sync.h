@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2025 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2026 by Terraneo Federico                          *
  *   Copyright (C) 2023 by Daniele Cattaneo                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -141,6 +141,7 @@ private:
     friend class ConditionVariable;
 };
 
+#if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 /**
  * A mutex class with support for priority inheritance. If a thread tries to
  * enter a critical section which is not free, it will be put to sleep and
@@ -290,6 +291,14 @@ private:
     friend class ConditionVariable;
     friend class Thread;
 };
+#else //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+//In the corner case of the priority scheduler with only one priority level,
+//priority inheritance makes no sense as there's only one priority level, so
+//take advantage of this property to reduce code size by only having one mutex
+//type, the one without priority inheritance. Some users may want to configure
+//the kernel this way for simple applications without real-time requirements.
+using Mutex = FastMutex;
+#endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 
 #ifdef KERNEL_MUTEX_WITH_PRIORITY_INHERITANCE
 using KernelMutex = Mutex;
@@ -458,30 +467,12 @@ public:
     }
 
     /**
-     * Unlock the Mutex and wait.
-     * If more threads call wait() they must do so specifying the same mutex,
-     * otherwise the behaviour is undefined.
-     * \param m a locked Mutex
-     */
-    void wait(Mutex& m);
-
-    /**
      * Unlock the FastMutex and wait.
      * If more threads call wait() they must do so specifying the same mutex,
      * otherwise the behaviour is undefined.
      * \param m a locked FastMutex
      */
     void wait(FastMutex& m);
-
-    /**
-     * Unlock the Mutex and wait until woken up or timeout occurs.
-     * If more threads call wait() they must do so specifying the same mutex,
-     * otherwise the behaviour is undefined.
-     * \param m a locked Mutex
-     * \param absTime absolute timeout time in nanoseconds
-     * \return whether the return was due to a timeout or wakeup
-     */
-    TimedWaitResult timedWait(Mutex& m, long long absTime);
 
     /**
      * Unlock the FastMutex and wait until woken up or timeout occurs.
@@ -492,6 +483,26 @@ public:
      * \return whether the return was due to a timeout or wakeup
      */
     TimedWaitResult timedWait(FastMutex& m, long long absTime);
+
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+    /**
+     * Unlock the Mutex and wait.
+     * If more threads call wait() they must do so specifying the same mutex,
+     * otherwise the behaviour is undefined.
+     * \param m a locked Mutex
+     */
+    void wait(Mutex& m);
+
+    /**
+     * Unlock the Mutex and wait until woken up or timeout occurs.
+     * If more threads call wait() they must do so specifying the same mutex,
+     * otherwise the behaviour is undefined.
+     * \param m a locked Mutex
+     * \param absTime absolute timeout time in nanoseconds
+     * \return whether the return was due to a timeout or wakeup
+     */
+    TimedWaitResult timedWait(Mutex& m, long long absTime);
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 
     /**
      * Wakeup one waiting thread, chosen based on a wakeup policy that can be

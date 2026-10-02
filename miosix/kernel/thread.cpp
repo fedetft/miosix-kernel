@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2025 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -528,6 +528,9 @@ Priority Thread::getPriority()
 
 void Thread::setPriority(Priority pr)
 {
+    //When using the priority scheduler, if there's only one priority level
+    //changing priority becomes a no-op
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     if(pr.validate()==false) return;
 
     PauseKernelLock dLock;
@@ -594,6 +597,7 @@ void Thread::setPriority(Priority pr)
         //peek at the scheduler data structures here which we don't want to
         if(pr<oldActualPrio) FastPauseKernelLock::pendingWakeup=true;
     }
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 }
 
 void Thread::terminate()
@@ -860,9 +864,11 @@ void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
 #endif //WITH_PROCESSES
 
 Thread::Thread(unsigned int *watermark, unsigned int stacksize,
-               bool defaultReent) : schedData(), savedPriority(0),
-               mutexLocked(nullptr), mutexWaiting(nullptr), waitQueueItem(this),
-               watermark(watermark), ctxsave(), stacksize(stacksize)
+               bool defaultReent) : schedData(),
+#if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+               savedPriority(0), mutexLocked(nullptr), mutexWaiting(nullptr),
+#endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+               waitQueueItem(this), watermark(watermark), ctxsave(), stacksize(stacksize)
 {
     joinData.waitingForJoin=nullptr;
     if(defaultReent) cReentrancyData=_GLOBAL_REENT;

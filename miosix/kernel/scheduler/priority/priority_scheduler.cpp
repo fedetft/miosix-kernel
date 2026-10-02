@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010-2025 by Terraneo Federico                          *
+ *   Copyright (C) 2010-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -50,9 +50,14 @@ bool PriorityScheduler::IRQaddThread(Thread *thread,
         PrioritySchedulerPriority priority)
 {
     thread->schedData.priority=priority;
+    #if NUM_PRIORITIES>1
+    //NOTE: we still need schedData.priority even when NUM_PRIORITIES==1 due to
+    //the idle thread, but we can get rid of savedPriority as there's no need
+    //for priority inheritance
     //Priority and savedPriority must be the same except when locking a mutex
     //with priority inheritance. A newly created thread isn't yet locking mutex
     thread->savedPriority=priority;
+    #endif //NUM_PRIORITIES>1
     #ifdef WITH_PROCESSES
     // Check isReady() as processes are initially created in not ready state
     if(thread->flags.isReady()==false) notReadyThreads.push_front(thread);
@@ -93,6 +98,9 @@ void PriorityScheduler::removeDeadThreads()
     }
 }
 
+//NOTE: if NUM_PRIORITIES==1 this should never be called, so make it a
+//compile-time error by not defining it
+#if NUM_PRIORITIES>1
 void PriorityScheduler::IRQsetPriority(Thread *thread,
         PrioritySchedulerPriority newPriority)
 {
@@ -122,11 +130,14 @@ void PriorityScheduler::IRQsetPriority(Thread *thread,
     // Last insert the thread in the new list
     readyThreads[newPriority.get()].push_back(thread);
 }
+#endif //NUM_PRIORITIES>1
 
 void PriorityScheduler::IRQsetIdleThread(int whichCore, Thread *idleThread)
 {
     idleThread->schedData.priority=-1;
+    #if NUM_PRIORITIES>1
     idleThread->savedPriority=-1;
+    #endif //NUM_PRIORITIES>1
     idle[whichCore]=idleThread;
 }
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2025 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -86,7 +86,9 @@ public:
 
 //Forwrd declaration
 class MemoryProfiling;
+#if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 class Mutex;
+#endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 enum class PriorityPolicy;
 template<PriorityPolicy pp> class WaitQueue;
 class GlobalIrqLock;
@@ -1019,6 +1021,7 @@ private:
     CpuSet affinity; ///< Core affinity of this thread
     #endif //defined(WITH_THREAD_AFFINITY) && defined(WITH_SMP)
     ThreadFlags flags;///< thread status
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     ///Saved priority. This variable contains the "original" thread priority,
     ///that is the thread priority when not locking any mutex. Thus when a
     ///thread isn't locking any mutex, the actual priority and savedPriority
@@ -1030,10 +1033,12 @@ private:
     ///savedPriority. The savedPriority can only change if the thread priority
     ///changed by calling setPriority()
     Priority savedPriority;
-    ///List of mutexes locked by this thread
+    ///List of mutexes with priority inheritance locked by this thread
     Mutex *mutexLocked;
-    ///If the thread is waiting on a Mutex, mutexWaiting points to that Mutex
+    ///If the thread is waiting on a Mutex (with priority inheritance),
+    ///mutexWaiting points to that Mutex
     Mutex *mutexWaiting;
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     ///If the thread is waiting on a WaitQueue, entry in the wait list
     WaitToken waitQueueItem;
     unsigned int *watermark;///< pointer to watermark area
@@ -1076,8 +1081,10 @@ private:
     friend void IRQstartKernel();
     //Needs flags
     friend void IRQstackOverflowCheck();
-    //Needs access to savedPriority, mutexLocked and flags.
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+    //Needs access to savedPriority, mutexLocked, mutexWaiting
     friend class Mutex;
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     //Needs access to savedPriority
     template<PriorityPolicy pp> friend class WaitQueue;
     //Needs access to flags, schedData

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2008-2025 by Terraneo Federico                          *
+ *   Copyright (C) 2008-2026 by Terraneo Federico                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -138,6 +138,7 @@ inline unsigned int FastMutex::PKunlockAllDepthLevels()
 // class Mutex
 //
 
+#if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 int Mutex::lock()
 {
     FastPauseKernelLock dLock;
@@ -374,12 +375,13 @@ Priority Mutex::inheritPriorityFromLockedList(Thread *t, Priority pr)
     }
     return pr;
 }
+#endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 
 //
 // class ConditionVariable
 //
 
-void ConditionVariable::wait(Mutex& m)
+void ConditionVariable::wait(FastMutex& m)
 {
     FastPauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
@@ -390,7 +392,20 @@ void ConditionVariable::wait(Mutex& m)
     m.PKlockToDepth(dLock,depth);
 }
 
-void ConditionVariable::wait(FastMutex& m)
+TimedWaitResult ConditionVariable::timedWait(FastMutex& m, long long absTime)
+{
+    FastPauseKernelLock dLock;
+    unsigned int depth=m.PKunlockAllDepthLevels();
+    Thread *cur=Thread::PKgetCurrentThread();
+    waitQueue.PKenqueue(cur);
+    auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
+    waitQueue.PKremove(cur); //In case of timeout or spurious wakeup
+    m.PKlockToDepth(dLock,depth);
+    return result;
+}
+
+#if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+void ConditionVariable::wait(Mutex& m)
 {
     FastPauseKernelLock dLock;
     unsigned int depth=m.PKunlockAllDepthLevels();
@@ -412,18 +427,7 @@ TimedWaitResult ConditionVariable::timedWait(Mutex& m, long long absTime)
     m.PKlockToDepth(dLock,depth);
     return result;
 }
-
-TimedWaitResult ConditionVariable::timedWait(FastMutex& m, long long absTime)
-{
-    FastPauseKernelLock dLock;
-    unsigned int depth=m.PKunlockAllDepthLevels();
-    Thread *cur=Thread::PKgetCurrentThread();
-    waitQueue.PKenqueue(cur);
-    auto result=Thread::PKrestartKernelAndTimedWait(dLock,absTime);
-    waitQueue.PKremove(cur); //In case of timeout or spurious wakeup
-    m.PKlockToDepth(dLock,depth);
-    return result;
-}
+#endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 
 void ConditionVariable::signal()
 {
