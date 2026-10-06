@@ -27,11 +27,17 @@
 
 #include "interfaces/poweroff.h"
 #include "interfaces/arch_registers.h"
+#include "interfaces/delays.h"
 
 namespace miosix {
 
 void IRQsystemReboot()
 {
+    //Rebooting switches the serial TX pin low which causes FT232-based adapters
+    //to swallow the last printed message. This is most annoying when looking
+    //for error messages that cause the reboot. This delay leaves some time for
+    //the last printed message to be delivered. Minimum delay seems to be 3ms
+    delayMs(5);
     //Reset via the watchdog
     psm_hw->wdsel=PSM_WDSEL_PROC0_BITS|PSM_WDSEL_PROC1_BITS;
     watchdog_hw->ctrl|=WATCHDOG_CTRL_TRIGGER_BITS;
