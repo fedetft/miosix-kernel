@@ -30,6 +30,7 @@
 #include <arch/drivers/eth/stm32_eth.h>
 #include <arch/drivers/stm32_uid.h>
 #include <kernel/thread.h>
+#include <interfaces/cache.h>
 #include <util/cityhash.h>
 
 #include <lwip/etharp.h>
@@ -76,16 +77,16 @@ class RxInterface {
                 return ERR_MEM;
             }
 
-            auto &desc = descriptors[i];
+            auto &desc = descriptors[i].readLayout();
 
             pbufs[i] = p;
             desc.setBuffer(p->payload, p->len);
             desc.setDmaOwned();
             if (i == (DescriptorCount - 1))
                 desc.setEndOfRing();
-
-            desc.syncToDma();
         }
+
+        markBufferBeforeDmaWrite(descriptors.data(), sizeof(descriptors));
 
         return ERR_OK;
     }
@@ -104,8 +105,8 @@ class RxInterface {
 
         // Scan the descriptor list for one with first bit set
         while (true) {
-            auto &desc = descriptors[i];
-            desc.syncToCpu();
+            auto &desc = descriptors[i].writebackLayout();
+            markBufferAfterDmaRead(&desc, sizeof(desc));
 
             if (desc.ownedByDma()) [[unlikely]] {
                 DEBUG_RX("No frame available yet");
@@ -129,10 +130,9 @@ class RxInterface {
         u16_t totLen = 0;
 
         do {
-            auto &desc = descriptors[i];
+            auto &desc = descriptors[i].writebackLayout();
             auto pbuf = pbufs[i];
-
-            desc.syncToCpu();
+            markBufferAfterDmaRead(&desc, sizeof(desc));
 
             if (desc.ownedByDma()) {
                 // Found a descriptor still owned by DMA before finding last
@@ -149,6 +149,13 @@ class RxInterface {
                 return nullptr;
             }
 
+            // Synchronize packet data inside the buffer
+            markBufferAfterDmaRead(pbuf->payload, pbuf->len);
+
+            last = desc.last();
+            if (last)
+                totLen = desc.frameLength() - 4; // Subtract FCS
+
             DEBUG_RX("Allocate pbuf");
             // Allocate the buffer to replenish the one filled by DMA
             auto newPbuf = pbuf_alloc(PBUF_RAW, PBUF_POOL_BUFSIZE, PBUF_POOL);
@@ -161,19 +168,18 @@ class RxInterface {
                 break;
             }
 
-            DEBUG_RX("Replenish DMA descriptor buffer");
-            // Replenish the DMA descriptor with a new buffer
-            pbufs[i] = newPbuf;
-            desc.setBuffer(newPbuf->payload, newPbuf->len);
+            {
+                auto &desc = descriptors[i].readLayout();
+                DEBUG_RX("Replenish DMA descriptor buffer");
+                // Replenish the DMA descriptor with a new buffer
+                pbufs[i] = newPbuf;
+                desc.setBuffer(newPbuf->payload, newPbuf->len);
 
-            last = desc.last();
-            if (last)
-                totLen = desc.frameLength() - 4; // Subtract FCS
-
-            DEBUG_RX("Return descriptor to DMA");
-            // Return the descriptor to DMA
-            desc.setDmaOwned();
-            desc.syncToDma();
+                DEBUG_RX("Return descriptor to DMA");
+                // Return the descriptor to DMA
+                desc.setDmaOwned();
+                markBufferBeforeDmaWrite(&desc, sizeof(desc));
+            }
 
             DEBUG_RX("Chain pbuf");
             // Chain the filled buffer to the pbuf chain
@@ -220,8 +226,8 @@ class RxInterface {
             bool last = false;
 
             do {
-                auto &desc = descriptors[index];
-                desc.syncToCpu();
+                auto &desc = descriptors[i].writebackLayout();
+                markBufferAfterDmaRead(&desc, sizeof(desc));
 
                 if (desc.ownedByDma()) {
                     DEBUG_RX("Descriptor %d owned by DMA, stop", index);
@@ -231,8 +237,12 @@ class RxInterface {
 
                 last = desc.last();
 
-                desc.setDmaOwned();
-                desc.syncToDma();
+                {
+                    auto &desc = descriptors[i].readLayout();
+                    desc.setBuffer(pbufs[i]->payload, pbufs[i]->len);
+                    desc.setDmaOwned();
+                    markBufferBeforeDmaWrite(&desc, sizeof(desc));
+                }
 
                 i = nextIndex(i);
             } while (!last);
@@ -244,6 +254,8 @@ class RxInterface {
             LINK_STATS_INC(link.drop);
             MIB2_STATS_NETIF_INC(netif, ifindiscards);
         }
+
+        STM32Ethernet::pollRx(descriptors.begin() + index);
 
         pending = false;
         return head;
@@ -269,12 +281,14 @@ class TxInterface {
   public:
     err_t init() {
         // Set up TX descriptors
-        for (auto &desc : descriptors) {
+        for (auto &d : descriptors) {
+            auto &desc = d.readLayout();
             desc.setCpuOwned();
-            desc.syncToDma();
         }
-        descriptors.back().setEndOfRing();
-        descriptors.back().syncToDma();
+
+        auto &lastDesc = descriptors.back().readLayout();
+        lastDesc.setEndOfRing();
+        markBufferBeforeDmaWrite(descriptors.data(), sizeof(descriptors));
 
         return ERR_OK;
     }
@@ -309,8 +323,8 @@ class TxInterface {
         while (p != nullptr) {
             DEBUG_TX("DMA setup for pbuf %d/%d", p->len, pbuf->tot_len);
 
-            auto &desc = descriptors[i];
-            desc.syncToCpu();
+            auto &desc = descriptors[i].writebackLayout();
+            markBufferAfterDmaRead(&desc, sizeof(desc));
 
             if (desc.ownedByDma()) {
 #ifdef ETHERNET_WAIT_ON_TX_FULL
@@ -321,9 +335,9 @@ class TxInterface {
                 // Cleanup already assigned descriptors
                 size_t j = insertIndex;
                 while (j != i) {
-                    auto &d = descriptors[j];
+                    auto &d = descriptors[j].readLayout();
                     d.setCpuOwned();
-                    d.syncToDma();
+                    markBufferBeforeDmaWrite(&d, sizeof(d));
                     j = nextIndex(j);
                 }
 
@@ -337,11 +351,16 @@ class TxInterface {
             bool last = p->next == nullptr;
             bool endOfRing = i == (DescriptorCount - 1);
 
-            desc.assignBuffer(p->payload, p->len, first, last, endOfRing);
-
-            // Give the descriptor to DMA
-            desc.setDmaOwned();
-            desc.syncToDma();
+            {
+                auto &desc = descriptors[i].readLayout();
+                desc.assignBuffer(p->payload, p->len, first, last, endOfRing,
+                                  pbuf->tot_len);
+                // Make packet data visible before giving the descriptor to DMA
+                markBufferBeforeDmaWrite(p->payload, p->len);
+                // Give the descriptor to DMA
+                desc.setDmaOwned();
+                markBufferBeforeDmaWrite(&desc, sizeof(desc));
+            }
 
             pbuf_ref(p); // Increase ref count so pbuf is not freed
             pbufs[i] = p;
@@ -354,7 +373,7 @@ class TxInterface {
 
         DEBUG_PRINT_TX_DESC(descriptors, insertIndex, cleanupIndex);
         DEBUG_TX("Poll DMA to start transmission");
-        STM32Ethernet::pollTx();
+        STM32Ethernet::pollTx(descriptors.begin() + insertIndex);
 
         LINK_STATS_INC(link.xmit);
         MIB2_STATS_NETIF_ADD(netif, ifoutoctets, pbuf->tot_len);
@@ -380,8 +399,8 @@ class TxInterface {
         bool last = false;
 
         do {
-            auto &desc = descriptors[i];
-            desc.syncToCpu();
+            auto &desc = descriptors[i].writebackLayout();
+            markBufferAfterDmaRead(&desc, sizeof(desc));
 
             if (desc.ownedByDma()) {
                 DEBUG_CX("Found descriptor in use by DMA at %d, stop", i);
@@ -460,8 +479,8 @@ struct EthInterface {
         if (auto err = tx.init(); err != ERR_OK)
             return err;
 
-        STM32Ethernet::init(rx.descriptorList(), tx.descriptorList(), hwaddr,
-                            ethernetIrqHandler, this);
+        STM32Ethernet::init(rx.descriptorList(), tx.descriptorList(),
+                            PBUF_POOL_BUFSIZE, hwaddr, ethernetIrqHandler, this);
 
         return ERR_OK;
     }

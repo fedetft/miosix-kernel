@@ -51,14 +51,6 @@ struct alignas(uint32_t) RxReadDmaDescriptor {
     // Noop but needed for API compatibility
     void setEndOfRing() {}
 
-    /**
-     * CPU -> DMA memory sync.
-     * Synchronizes the descriptor and buffer memory so that DMA reads the
-     * latest data written by CPU.
-     * \note Assumes the descriptor is 32-byte aligned
-     */
-    void syncToDma();
-
     void *buffer1;
     uint32_t reserved;
     void *buffer2; // Unused
@@ -81,16 +73,6 @@ struct alignas(uint32_t) RxWritebackDmaDescriptor {
     // Valid only if last is set and error is reset
     uint16_t frameLength() const { return status & 0x7FFF; }
 
-    /**
-     * DMA -> CPU memory sync.
-     * Synchronizes the descriptor memory so that the CPU reads
-     * the latest data written by DMA.
-     * \note Assumes the descriptor is 32-byte aligned
-     * \note Buffer memory needs to be synchronized externally because the
-     * writeback format doesn't contain a reference to the buffer anymore!
-     */
-    void syncToCpu();
-
   private:
     uint32_t unused[3]; // Unused status bits
     uint32_t status;
@@ -103,6 +85,10 @@ struct RxDmaDescriptor {
         RxReadDmaDescriptor read;
         RxWritebackDmaDescriptor writeback;
     };
+
+  public:
+    RxReadDmaDescriptor &readLayout() { return this->read; }
+    RxWritebackDmaDescriptor &writebackLayout() { return this->writeback; }
 };
 static_assert(sizeof(RxDmaDescriptor) == 16);
 
@@ -115,7 +101,7 @@ struct alignas(uint32_t) TxReadDmaDescriptor {
 
     // End of ring bit is unused but needed for API compatibility
     void assignBuffer(void *buf, uint16_t bufSize, bool first, bool last,
-                      bool /* unused */) {
+                      bool /* unused */, uint16_t frameLength) {
         buffer1 = buf;
         buffer2 = nullptr; // Unused
 
@@ -123,6 +109,14 @@ struct alignas(uint32_t) TxReadDmaDescriptor {
                    (0U << 30) |        // TX timestamp disabled
                    (bufSize & 0x3FFF); // buffer1 size bits [13:0]
 
+        control2 = 0U |                    // Clear control bits
+                   (first << 29) |         // First segment
+                   (last << 28) |          // Last segment
+                   (0U << 27) |            // Enable CRC insertion
+                   (0U << 26) |            // Enable pad insertion
+                   (0b11 << 16) |          // Full checksum insertion
+                   (frameLength & 0x7FFF); // Whole packet length, excluding FCS
+    }
 
     bool first() const { return control2 & (1U << 29); }
 
@@ -135,14 +129,6 @@ struct alignas(uint32_t) TxReadDmaDescriptor {
 
     // Noop but needed for API compatibility
     void setEndOfRing() {}
-
-    /**
-     * CPU -> DMA memory sync.
-     * Synchronizes the descriptor and buffer memory so that DMA reads the
-     * latest data written by CPU.
-     * \note Assumes the descriptor is 32-byte aligned
-     */
-    void syncToDma();
 
   private:
     void *buffer1;
@@ -163,14 +149,6 @@ struct alignas(uint32_t) TxWritebackDmaDescriptor {
     // Error summary bit is only valid if last is set
     bool error() const { return status & (1U << 15); }
 
-    /**
-     * DMA -> CPU memory sync.
-     * Synchronizes the descriptor memory so that the CPU reads the
-     * latest data written by DMA.
-     * \note Assumes the descriptor is 32-byte aligned
-     */
-    void syncToCpu();
-
   private:
     uint32_t timestamp[2];
     uint32_t reserved;
@@ -184,6 +162,10 @@ struct TxDmaDescriptor {
         TxReadDmaDescriptor read;
         TxWritebackDmaDescriptor writeback;
     };
+
+  public:
+    TxReadDmaDescriptor &readLayout() { return this->read; }
+    TxWritebackDmaDescriptor &writebackLayout() { return this->writeback; }
 };
 static_assert(sizeof(TxDmaDescriptor) == 16);
 

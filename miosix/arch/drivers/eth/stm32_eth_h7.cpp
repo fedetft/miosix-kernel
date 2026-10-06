@@ -48,7 +48,8 @@ void STM32Ethernet::IrqStatus::clearTx() {
 }
 
 void STM32Ethernet::init(std::span<RxDmaDescriptor> rxDesc,
-                         std::span<TxDmaDescriptor> txDesc, uint8_t *hwaddr,
+                         std::span<TxDmaDescriptor> txDesc,
+                         uint16_t rxBufferSize, uint8_t *hwaddr,
                          EthernetIrqHandler irqHandler, void *irqArg) {
     {
         miosix::FastGlobalIrqLock dLock;
@@ -126,8 +127,9 @@ void STM32Ethernet::init(std::span<RxDmaDescriptor> rxDesc,
     ETH->DMACTCR = ETH_DMACTCR_TPBL_8PBL // PBL=8
                    | 0;
     // ETH_DMACRXCR: Rx control register
-    ETH->DMACRCR = ETH_DMACRCR_RPBL_8PBL // PBL=8
-                   | 0;
+    ETH->DMACRCR =
+        ETH_DMACRCR_RPBL_8PBL // PBL=8
+        | (static_cast<uint32_t>(rxBufferSize) << ETH_DMACRCR_RBSZ_Pos);
 
     // Setup DMA interrupt
     ETH->DMACIER = ETH_DMACIER_NIE    // Normal interrupt summary

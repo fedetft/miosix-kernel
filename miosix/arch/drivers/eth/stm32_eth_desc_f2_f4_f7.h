@@ -58,22 +58,8 @@ struct alignas(uint32_t) RxDmaDescriptor {
     // Marks this descriptor as the last one in the descriptor ring
     void setEndOfRing() { size |= (1U << 15); }
 
-    /**
-     * DMA -> CPU memory sync.
-     * Synchronizes the descriptor and buffer memory so that the CPU reads
-     * the latest data written by DMA.
-     * \note Assumes the descriptor is 32-byte aligned
-     * \note Assumes the buffer is 32-byte aligned
-     */
-    void syncToCpu();
-
-    /**
-     * CPU -> DMA memory sync.
-     * Synchronizes the descriptor and buffer memory so that DMA reads the
-     * latest data written by CPU.
-     * \note Assumes the descriptor is 32-byte aligned
-     */
-    void syncToDma();
+    RxDmaDescriptor &readLayout() { return *this; }
+    RxDmaDescriptor &writebackLayout() { return *this; }
 
   private:
     volatile uint32_t status = 0;
@@ -97,7 +83,7 @@ struct alignas(uint32_t) TxDmaDescriptor {
     void setCpuOwned() { control &= ~(1U << 31); }
 
     void assignBuffer(void *buf, uint16_t bufSize, bool first, bool last,
-                      bool endOfRing) {
+                      bool endOfRing, uint16_t /* frameLength */) {
         control = 0U |                // Clear status bits
                   (0U << 31) |        // Owned by CPU
                   (1U << 30) |        // Enable IRQ on full frame tx complete
@@ -128,21 +114,8 @@ struct alignas(uint32_t) TxDmaDescriptor {
     // Marks this descriptor as the last one in the descriptor ring
     void setEndOfRing() { control |= (1U << 21); }
 
-    /**
-     * DMA -> CPU memory sync.
-     * Synchronizes the descriptor memory so that the CPU reads the
-     * latest data written by DMA.
-     * \note Assumes the descriptor is 32-byte aligned
-     */
-    void syncToCpu();
-
-    /**
-     * CPU -> DMA memory sync.
-     * Synchronizes the descriptor memory so that DMA reads the
-     * latest data written by CPU.
-     * \note Assumes the descriptor is 32-byte aligned
-     */
-    void syncToDma();
+    TxDmaDescriptor &readLayout() { return *this; }
+    TxDmaDescriptor &writebackLayout() { return *this; }
 
   private:
     volatile uint32_t control = 0;

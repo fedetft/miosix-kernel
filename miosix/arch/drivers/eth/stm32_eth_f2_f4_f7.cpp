@@ -48,7 +48,8 @@ void STM32Ethernet::IrqStatus::clearTx() {
 }
 
 void STM32Ethernet::init(std::span<RxDmaDescriptor> rxDesc,
-                         std::span<TxDmaDescriptor> txDesc, uint8_t *hwaddr,
+                         std::span<TxDmaDescriptor> txDesc,
+                         uint16_t /* rxBufferSize */, uint8_t *hwaddr,
                          EthernetIrqHandler irqHandler, void *irqArg) {
     {
         miosix::FastGlobalIrqLock dLock;

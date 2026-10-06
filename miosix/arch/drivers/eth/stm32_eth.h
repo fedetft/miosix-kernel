@@ -82,14 +82,15 @@ class IrqStatus {
  * no TX buffers will be sent out.
  * \param rxDesc pointer to the RX DMA descriptor list
  * \param txDesc pointer to the TX DMA descriptor list
+ * \param rxBufferSize RX buffer capacity in bytes, word aligned
  * \param hwaddr hardware MAC address
  * \param irqHandler optional IRQ handler to register for Ethernet
  * interrupts
  * \param irqParam optional parameter to pass to the IRQ handler
  */
 void init(std::span<RxDmaDescriptor> rxDesc, std::span<TxDmaDescriptor> txDesc,
-          uint8_t *hwaddr, EthernetIrqHandler irqHandler = nullptr,
-          void *irqArg = nullptr);
+          uint16_t rxBufferSize, uint8_t *hwaddr,
+          EthernetIrqHandler irqHandler = nullptr, void *irqArg = nullptr);
 
 IrqStatus getIrqStatus();
 
