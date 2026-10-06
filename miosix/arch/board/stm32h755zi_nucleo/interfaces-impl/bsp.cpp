@@ -48,6 +48,7 @@
 #include "drivers/sdmmc/stm32h7_sd.h"
 #include "board_settings.h"
 #include "hwmapping.h"
+#include "network/network.h"
 
 namespace miosix {
 
@@ -103,6 +104,10 @@ void IRQbspInit()
     GPIOJ->OSPEEDR=0xaaaaaaaa;
     GPIOK->OSPEEDR=0xaaaaaaaa;
 
+    #ifdef WITH_NETWORKING
+    configureEthernet();
+    #endif //WITH_NETWORKING
+
     _led::mode(Mode::OUTPUT);
     ledOn();
     delayMs(100);
@@ -119,6 +124,11 @@ void bspInit2()
     #ifdef WITH_FILESYSTEM
     basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
+
+    #ifdef WITH_NETWORKING
+    Thread::create(network::netStackThread,MAIN_STACK_SIZE,DEFAULT_PRIORITY,
+        nullptr,Thread::DETACHED);
+    #endif //WITH_NETWORKING
 }
 
 //
