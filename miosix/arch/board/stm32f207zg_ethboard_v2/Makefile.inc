@@ -36,5 +36,5 @@ ifeq ($(LINKER_SCRIPT),unikernel-all-in-xram.ld)
     PROG ?= $(KPATH)/../tools/bootloaders/stm32/pc_loader/pc_loader \
             /dev/ttyUSB0 main.bin
 else
-    PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0
+    PROG ?= stm32flash -w $(if $(ROMFS_DIR), image.bin, main.bin) -v /dev/ttyUSB0 -b 230400
 endif
