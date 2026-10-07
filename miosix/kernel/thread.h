@@ -549,10 +549,19 @@ public:
 
     /**
      * Set the priority of the current thread.<br>
+     * To change the priority of a thread that is not the current thread, use
+     * setThreadPriority() instead.<br>
      * \param priority the thread's priority, whose range depends on the
      * selected scheduler, see miosix_settings.h
      */
     static void setPriority(Priority pr);
+
+    /**
+     * Set the priority of a generic thread.<br>
+     * \param priority the thread's priority, whose range depends on the
+     * selected scheduler, see miosix_settings.h
+     */
+    void setThreadPriority(Priority pr);
 
     /**
      * Suggests a thread to terminate itself. Note that this method only makes
@@ -924,6 +933,13 @@ private:
      * Destructor
      */
     ~Thread();
+
+    /**
+     * Helper function to initialize a Thread
+     * \param t thread whose priority needs changing
+     * \param pr new priority
+     */
+    static void PKdoSetThreadPriority(Thread *t, Priority pr);
     
     /**
      * Helper function to initialize a Thread
@@ -1038,6 +1054,19 @@ private:
     ///If the thread is waiting on a Mutex (with priority inheritance),
     ///mutexWaiting points to that Mutex
     Mutex *mutexWaiting;
+    ///If the thread is waiting on a WaitQueue (either from a FastMutex, Mutex
+    ///or ConditionVariable), queueWaiting points to that queue.
+    ///It's a void* pointer because it needs to point to either a
+    ///WaitQueue<ConsiderInheritedPriority> or WaitQueue<IgnoreInheritedPriority>
+    ///and a union would be even more cumbersome. This pointer is only needed
+    ///when a thread changes the priority of another thread while it is waiting
+    ///on a WaitQueue, as the waiting thread needs to be re-prioritized in the
+    ///queue. The purpose of this pointer is partially overlapped with that of
+    ///mutexWaiting but that one is only for priority inheritance mutexes and it
+    ///needs to point to the mutex, not just the WaitQueue as it needs to access
+    ///the mutex owner. Condition variables have a WaitQueue but not an owner,
+    ///so two pointers are needed despite seeming redundant.
+    void *queueWaiting;
     #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     ///If the thread is waiting on a WaitQueue, entry in the wait list
     WaitToken waitQueueItem;

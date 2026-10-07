@@ -524,6 +524,11 @@ public:
         #else
         queue.enqueue(&thread->waitQueueItem);
         #endif
+        #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+        if(extraChecks==ExtraChecks::Kernel)
+            if(thread->queueWaiting!=nullptr) errorHandler(Error::UNEXPECTED);
+        thread->queueWaiting=this;
+        #endif
     }
 
     /**
@@ -541,6 +546,11 @@ public:
         if(item==nullptr) return nullptr;
         //Also sets pendingWakeup if higher priority thread woken
         item->thread->PKwakeup();
+        #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+        if(extraChecks==ExtraChecks::Kernel)
+            if(item->thread->queueWaiting!=this) errorHandler(Error::UNEXPECTED);
+        item->thread->queueWaiting=nullptr;
+        #endif
         return item->thread;
     }
 
@@ -553,15 +563,21 @@ public:
         #if defined(SCHED_TYPE_PRIORITY) && NUM_PRIORITIES>1
         if(queue==nullptr) return;
         queue->dequeueAll([](WaitToken *item){
-            //Also sets pendingWakeup if higher priority thread woken
-            item->thread->PKwakeup();
-        });
         #else
         queue.dequeueAll([](WaitToken *item){
+        #endif
             //Also sets pendingWakeup if higher priority thread woken
             item->thread->PKwakeup();
+            #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+            //We would like to check that item->thread->queueWaiting==this
+            //but we can't capture this into the lambda and pass it to a
+            //function pointer so we settle for a weaker check
+            if(extraChecks==ExtraChecks::Kernel)
+                if(item->thread->queueWaiting==nullptr) errorHandler(Error::UNEXPECTED);
+            item->thread->queueWaiting=nullptr;
+            #endif
         });
-        #endif
+
     }
 
     /**
@@ -579,6 +595,15 @@ public:
         else queue->remove(&thread->waitQueueItem,thread->savedPriority.get());
         #else
         queue.remove(&thread->waitQueueItem);
+        #endif
+        #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+        //NOTE: PKremove can be called on a thread that has already been removed
+        //from the queue, such as in ConditionVariable::wait to handle the
+        //spurious wakeup case
+        if(extraChecks==ExtraChecks::Kernel)
+            if(thread->queueWaiting!=this && thread->queueWaiting!=nullptr)
+                errorHandler(Error::UNEXPECTED);
+        thread->queueWaiting=nullptr;
         #endif
     }
 
@@ -616,14 +641,18 @@ private:
      * - Finally, once we have an array of lists, one for each priority, we must
      *   be absolutely sure that removeFromWaitQueue will try to remove the
      *   thread from the same list we are inserting it here, otherise memory
-     *   corruption occurs in IntrusiveList::removeFast. That's made easier by
-     *   the fact that in Miosix a thread can only change its own priority, and
-     *   of course while waiting on a synchronization primitive a thread isn't
-     *   running and thus cannot call Thread::setPriority() but there's a catch:
-     *   priority inheritance, which may cause a thread's priority to change
-     *   even while waiting. We solve this by adding a template parameter,
-     *   PriorityPolicy to consider either the actual (possibly inherited) or
-     *   orignal "saved" priority.
+     *   corruption occurs in IntrusiveList::removeFast.
+     *   This requires to consider two aspects. The first is priority
+     *   inheritance, which may cause a thread's priority to change even while
+     *   waiting. We solve this by adding a template parameter, PriorityPolicy
+     *   to consider either the actual (possibly inherited) or orignal "saved"
+     *   priority. The second is the possibility for a first thread to change
+     *   the priority of a second thread via setThreadPriority(). This case is
+     *   handled by storing a pointer to the queue a thread is waiting on inside
+     *   the thread itself, Thread::queueWaiting.
+     *   This pointer allows re-prioritization of a thread while it's waiting on
+     *   a queue, regardless of its PriorityPolicy. This pointer is kept up to
+     *   date here in WaitQueue and used in setThreadPriority()
      */
     PriorityQueue<WaitToken,NUM_PRIORITIES> *queue;
     #elif defined(SCHED_TYPE_PRIORITY)

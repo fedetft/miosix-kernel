@@ -535,8 +535,68 @@ void Thread::setPriority(Priority pr)
 
     PauseKernelLock dLock;
     Thread *cur=PKgetCurrentThread();
+    PKdoSetThreadPriority(cur,pr);
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+}
+
+void Thread::setThreadPriority(Priority pr)
+{
+    //When using the priority scheduler, if there's only one priority level
+    //changing priority becomes a no-op
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+    if(pr.validate()==false) return;
+
+    PauseKernelLock dLock;
+    //Since we're chainging the priority of a generic thread (not of the current
+    //one), we must handle the case where the thread whose priority is being
+    //changed is waiting on a WaitQueue in a Mutex, FastMutex or ConditionVariable.
+    //This is needed since those queues are sorted by priority, thus the thread
+    //needs to be re-prioritized in the queue. In case of the priority scheduler
+    //the WaitQueue is actually a list of queues (one for each priority) and
+    //memory corruption occurs if trying to remove the thread from the wrong
+    //list. Thus we really need to handle re-prioritization right.
+    //On top of that, WaitQueue is actually two separate classes,
+    //WaitQueue<ConsiderInheritedPriority>, used by Mutex since it handles
+    //not just priority-ordered wakeup, but also priority inheritance, and
+    //WaitQueue<IgnoreInheritedPriority>, used by FastMutex and ConditionVariable
+    //so we use mutexWaiting to figure out whether the thread is waiting on a
+    //Mutex or FastMutex/ConditionVariable and cast the pointer to the right
+    //queue type. Note also that we need to cache queueWaiting in the qw
+    //variable as PKremove sets queueWaiting to nullptr...
+    void *qw=queueWaiting;
+    if(qw)
+    {
+        if(mutexWaiting!=nullptr)
+            reinterpret_cast<WaitQueue<
+                PriorityPolicy::ConsiderInheritedPriority>*>(qw)->PKremove(this);
+        else
+            reinterpret_cast<WaitQueue<
+                PriorityPolicy::IgnoreInheritedPriority>*>(qw)->PKremove(this);
+    }
+    PKdoSetThreadPriority(this,pr);
+    if(qw)
+    {
+        if(mutexWaiting!=nullptr)
+        {
+            //Our thread is waiting on a mutex with priority inheritance, need
+            //to propagate the priority change towards the mutex owner chain
+            mutexWaiting->inheritPriorityTowardsMutexOwner(PKgetPriority());
+            reinterpret_cast<WaitQueue<
+                PriorityPolicy::ConsiderInheritedPriority>*>(qw)->PKenqueue(this);
+        } else
+            reinterpret_cast<WaitQueue<
+                PriorityPolicy::IgnoreInheritedPriority>*>(qw)->PKenqueue(this);
+    }
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+}
+
+void Thread::PKdoSetThreadPriority(Thread *t, Priority pr)
+{
+    //When using the priority scheduler, if there's only one priority level
+    //changing priority becomes a no-op
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
     //If thread is locking at least one mutex
-    if(cur->mutexLocked!=nullptr)
+    if(t->mutexLocked!=nullptr)
     {
         /*
          * The following algorithm may look simple but it's not, as setting a
@@ -555,47 +615,57 @@ void Thread::setPriority(Priority pr)
          * 3 1 3 1 savedPriority=1; IRQsetPriority(1); yield();
          * 3 1 3 2 savedPriority=2; IRQsetPriority(2); yield();
          * 3 1 3 3 -
-         * 3 1 3 4 savedPriority=4; IRQsetPriority(4);
+         * 3 1 3 4 savedPriority=4; IRQsetPriority(4); yield(); (*)
          * 1 2 2 1 -
          * 1 2 2 2 savedPriority=2;
-         * 1 2 2 3 savedPriority=3; IRQsetPriority(3);
+         * 1 2 2 3 savedPriority=3; IRQsetPriority(3); yield(); (*)
          * 2 2 2 1 savedPriority=1;
          * 2 2 2 2 -
-         * 2 2 2 3 savedPriority=3; IRQsetPriority(3);
+         * 2 2 2 3 savedPriority=3; IRQsetPriority(3); yield(); (*)
          * 2 - 2 1 savedPriority=1; IRQsetPriority(1); yield();
          * 2 - 2 2 -
-         * 2 - 2 3 savedPriority=3; IRQsetPriority(3);
+         * 2 - 2 3 savedPriority=3; IRQsetPriority(3); yield(); (*)
          * NOTE: inheritedPriority can not have a defined value if the current
          * thread is locking mutexes but no threads are waiting on them
+         * NOTE: The yield() in the (*) cases is for when a thread changes the
+         * priority of another thread to guarantee scheduling a possibly not
+         * running thread whose priority got boosted.
          */
 
         //savedPriority must always be changed, when all mutexes are eventually
         //unlocked the final thread priority must be the one we set here
-        if(cur->savedPriority==pr) return;
-        cur->savedPriority=pr;
+        if(t->savedPriority==pr) return;
+        t->savedPriority=pr;
 
         //We could perform this computation only if(pr<oldActualPrio) since
         //we need to care about inheritedPriority only when lowering our
         //priority but it's a minor optimization and would increase code size...
-        pr=Mutex::inheritPriorityFromLockedList(cur,pr);
+        pr=Mutex::inheritPriorityFromLockedList(t,pr);
     }
 
     //If old actual priority == desired priority, nothing more to do.
-    Priority oldActualPrio=cur->PKgetPriority();
+    Priority oldActualPrio=t->PKgetPriority();
     if(pr==oldActualPrio) return;
     {
         //If not locking any mutex priority and savedPriority must be the same
-        if(cur->mutexLocked==nullptr) cur->savedPriority=pr;
+        if(t->mutexLocked==nullptr) t->savedPriority=pr;
         FastGlobalIrqLock irqLock;
-        Scheduler::IRQsetPriority(cur,pr);
+        Scheduler::IRQsetPriority(t,pr);
         //We're also in a PauseKernelLock, don't waste time calling the
         //scheduler just for it to set pendingWakeup and bounce back, set it
         //here. With the current implementation of the priority scheduler
         //there's a possible spurious yield here, since we'll be put to the back
         //of the scheduling queue even if there's no higher priority thread than
         //our new (lowered) priority, but there's no way of knowing unless we
-        //peek at the scheduler data structures here which we don't want to
-        if(pr<oldActualPrio) FastPauseKernelLock::pendingWakeup=true;
+        //peek at the scheduler data structures here which we don't want to.
+        //Here we used to only reschedule if the priority was lowered.
+        //This worked when threads could only change their priority. Now that
+        //threads can also change the priority of other threads, as long as
+        //pr!=oldActualPrio we need to reconsider the current schedule, both
+        //to deschedule a running thread whose priority got lower than other
+        //ready threads (as before), and to schedule a non-running thread whose
+        //priority got boosted above the currently running ones
+        FastPauseKernelLock::pendingWakeup=true;
     }
     #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 }
@@ -866,7 +936,8 @@ void Thread::setupUserspaceContext(unsigned int entry, int argc, void *argvSp,
 Thread::Thread(unsigned int *watermark, unsigned int stacksize,
                bool defaultReent) : schedData(),
 #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
-               savedPriority(0), mutexLocked(nullptr), mutexWaiting(nullptr),
+               savedPriority(0), mutexLocked(nullptr),
+               mutexWaiting(nullptr), queueWaiting(nullptr),
 #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
                waitQueueItem(this), watermark(watermark), ctxsave(), stacksize(stacksize)
 {
