@@ -102,17 +102,6 @@ public:
     
     #ifdef WITH_DEVFS
     
-    /**
-     * \internal
-     * Called be DevFs to assign a device and inode to the Device
-     */
-    void setFileInfo(ino_t st_ino, short st_dev, StringPart device_name)
-    {
-        this->st_ino=st_ino;
-        this->st_dev=st_dev;
-        this->device_name = device_name;
-    }
-    
     virtual StringPart getPrefix() const
     {
         return StringPart("unkowndev");
@@ -179,17 +168,37 @@ public:
 
 protected:
     ino_t st_ino; ///< inode of device file
-    short st_dev;        ///< device (unique id of the filesystem) of device file
+    short st_dev; ///< device (unique id of the filesystem) of device file
+    mode_t mode;  ///< POSIX mode bits
+    uid_t uid;    ///< User Owner
+    gid_t gid;    ///< Group Owner
     const bool seekable; ///< If true, device is seekable
     const bool block;    ///< If true, it is a block device
     const bool tty;      ///< If true, it is a tty
     StringPart device_name; ///< Device name given by devfs
 
 private:
+#ifdef WITH_DEVFS
     void setName(StringPart& newName)
     {
         device_name = newName;
     }
+
+    /**
+     * \internal
+     * Called be DevFs to assign a device and inode to the Device
+     */
+    void setFileInfo(ino_t st_ino, short st_dev, 
+        uid_t uid, gid_t gid, mode_t mode, StringPart device_name)
+    {
+        this->st_ino=st_ino;
+        this->st_dev=st_dev;
+        this->uid=uid;
+        this->gid=gid;
+        this->mode=mode;
+        this->device_name = device_name;
+    }
+    #endif
 
     friend class DevFs;
 };
@@ -225,7 +234,7 @@ public:
      * \param df Device file. Every open() call will return the same file
      * \return true if the file was successfully added
      */
-    bool addDevice(intrusive_ref_ptr<Device> dev);
+    bool addDevice(intrusive_ref_ptr<Device> dev, mode_t mode=0755, uid_t uid=0, gid_t gid=0);
     
     /**
      * Add a device file to DevFs
@@ -233,7 +242,8 @@ public:
      * \param df Device file. Every open() call will return the same file
      * \return true if the file was successfully added
      */
-    bool addDevice(const char *name, intrusive_ref_ptr<Device> dev);
+    bool addDevice(const char *name, intrusive_ref_ptr<Device> dev, 
+        mode_t mode=0755, uid_t uid=0, gid_t gid=0);
     
     /**
      * Remove a device. This prevents the device from being opened again,
