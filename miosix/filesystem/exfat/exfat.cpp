@@ -386,11 +386,12 @@ int ExFatFile::fstat(struct stat *pstat) const
     auto parent=getParent();
 
     memset(pstat, 0, sizeof(struct stat));
+    auto fmask = reinterpret_cast<ExFatFs*>(parent.get())->fmask;
     pstat->st_uid = reinterpret_cast<ExFatFs*>(parent.get())->uid;
     pstat->st_gid = reinterpret_cast<ExFatFs*>(parent.get())->gid;
     pstat->st_dev = parent->getFsId();
     pstat->st_ino = inode;
-    pstat->st_mode = S_IFREG | ExFat::DEFAULT_FIL_PERM; //-rw-r--r--
+    pstat->st_mode = S_IFREG | fmask; //-rw-r--r--
     pstat->st_nlink = 1;
     pstat->st_size = f_size(&file);
     pstat->st_blksize = 512;
@@ -415,8 +416,8 @@ ExFatFile::~ExFatFile()
 // class ExFatFs
 //
 
-ExFatFs::ExFatFs(intrusive_ref_ptr<FileBase> disk, uid_t uid, gid_t gid)
-    : uid{uid}, gid{gid}, mutex(MutexOptions::RECURSIVE), failed(true)
+ExFatFs::ExFatFs(intrusive_ref_ptr<FileBase> disk, uid_t uid, gid_t gid, mode_t fmask, mode_t dmask)
+    : uid{uid}, gid{gid}, fmask{fmask & 0777}, dmask{dmask & 0777}, mutex(MutexOptions::RECURSIVE), failed(true)
 {
     filesystem.pdrv = disk;
     failed = f_mount(&filesystem, 1, false) != FR_OK;
@@ -450,51 +451,9 @@ int ExFatFs::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
         else statFailed=true;
     }
 
-    #ifdef WITH_POSIX_PERMISSIONS
-    auto process=Thread::getCurrentThread()->getProcess(); 
-
-    auto euid=0;
-    auto egid=0;
-
-    if(process)
-    {
-        euid=process->geteuid();
-        egid=process->getegid();
-    }
-    #endif
-
     // Using if short circuit, as st is not initialized if statFailed
     if (statFailed || !S_ISDIR(st.st_mode))
     {
-        #ifdef WITH_POSIX_PERMISSIONS
-        // get the parent directory stats 
-        // if permissions are enabled this is useful to check if the user
-        // has write permissions in the owning directory for O_CREAT (_FCREAT)
-        struct stat parentStat;
- 
-        unsigned int lastSlash = name.findLastOf('/');
-        if (lastSlash != string::npos)
-        {
-            StringPart parent(name, lastSlash);
-            if (int result = lstat(parent, &parentStat))
-                return result;
-        } else { // the parent is root
-            StringPart parent("/");
-            if (int result = lstat(parent, &parentStat))
-                return result;
-        }
-    
-        if (statFailed && flags & _FCREAT && !DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
-        {
-            return -EACCES;
-        }
-        if (!statFailed) {
-            if ((flags & _FWRITE || flags & _FAPPEND) && !FileBase::canWriteInFile(euid, egid, st))
-                return -EACCES;
-            if (flags & _FREAD && !FileBase::canReadFromFile(euid, egid, st))
-                return -EACCES;
-        }
-        #endif
         //About to open a file
         BYTE openflags=0;
         if(flags & _FREAD)  openflags|=FA_READ;
@@ -526,12 +485,6 @@ int ExFatFs::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
         //About to open a directory
         if(flags & (_FWRITE | _FAPPEND | _FCREAT | _FTRUNC)) return -EISDIR;
 
-        #ifdef WITH_POSIX_PERMISSIONS
-        if (!DirectoryBase::canReadDirectory(euid, egid, st))
-        {
-            return -EACCES;
-        }
-        #endif
         ino_t parentInode;
         if(name.empty()==false)
         {
@@ -566,13 +519,15 @@ int ExFatFs::lstat(StringPart &name, struct stat *pstat)
     pstat->st_blksize = 512;
     pstat->st_uid=uid;
     pstat->st_gid=gid;
+    auto fmask = reinterpret_cast<ExFatFs*>(shared_from_this().get())->fmask;
+    auto dmask = reinterpret_cast<ExFatFs*>(shared_from_this().get())->dmask;
     Lock<KernelMutex> l(mutex);
     if (name.empty())
     {
         // We are asked to stat the filesystem's root directory
         // By convention, we use 1 for root dir inode, see INODE() macro in ff.c
         pstat->st_ino = 1;
-        pstat->st_mode = S_IFDIR | ExFat::DEFAULT_DIR_PERM; // drwxr-xr-x
+        pstat->st_mode = S_IFDIR | dmask; // drwxr-xr-x
         return 0;
     }
     FILINFO info;
@@ -582,8 +537,8 @@ int ExFatFs::lstat(StringPart &name, struct stat *pstat)
         return result;
 
     pstat->st_ino = info.inode;
-    pstat->st_mode = (info.fattrib & AM_DIR) ? S_IFDIR | ExFat::DEFAULT_DIR_PERM  // drwxr-xr-x
-                                             : S_IFREG | ExFat::DEFAULT_FIL_PERM; // -rw-r--r--
+    pstat->st_mode = (info.fattrib & AM_DIR) ? S_IFDIR | dmask 
+                                             : S_IFREG | fmask;
     pstat->st_size = info.fsize;
     pstat->st_blocks = (info.fsize + 511) / 512;
     return 0;
@@ -606,42 +561,6 @@ int ExFatFs::rename(StringPart &oldName, StringPart &newName)
 {
     if(failed) return -ENOENT;
     Lock<KernelMutex> l(mutex);
-
-    #ifdef WITH_POSIX_PERMISSIONS
-    // get the parent directory stats 
-    // if permissions are enabled this is useful to check if the user
-    // has write permissions in the owning directory for O_CREAT (_FCREAT)
-    struct stat parentStat;
-
-    unsigned int lastSlash = oldName.findLastOf('/');
-    if (lastSlash != string::npos)
-    {
-        StringPart parent(oldName, lastSlash);
-        if (int result = lstat(parent, &parentStat))
-            return result;
-    } else { // the parent is root
-        StringPart parent("/");
-        if (int result = lstat(parent, &parentStat))
-            return result;
-    }
-
-    auto process=Thread::getCurrentThread()->getProcess();
-    
-    uid_t euid=0;
-    gid_t egid=0;
-
-    if (process)
-    {
-        euid=process->geteuid();
-        egid=process->getegid();
-    }
-
-    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
-    {
-        return -EACCES;
-    }
-    #endif
-
     return translateError(f_rename(&filesystem, oldName.c_str(), newName.c_str()));
 }
 
@@ -649,42 +568,6 @@ int ExFatFs::mkdir(StringPart& name, int mode)
 {
     if(failed) return -ENOENT;
     Lock<KernelMutex> l(mutex);
-
-    #ifdef WITH_POSIX_PERMISSIONS
-    // get the parent directory stats 
-    // if permissions are enabled this is useful to check if the user
-    // has write permissions in the owning directory for O_CREAT (_FCREAT)
-    struct stat parentStat;
-
-    unsigned int lastSlash = name.findLastOf('/');
-    if (lastSlash != string::npos)
-    {
-        StringPart parent(name, lastSlash);
-        if (int result = lstat(parent, &parentStat))
-            return result;
-    } else { // the parent is root
-        StringPart parent("/");
-        if (int result = lstat(parent, &parentStat))
-            return result;
-    }
-
-    auto process=Thread::getCurrentThread()->getProcess();
-    
-    uid_t euid=0;
-    gid_t egid=0;
-
-    if (process)
-    {
-        euid=process->geteuid();
-        egid=process->getegid();
-    }
-
-    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
-    {
-        return -EACCES;
-    }
-    #endif
-
     return translateError(f_mkdir(&filesystem,name.c_str()));
 }
 
@@ -724,41 +607,6 @@ int ExFatFs::unlinkRmdirHelper(StringPart &name, bool delDir)
     {
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
     } else if(S_ISDIR(st.st_mode)) return -EISDIR;
-
-    #ifdef WITH_POSIX_PERMISSIONS
-    // get the parent directory stats 
-    // if permissions are enabled this is useful to check if the user
-    // has write permissions in the owning directory for O_CREAT (_FCREAT)
-    struct stat parentStat;
-
-    unsigned int lastSlash = name.findLastOf('/');
-    if (lastSlash != string::npos)
-    {
-        StringPart parent(name, lastSlash);
-        if (int result = lstat(parent, &parentStat))
-            return result;
-    } else { // the parent is root
-        StringPart parent("/");
-        if (int result = lstat(parent, &parentStat))
-            return result;
-    }
-
-    auto process=Thread::getCurrentThread()->getProcess();
-    
-    uid_t euid=0;
-    gid_t egid=0;
-
-    if (process)
-    {
-        euid=process->geteuid();
-        egid=process->getegid();
-    }
-
-    if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentStat))
-    {
-        return -EACCES;
-    }
-    #endif
 
     return translateError(f_unlink(&filesystem,name.c_str()));
 }

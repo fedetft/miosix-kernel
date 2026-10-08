@@ -54,7 +54,8 @@ public:
     /**
      * Constructor
      */
-    ExFatFs(intrusive_ref_ptr<FileBase> disk, uid_t uid=0, gid_t gid=0);
+    ExFatFs(intrusive_ref_ptr<FileBase> disk, uid_t uid=0, gid_t gid=0, 
+        mode_t fmask=ExFat::DEFAULT_FIL_PERM, mode_t dmask=ExFat::DEFAULT_DIR_PERM);
 
     /**
      * Open a file
@@ -131,8 +132,13 @@ public:
      */
     ~ExFatFs();
 
-    const uid_t uid;
+    /// @brief User id of the owner of the mount point and the subsequent files and directories created in the mount point
+    const uid_t uid;   
+    /// @brief Group id of the owner of the mount point and the subsequent files and directories created in the mount point
     const gid_t gid;
+
+    const mode_t fmask; ///< Default permissions for files
+    const mode_t dmask; ///< Default permissions for directories
 
 private:
     int unlinkRmdirHelper(StringPart &name, bool delDir);
