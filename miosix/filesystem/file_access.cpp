@@ -110,12 +110,9 @@ int FileDescriptorTable::open(const char* name, int flags, int mode)
     filesCloexec[fd]=(flags & O_CLOEXEC)!=0;
     string path=absolutePath(name);
     if(path.empty()) return -ENAMETOOLONG;
-    ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
-    if(openData.result<0) return openData.result;
-    StringPart sp(path,string::npos,openData.off);
-    int result=openData.fs->open(files[fd],sp,flags,mode);
-    if(result==0) return fd; //The file descriptor
-    else return result; //The error code
+    auto result=FilesystemManager::instance().openHelper(path, files[fd], flags, mode);
+    if (result==0) return fd;
+    else return result; // return the error
 }
 
 int FileDescriptorTable::close(int fd)
@@ -394,21 +391,6 @@ private:
      * \return 0 on success, a negative number on failure
      */
     int followSymlink(string& path);
-    
-#ifdef WITH_POSIX_PERMISSIONS
-    /**
-     * Check if process has search access to the directory.
-     * \param dirStats the file statistics for the directory that contains the mode
-     * bits
-     * \return true if 
-     * 1) the process euid corresponds to the file user owner and it the has search bit set;
-     * 2) if 1 is false and the process egid corresponds to the file group owner and it has
-     *    the search bit set;
-     * 3) if 2 is false and the other search bit is set. F
-     * if 3 is false then the function returns false too
-     */
-    bool processHasSearchAccess(struct stat& dirStats);
-#endif
 
     /**
      * Find to which filesystem this path belongs
@@ -444,26 +426,6 @@ private:
     /// Maximum number of symbolic links to follow (to avoid endless loops)
     static const int maxLinkToFollow=2;
 };
-
-#ifdef WITH_POSIX_PERMISSIONS
-bool PathResolution::processHasSearchAccess(struct stat& dirStats)
-{
-    if (!S_ISDIR(dirStats.st_mode)) return false;
-
-    auto runningProcess=Thread::getCurrentThread()->getProcess();
-
-    auto euid=runningProcess->geteuid();
-    auto egid=runningProcess->getegid();
-
-    if (euid==0) return true; // root can do anything
-
-    if (dirStats.st_uid==euid && dirStats.st_mode & S_IXUSR) return true;
-    if (dirStats.st_gid==egid && dirStats.st_mode & S_IXGRP) return true;
-    if (dirStats.st_mode & S_IXOTH) return true;
-    return false;
-}
-#endif
-
 
 ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
 {
@@ -563,7 +525,16 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         if(S_ISLNK(st.st_mode)) return followSymlink(path);
         else if(index<=path.length() && !S_ISDIR(st.st_mode)) return -ENOTDIR;
         #ifdef WITH_POSIX_PERMISSIONS
-        if (!processHasSearchAccess(st)) return -EACCES;
+
+        auto runningProcess=Thread::getCurrentThread()->getProcess();
+        
+        uid_t euid=0;
+        uid_t egid=0;
+
+        auto euid=runningProcess->geteuid();
+        auto egid=runningProcess->getegid();
+
+        if (!DirectoryBase::canSearchDirectory(euid,egid,st)) return -EACCES;
         #endif
     #ifndef WITH_POSIX_PERMISSIONS
     }
@@ -830,7 +801,74 @@ int FilesystemManager::renameHelper(string& oldPath, string& newPath)
     
     //Can't rename a directory into a subdirectory of itself
     if(newSp.startsWith(oldSp)) return -EINVAL;
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    // -EACCES
+    // Write  permission  is denied for the directory containing oldpath or newpath, or, search
+    // permission is denied for one of the directories in the path prefix of  oldpath  or  new‐
+    // path,  or  oldpath  is a directory and does not allow write permission (needed to update
+    // the ..  entry).  (See also path_resolution(7).)
+    #endif
     return oldOpenData.fs->rename(oldSp,newSp);
+}
+
+int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &file, int flags, int mode)
+{
+    Lock<KernelMutex> l(mutex);
+    ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
+    if(openData.result<0) return openData.result;
+    StringPart sp(path,string::npos,openData.off);
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    struct stat fstat;
+
+    int result=openData.fs->lstat(sp, &fstat);
+    if (result<0) return result;
+    auto process=Thread::getCurrentThread()->getProcess();
+    auto euid=process->geteuid();
+    auto egid=process->getegid();
+
+    if (fstat.st_mode & S_IFDIR)
+    {
+        if (flags & O_WRONLY)
+        {
+            return -EISDIR;
+        }
+        // directories can be open in read only mode and the previous check
+        // has already eliminated the write scenario 
+        // search access is not mandatory for reading the directory, in fact
+        // in linux directories can be listed with ls but the stat command fails
+        // on the files since stat still requires search access
+        if (DirectoryBase::canReadDirectory(euid, egid, fstat))
+        {
+            return -EACCES;
+        }
+    } else {
+        if (fstat.st_mode & O_WRONLY && !FileBase::canWriteInFile(euid, egid, fstat))
+        {
+            return -EACCES;
+        }
+
+        // the user might have requrester O_RDWR
+        if (fstat.st_mode & O_RDONLY && !FileBase::canReadFromFile(euid, egid, fstat))
+        {
+            return -EACCES;
+        }
+
+        // we also need to check if the user has write access to the parent dir 
+        // if O_CREAT mode is selected.
+        if (flags & O_CREAT)
+        {
+            auto parentPath=path+"/../";
+            struct stat parentDirStat;
+            statHelper(parentPath, &parentDirStat, false);
+            if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentDirStat)) return -EACCES;
+        }
+    }
+    #endif
+
+    int result=openData.fs->open(file,sp,flags,mode);
+    return result; //The error code
 }
 
 short int FilesystemManager::getFilesystemId()

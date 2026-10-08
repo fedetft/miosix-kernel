@@ -525,6 +525,8 @@ public:
      * \return 0 on success, or a neagtive number on failure
      */
     int renameHelper(std::string& oldPath, std::string& newPath);
+
+    int openHelper(std::string& path, intrusive_ref_ptr<FileBase> &file, int flags, int mode);
     
     /**
      * \internal
