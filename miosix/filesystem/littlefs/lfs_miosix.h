@@ -49,6 +49,15 @@ public:
     KernelMutex mutex;
 };
 
+#ifdef WITH_POSIX_PERMISSIONS
+enum class LittleFsMiosixAttribs : uint8_t
+{
+    MODE=0x00, ///< File mode (permission bits only)
+    UID =0x10, ///< User owner ID
+    GID =0x20 ///< Group owner ID
+};
+#endif
+
 /**
  * LittleFS Filesystem.
  */
@@ -119,6 +128,26 @@ public:
      */
     virtual int rmdir(StringPart &name);
 
+#ifdef WITH_POSIX_PERMISSIONS
+    /**
+     * Change file permissions
+     * \param name path name, relative to the local filesystem
+     * \param mode new file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chmod(StringPart& name, int mode);
+    
+    /**
+     * Change file owner and group
+     * \param name path name, relative to the local filesystem
+     * \param owner new file owner
+     * \param group new file group
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chown(StringPart& name, uid_t owner, gid_t group);
+#endif
+    
+
     /**
      * Format the disk with the implemented filesystem
      * \return 0 on success, 1 on failure
@@ -166,6 +195,14 @@ private:
 
     miosix::intrusive_ref_ptr<miosix::FileBase> drv; /* drive device */
     int mountError;                                  ///< Mount error code
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    inline int getFileMode(StringPart& name, mode_t& mode);
+    inline int setFileMode(StringPart& name, mode_t mode);
+
+    inline int getFileUIDAndGID(StringPart& name, uid_t& uid, gid_t& gid);
+    inline int settFileUIDAndGID(StringPart& name, uid_t uid, gid_t gid);
+    #endif
 
     struct lfs_config config;
 

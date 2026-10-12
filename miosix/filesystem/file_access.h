@@ -347,6 +347,23 @@ public:
      */
     int rename(const char *oldName, const char *newName);
 
+#ifdef WITH_POSIX_PERMISSIONS
+    /**
+     * Change file permissions
+     * \param pathname file to change permissions
+     * \param mode new file permissions
+     */
+    int chmod(const char *pathname, mode_t mode);
+
+    /**
+     * Change file owner and group
+     * \param pathname file to change owner and group
+     * \param owner new file owner
+     * \param group new file group
+     */
+    int chown(const char *pathname, uid_t owner, gid_t group);
+#endif
+
     /**
      * Duplicate file descriptor to the lowest available file descriptor
      * \param fd file descriptor to duplicate
@@ -527,7 +544,19 @@ public:
     int renameHelper(std::string& oldPath, std::string& newPath);
 
     int openHelper(std::string& path, intrusive_ref_ptr<FileBase> &file, int flags, int mode);
-    
+
+    int mkdirHelper(std::string& path, int mode);
+
+    int rmdirHelper(std::string& path);
+
+    int truncateHelper(std::string& path, off_t size);
+
+#ifdef WITH_POSIX_PERMISSIONS
+    int chmodHelper(std::string& path, mode_t mode);
+
+    int chownHelper(std::string& path, uid_t owner, gid_t group);
+#endif
+
     /**
      * \internal
      * Called by FileDescriptorTable's constructor. Never call this function

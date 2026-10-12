@@ -573,6 +573,18 @@ int Fat32Fs::rmdir(StringPart& name)
     return unlinkRmdirHelper(name,true);
 }
 
+#ifdef WITH_POSIX_PERMISSIONS
+int Fat32Fs::chmod(StringPart &name, int mode)
+{
+    return 0; // Linux it silently ignores chmod on FAT32, so we do the same
+}
+
+int Fat32Fs::chown(StringPart &name, uid_t owner, gid_t group)
+{
+    return 0; // Linux it silently ignores chown on FAT32, so we do the same
+}
+#endif //WITH_POSIX_PERMISSIONS
+
 int Fat32Fs::mkfs()
 {
     uint8_t workingBuffer[512];

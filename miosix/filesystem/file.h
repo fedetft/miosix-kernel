@@ -397,11 +397,31 @@ public:
      */
     virtual int rmdir(StringPart& name)=0;
     
+#ifdef WITH_POSIX_PERMISSIONS
+    /**
+     * Change file permissions
+     * \param name path name, relative to the local filesystem
+     * \param mode new file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chmod(StringPart& name, int mode)=0;
+
+    /**
+     * Change file owner and group
+     * \param name path name, relative to the local filesystem
+     * \param owner new file owner
+     * \param group new file group
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chown(StringPart& name, uid_t owner, gid_t group)=0;
+#endif
+
     /**
      * Format the disk with the implemented filesystem
      * \return 0 on success, 1 on failure
      */
     virtual int mkfs()=0;
+
 
     /**
      * Follows a symbolic link

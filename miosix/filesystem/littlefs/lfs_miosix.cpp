@@ -29,6 +29,8 @@
 #include "filesystem/ioctl.h"
 #include "filesystem/stringpart.h"
 #include "kernel/logging.h"
+#include "kernel/process.h"
+#include "interfaces/endianness.h"
 #include <fcntl.h>
 #include <memory>
 
@@ -204,7 +206,6 @@ int LittleFS::open(intrusive_ref_ptr<FileBase> &file, StringPart &name,
                    int flags, int mode)
 {
     if(mountFailed()) return -ENOENT;
-
     // Check if we are trying to open a file or a directory
     if(flags & _FDIRECTORY) return openDirectory(file, name, flags, mode);
     else return openFile(file, name, flags, mode);
@@ -216,6 +217,7 @@ int LittleFS::openDirectory(intrusive_ref_ptr<FileBase> &directory,
     auto dir = std::make_unique<lfs_dir_t>();
 
     int err = lfs_dir_open(&lfs, dir.get(), name.c_str());
+
     if(err) return lfsErrorToPosix(err);
     LittleFSDirectory::Level lvl;
     if(name.empty())
@@ -249,9 +251,62 @@ int LittleFS::openFile(intrusive_ref_ptr<FileBase> &file,
     return 0;
 }
 
+#ifdef WITH_POSIX_PERMISSIONS
+inline int LittleFS::getFileMode(StringPart &name, mode_t& mode) {
+    auto result=lfs_getattr(&lfs, name.c_str(), 
+        static_cast<uint8_t>(LittleFsMiosixAttribs::MODE), &mode, sizeof(mode));
+    if (result<0) return result;
+    mode=fromLittleEndian32(mode);
+    return 0;
+}
+
+inline int LittleFS::setFileMode(StringPart &name, mode_t mode) {
+    mode=toLittleEndian32(mode);
+    mode&=0777; // Only permission bits are stored in the attribute
+    auto result=lfs_setattr(&lfs, name.c_str(), 
+        static_cast<uint8_t>(LittleFsMiosixAttribs::MODE), &mode, sizeof(mode));
+    if (result<0) return result;
+    return 0;
+}
+
+inline int LittleFS::getFileUIDAndGID(StringPart &name, uid_t& uid, gid_t& gid) {
+    auto result=lfs_getattr(&lfs, name.c_str(), 
+        static_cast<uint8_t>(LittleFsMiosixAttribs::UID), &uid, sizeof(uid));
+    if (result<0) return result;
+    result=lfs_getattr(&lfs, name.c_str(), 
+        static_cast<uint8_t>(LittleFsMiosixAttribs::GID), &gid, sizeof(gid));
+    if (result<0) return result;
+
+    uid=fromLittleEndian32(uid);
+    gid=fromLittleEndian32(gid);
+    return 0;
+}
+
+inline int LittleFS::settFileUIDAndGID(StringPart &name, uid_t uid, gid_t gid) {
+    uid=toLittleEndian32(uid);
+    gid=toLittleEndian32(gid);
+    auto result=lfs_setattr(&lfs, name.c_str(), 
+        static_cast<uint8_t>(LittleFsMiosixAttribs::UID), &uid, sizeof(uid));
+    if (result<0) return result;
+    result=lfs_setattr(&lfs, name.c_str(), 
+        static_cast<uint8_t>(LittleFsMiosixAttribs::GID), &gid, sizeof(gid));
+    if (result<0) return result;
+    return 0;
+}
+#endif
+
 int LittleFS::lstat(StringPart &name, struct stat *pstat)
 {
     if(mountFailed()) return -ENOENT;
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    int res=0;
+    mode_t mode=0;
+    uid_t uid=0;
+    gid_t gid=0;
+    if ((res=getFileMode(name, mode))<0) mode=0755; // Default permissions if the file does not have a mode attribute
+    if ((res=getFileUIDAndGID(name, uid, gid))<0) { uid=0; gid=0; } // Default owner if the file does not have a uid/gid attribute
+    #endif
 
     memset(pstat, 0, sizeof(struct stat));
     pstat->st_dev = filesystemId;
@@ -262,7 +317,13 @@ int LittleFS::lstat(StringPart &name, struct stat *pstat)
     {
         // Root directory
         pstat->st_ino = 1;               // Root inode is 1 by convention
+        #ifdef WITH_POSIX_PERMISSIONS
+        pstat->st_mode = S_IFDIR | mode;
+        pstat->st_uid = uid;
+        pstat->st_gid = gid;
+        #else
         pstat->st_mode = S_IFDIR | 0755; // drwxr-xr-x
+        #endif
         return 0;
     }
 
@@ -272,8 +333,16 @@ int LittleFS::lstat(StringPart &name, struct stat *pstat)
     if(err) return lfsErrorToPosix(err);
 
     pstat->st_ino = lfsStat.block;
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    pstat->st_mode = lfsStat.type == LFS_TYPE_DIR ? S_IFDIR | mode
+                                                  : S_IFREG | mode;
+    pstat->st_uid = uid;
+    pstat->st_gid = gid;
+    #else
     pstat->st_mode = lfsStat.type == LFS_TYPE_DIR ? S_IFDIR | 0755  // drwxr-xr-x
                                                   : S_IFREG | 0755; // -rwxr-xr-x
+    #endif
     pstat->st_size = lfsStat.size;
     //NOTE: st_blocks should be number of 512 byte blocks regardless of st_blksize
     pstat->st_blocks = (lfsStat.size + 512 - 1) / 512;
@@ -320,6 +389,22 @@ int LittleFS::rmdir(StringPart &name)
     int err = lfs_remove(&lfs, name.c_str());
     return lfsErrorToPosix(err);
 }
+
+#ifdef WITH_POSIX_PERMISSIONS
+int LittleFS::chmod(StringPart &name, int mode)
+{
+    if(mountFailed()) return -ENOENT;
+    auto result=setFileMode(name, mode);
+    return lfsErrorToPosix(result);
+}
+
+int LittleFS::chown(StringPart &name, uid_t owner, gid_t group)
+{
+    if(mountFailed()) return -ENOENT;
+    auto result=settFileUIDAndGID(name, owner, group);
+    return lfsErrorToPosix(result);
+}
+#endif
 
 int LittleFS::mkfs()
 {

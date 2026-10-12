@@ -124,6 +124,25 @@ public:
      */
     virtual int mkfs();
 
+#ifdef WITH_POSIX_PERMISSIONS
+    /**
+     * Change file permissions
+     * \param name path name, relative to the local filesystem
+     * \param mode new file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    int chmod(StringPart &name, int mode);
+
+    /**
+     * Change file owner and group
+     * \param name path name, relative to the local filesystem
+     * \param owner new file owner
+     * \param group new file group
+     * \return 0 on success, or a negative number on failure
+     */
+    int chown(StringPart &name, uid_t owner, gid_t group);
+#endif
+
     /**
      * Follows a symbolic link
      * \param path path identifying a symlink, relative to the local filesystem

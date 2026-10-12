@@ -50,7 +50,7 @@ static void fillStatHelper(struct stat* pstat, ino_t st_ino,
     pstat->st_nlink=1;
     pstat->st_blksize=0; //If zero means file buffer equals to BUFSIZ
     pstat->st_gid=0;
-    pstat->st_uid=0; // we can give access only to the root user
+    pstat->st_uid=0;
 }
 
 /**
@@ -206,8 +206,10 @@ int Device::fstat(struct stat* pstat) const
 {
     mode_t devmode=(block ? S_IFBLK : S_IFCHR) | mode;
     fillStatHelper(pstat,st_ino,st_dev,devmode);
+    #ifdef WITH_POSIX_PERMISSIONS
     pstat->st_uid=uid;
     pstat->st_gid=gid;
+    #endif
     return 0;
 }
 
@@ -302,8 +304,7 @@ int DevFsDirectory::getdents(void *dp, int len)
     }
     if(currentItem.empty()==false)
     {
-        map<StringPart,intrusive_ref_ptr<Device> >::iterator it;
-        it=files.find(StringPart(currentItem));
+        auto it=files.find(StringPart(currentItem));
         //Someone deleted the exact directory entry we had saved (unlikely)
         if(it==files.end()) return -EBADF;
         for(;it!=files.end();++it)
@@ -332,20 +333,27 @@ DevFs::DevFs() : mutex(MutexOptions::RECURSIVE), inodeCount(rootDirInode+1)
     addDevice("zero",intrusive_ref_ptr<Device>(new Device(Device::STREAM)));
 }
 
+#ifdef WITH_POSIX_PERMISSIONS
 bool DevFs::addDevice(intrusive_ref_ptr<Device> dev, mode_t mode, uid_t uid, gid_t gid)
+#else
+bool DevFs::addDevice(intrusive_ref_ptr<Device> dev)
+#endif
 {   
     if (dev->hasName())
     {
         return true; // Already registered so we can consider this call a success.
     }
     char devNameBuf[255]; // maybe this should be configured.
-    auto const& devPrefix = dev->getPrefix();
-    auto const isTTY = dev->isatty();
-    for(uint16_t postfix = 0; postfix < 0xffff; postfix++) // we can add up to 2^16 devices of the same type
+    auto const& devPrefix=dev->getPrefix();
+    auto const isTTY=dev->isatty();
+    for(uint16_t postfix=0; postfix<0xffffu; postfix++) // we can add up to 2^16 devices of the same type
     {
-        
-        snprintf(devNameBuf, 255, "%s%s%hu", isTTY ? "tty" : "", devPrefix.c_str(), postfix);
-        if (addDevice(devNameBuf, dev, mode, uid, gid))
+        snprintf(devNameBuf,255,"%s%s%hu",isTTY ? "tty":"",devPrefix.c_str(),postfix);
+        #ifdef WITH_POSIX_PERMISSIONS
+        if (addDevice(devNameBuf,dev,mode,uid,gid))
+        #else
+        if (addDevice(devNameBuf,dev))
+        #endif
         {
             return true;
         }
@@ -354,8 +362,12 @@ bool DevFs::addDevice(intrusive_ref_ptr<Device> dev, mode_t mode, uid_t uid, gid
     return false;
 }
 
+#ifdef WITH_POSIX_PERMISSIONS
 bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev, 
     mode_t mode, uid_t uid, gid_t gid)
+#else
+bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev)
+#endif
 {
     if(name==0 || name[0]=='\0') return false;
     int len=strlen(name);
@@ -363,8 +375,12 @@ bool DevFs::addDevice(const char *name, intrusive_ref_ptr<Device> dev,
     Lock<KernelMutex> l(mutex);
     bool result=files.insert(make_pair(StringPart(name),dev)).second;
     //Assign inode to the file
+    #ifdef WITH_POSIX_PERMISSIONS
     if(result) dev->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId, 
-                                    uid, gid, mode, StringPart(name));
+                                    uid,gid,mode,StringPart(name));
+    #else
+    if(result) dev->setFileInfo(atomicAddExchange(&inodeCount,1),filesystemId,StringPart(name));
+    #endif
     return result;
 }
 
@@ -372,8 +388,7 @@ bool DevFs::remove(const char* name)
 {
     if(name==0 || name[0]=='\0') return false;
     Lock<KernelMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<Device> >::iterator it;
-    it=files.find(StringPart(name));
+    auto it=files.find(StringPart(name));
     if(it==files.end()) return false;
     files.erase(StringPart(name));
     return true;
@@ -392,7 +407,7 @@ int DevFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
                 mutex,files,rootDirInode,parentFsMountpointInode));
         return 0;
     }
-    map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(name);
+    auto it=files.find(name);
     if(it==files.end()) return -ENOENT;
     return it->second->open(file,shared_from_this(),flags,mode);
 }
@@ -405,7 +420,7 @@ int DevFs::lstat(StringPart& name, struct stat *pstat)
         fillStatHelper(pstat,rootDirInode,filesystemId,S_IFDIR | 0755);//drwxr-xr-x
         return 0;
     }
-    map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(name);
+    auto it=files.find(name);
     if(it==files.end()) return -ENOENT;
     return it->second->fstat(pstat);
 }
@@ -422,7 +437,7 @@ int DevFs::unlink(StringPart& name)
 int DevFs::rename(StringPart& oldName, StringPart& newName)
 {
     Lock<KernelMutex> l(mutex);
-    map<StringPart,intrusive_ref_ptr<Device> >::iterator it=files.find(oldName);
+    auto it=files.find(oldName);
     if(it==files.end()) return -ENOENT;
     for(unsigned int i=0;i<newName.length();i++)
         if(newName[i]=='/')
@@ -443,6 +458,28 @@ int DevFs::rmdir(StringPart& name)
 {
     return -EACCES; // No directories support in DevFs yet
 }
+
+#ifdef WITH_POSIX_PERMISSIONS
+int DevFs::chmod(StringPart &name, int mode)
+{
+    Lock<KernelMutex> l(mutex);
+    auto it=files.find(name);
+    if(it==files.end()) return -ENOENT;
+    auto oldMode=it->second->mode;
+    it->second->mode=(oldMode & ~0777)|(mode & 0777);    
+    return 0;
+}
+
+int DevFs::chown(StringPart &name, uid_t owner, gid_t group)
+{
+    Lock<KernelMutex> l(mutex);
+    auto it=files.find(name);
+    if(it==files.end()) return -ENOENT;
+    it->second->uid=owner;
+    it->second->gid=group;
+    return 0;
+}
+#endif
 
 int DevFs::mkfs()
 {

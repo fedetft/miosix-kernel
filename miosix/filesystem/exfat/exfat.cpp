@@ -576,6 +576,18 @@ int ExFatFs::rmdir(StringPart &name)
     return unlinkRmdirHelper(name, true);
 }
 
+#ifdef WITH_POSIX_PERMISSIONS
+int ExFatFs::chmod(StringPart &name, int mode)
+{
+    return 0;
+}
+
+int ExFatFs::chown(StringPart &name, uid_t owner, gid_t group)
+{
+    return 0;
+}
+#endif //WITH_POSIX_PERMISSIONS
+
 int ExFatFs::mkfs()
 {
     uint8_t workingBuffer[512];

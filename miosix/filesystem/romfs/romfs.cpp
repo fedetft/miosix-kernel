@@ -31,6 +31,7 @@
 #include <fcntl.h>
 #include "filesystem/path.h"
 #include "kernel/logging.h"
+#include "kernel/process.h"
 #include "interfaces/endianness.h"
 #include "util/util.h"
 #include "romfs_types.h"
@@ -318,12 +319,15 @@ int MemoryMappedRomFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     if(flags & (O_APPEND | O_EXCL | O_WRONLY | O_RDWR)) return -EROFS;
     const RomFsDirectoryEntry *entry=findEntry(name);
     if(entry==nullptr) return -ENOENT;
+
     switch(fromLittleEndian16(entry->mode) & S_IFMT)
     {
         case S_IFREG:
+        {
             file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsFile(
                 shared_from_this(),flags,entry));
             break;
+        }
         case S_IFDIR:
             file=intrusive_ref_ptr<FileBase>(new MemoryMappedRomFsDirectory(
                 shared_from_this(),entry));
@@ -351,6 +355,11 @@ int MemoryMappedRomFs::rename(StringPart& oldName, StringPart& newName) { return
 int MemoryMappedRomFs::mkdir(StringPart& name, int mode) { return -EROFS; }
 int MemoryMappedRomFs::rmdir(StringPart& name) { return -EROFS; }
 int MemoryMappedRomFs::mkfs() { return 1; }
+
+#ifdef WITH_POSIX_PERMISSIONS
+int MemoryMappedRomFs::chmod(StringPart &name, int mode) { return -EROFS; }
+int MemoryMappedRomFs::chown(StringPart &name, uid_t owner, gid_t group) { return -EROFS; }
+#endif
 
 int MemoryMappedRomFs::readlink(StringPart& name, string& target)
 {

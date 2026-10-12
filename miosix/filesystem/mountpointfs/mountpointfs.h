@@ -37,6 +37,16 @@ namespace miosix {
     
 #ifdef WITH_FILESYSTEM
 
+struct MountpointFSFileStat
+{
+    ino_t  inode;
+    #ifdef WITH_POSIX_PERMISSIONS
+    mode_t mode;
+    uid_t  uid;
+    gid_t  gid;
+    #endif
+};
+
 /**
  * MountpointFs is a special filesystem whose purpose is to create directories
  * to be used as mountpoints for other filesystems.
@@ -47,7 +57,12 @@ public:
     /**
      * Constructor
      */
+#ifdef WITH_POSIX_PERMISSIONS
+    MountpointFs(uid_t uid=0, gid_t gid=0, mode_t dmask=0555) : uid{uid}, gid{gid}, 
+        dmask{dmask&0777}, mutex(MutexOptions::RECURSIVE), inodeCount(rootDirInode+1) {}
+#else
     MountpointFs() : mutex(MutexOptions::RECURSIVE), inodeCount(rootDirInode+1) {}
+#endif
     
     /**
      * Open a file
@@ -108,6 +123,25 @@ public:
      */
     virtual int rmdir(StringPart& name);
 
+#ifdef WITH_POSIX_PERMISSIONS
+    /**
+     * Change file permissions
+     * \param name path name, relative to the local filesystem
+     * \param mode new file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chmod(StringPart& name, int mode);
+
+    /**
+     * Change file owner and group
+     * \param name path name, relative to the local filesystem
+     * \param owner new file owner
+     * \param group new file group
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chown(StringPart& name, uid_t owner, gid_t group);
+#endif
+
     /**
      * Format the disk with the implemented filesystem
      * \return 0 on success, 1 on failure
@@ -115,8 +149,13 @@ public:
     virtual int mkfs();
     
 private:
+#ifdef WITH_POSIX_PERMISSIONS
+    uid_t uid;
+    gid_t gid;
+    mode_t dmask;
+#endif
     KernelMutex mutex;
-    std::map<StringPart,int> dirs;
+    std::map<StringPart,MountpointFSFileStat> dirs;
     ino_t inodeCount;
     static const ino_t rootDirInode=1;
 };

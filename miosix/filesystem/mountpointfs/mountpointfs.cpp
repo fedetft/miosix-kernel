@@ -30,6 +30,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include "filesystem/stringpart.h"
+#include "kernel/process.h"
 
 using namespace std;
 
@@ -52,7 +53,7 @@ public:
      * \param parentInode inode of the parent directory
      */
     MountpointFsDirectory(intrusive_ref_ptr<FilesystemBase> parent,
-            KernelMutex& mutex, map<StringPart,int>& dirs, bool root,
+            KernelMutex& mutex, map<StringPart,MountpointFSFileStat>& dirs, bool root,
             ino_t currentInode, ino_t parentInode)
             : DirectoryBase(parent), mutex(mutex), dirs(dirs),
               currentInode(currentInode), parentInode(parentInode),
@@ -75,8 +76,8 @@ public:
     
 private:
     KernelMutex& mutex;                 ///< Mutex of parent class
-    std::map<StringPart,int>& dirs;   ///< Directory entries of parent class
-    string currentItem;               ///< First unhandled item in directory
+    std::map<StringPart,MountpointFSFileStat>& dirs;   ///< Directory entries of parent class
+    string currentItem;                 ///< First unhandled item in directory
     ino_t currentInode,parentInode;     ///< Inodes of . and ..
 
     bool first; ///< True if first time getdents is called
@@ -103,12 +104,12 @@ int MountpointFsDirectory::getdents(void *dp, int len)
     }
     if(currentItem.empty()==false)
     {
-        map<StringPart,int>::iterator it=dirs.find(StringPart(currentItem));
+        auto it=dirs.find(StringPart(currentItem));
         //Someone deleted the exact directory entry we had saved (unlikely)
         if(it==dirs.end()) return -EBADF;
         for(;it!=dirs.end();++it)
         {
-            if(addEntry(&buffer,end,it->second,DT_DIR,it->first.c_str())>0) continue;
+            if(addEntry(&buffer,end,it->second.inode,DT_DIR,it->first.c_str())>0) continue;
             //Buffer finished
             currentItem=it->first.c_str();
             return buffer-begin;
@@ -134,11 +135,12 @@ int MountpointFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
     ino_t parentInode=parentFsMountpointInode;
     if(name.empty()==false)
     {
-        map<StringPart,int>::iterator it=dirs.find(name);
+        auto it=dirs.find(name);
         if(it==dirs.end()) return -EACCES;
         parentInode=currentInode;
-        currentInode=it->second;
+        currentInode=it->second.inode;
     }
+
     file=intrusive_ref_ptr<FileBase>(
         new MountpointFsDirectory(
             shared_from_this(),mutex,dirs,name.empty(),currentInode,parentInode));
@@ -148,18 +150,38 @@ int MountpointFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 int MountpointFs::lstat(StringPart& name, struct stat *pstat)
 {
     Lock<KernelMutex> l(mutex);
-    map<StringPart,int>::iterator it;
-    if(name.empty()==false)
+    if(name.empty())
     {
-        it=dirs.find(name);
-        if(it==dirs.end()) return -ENOENT;
+        memset(pstat,0,sizeof(struct stat));
+        pstat->st_dev=filesystemId;
+        pstat->st_ino=rootDirInode;
+        pstat->st_mode=S_IFDIR | (dmask & 0777);
+        pstat->st_nlink=1;
+        pstat->st_blksize=512;
+        #ifdef WITH_POSIX_PERMISSIONS
+        pstat->st_uid=uid;
+        pstat->st_gid=gid;
+        #endif
+        return 0;
     }
+    
+    auto it=dirs.find(name);
+    if(it==dirs.end()) return -ENOENT;
+
     memset(pstat,0,sizeof(struct stat));
     pstat->st_dev=filesystemId;
-    pstat->st_ino=name.empty() ? rootDirInode : it->second;
-    pstat->st_mode=S_IFDIR | 0755; //drwxr-xr-x
+    pstat->st_ino=name.empty() ? rootDirInode : it->second.inode;
+    #ifdef WITH_POSIX_PERMISSIONS
+    pstat->st_mode=it->second.mode;
+    #else
+    pstat->st_mode=S_IFDIR | 0755;
+    #endif
     pstat->st_nlink=1;
     pstat->st_blksize=512;
+    #ifdef WITH_POSIX_PERMISSIONS
+    pstat->st_uid=it->second.uid;
+    pstat->st_gid=it->second.gid;
+    #endif
     return 0;
 }
 
@@ -176,11 +198,12 @@ int MountpointFs::unlink(StringPart& name)
 int MountpointFs::rename(StringPart& oldName, StringPart& newName)
 {
     Lock<KernelMutex> l(mutex);
-    map<StringPart,int>::iterator it=dirs.find(oldName);
+    auto it=dirs.find(oldName);
     if(it==dirs.end()) return -ENOENT;
     for(unsigned int i=0;i<newName.length();i++)
         if(newName[i]=='/')
             return -EACCES; //MountpointFs does not support subdirectories
+    
     dirs[newName]=it->second;
     dirs.erase(it);
     return 0;
@@ -192,7 +215,22 @@ int MountpointFs::mkdir(StringPart& name, int mode)
         if(name[i]=='/')
             return -EACCES; //MountpointFs does not support subdirectories
     Lock<KernelMutex> l(mutex);
-    if(dirs.insert(make_pair(name,inodeCount)).second==false) return -EEXIST;
+#ifdef WITH_POSIX_PERMISSIONS
+    auto process=Thread::getCurrentThread()->getProcess();
+    auto euid=process->geteuid();
+    auto egid=process->getegid();
+    
+    if(dirs.insert(make_pair(name,MountpointFSFileStat{
+        .inode=inodeCount,
+        .mode=(mode & 0777) | S_IFDIR,
+        .uid=euid,
+        .gid=egid
+    })).second==false) return -EEXIST;
+#else
+    if(dirs.insert(make_pair(name,MountpointFSFileStat{
+        .inode=inodeCount
+    })).second==false) return -EEXIST;
+#endif
     inodeCount++;
     return 0;
 }
@@ -200,9 +238,42 @@ int MountpointFs::mkdir(StringPart& name, int mode)
 int MountpointFs::rmdir(StringPart& name)
 {
     Lock<KernelMutex> l(mutex);
+
     if(dirs.erase(name)==1) return 0;
     return -ENOENT;
 }
+
+#ifdef WITH_POSIX_PERMISSIONS
+int MountpointFs::chmod(StringPart &name, int mode)
+{
+    Lock<KernelMutex> l(mutex);
+    if (name.empty())
+    {
+        dmask=mode&0777;
+        return 0;
+    }
+    auto it=dirs.find(name);
+    if(it==dirs.end()) return -ENOENT;
+    auto oldMode=it->second.mode;
+    it->second.mode=(oldMode & ~0777)|(mode & 0777);
+    return 0;
+}
+
+int MountpointFs::chown(StringPart &name, uid_t owner, gid_t group)
+{
+    Lock<KernelMutex> l(mutex);
+    if (name.empty())
+    {
+        uid=owner;
+        gid=group;
+    }
+    auto it=dirs.find(name);
+    if(it==dirs.end()) return -ENOENT;
+    it->second.gid=group;
+    it->second.uid=owner;
+    return 0;
+}
+#endif //WITH_POSIX_PERMISSIONS
 
 int MountpointFs::mkfs()
 {

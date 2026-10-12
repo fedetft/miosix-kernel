@@ -169,9 +169,11 @@ public:
 protected:
     ino_t st_ino; ///< inode of device file
     short st_dev; ///< device (unique id of the filesystem) of device file
+#ifdef WITH_POSIX_PERMISSIONS
     mode_t mode;  ///< POSIX mode bits
     uid_t uid;    ///< User Owner
     gid_t gid;    ///< Group Owner
+#endif
     const bool seekable; ///< If true, device is seekable
     const bool block;    ///< If true, it is a block device
     const bool tty;      ///< If true, it is a tty
@@ -184,6 +186,7 @@ private:
         device_name = newName;
     }
 
+#ifdef WITH_POSIX_PERMISSIONS
     /**
      * \internal
      * Called be DevFs to assign a device and inode to the Device
@@ -198,7 +201,19 @@ private:
         this->mode=mode;
         this->device_name = device_name;
     }
-    #endif
+#else
+      /**
+     * \internal
+     * Called be DevFs to assign a device and inode to the Device
+     */
+    void setFileInfo(ino_t st_ino, short st_dev, StringPart device_name)
+    {
+        this->st_ino=st_ino;
+        this->st_dev=st_dev;
+        this->device_name = device_name;
+    }
+#endif // WITH_POSIX_PERMISSIONS
+#endif // WITH_DEVFS
 
     friend class DevFs;
 };
@@ -228,14 +243,17 @@ public:
      */
     DevFs();
 
+#ifdef WITH_POSIX_PERMISSIONS
     /**
      * Add a device file to DevFs. The name will be automatically generated
      * by DevFS using the device prefix.
-     * \param df Device file. Every open() call will return the same file
+     * \param dev Device file. Every open() call will return the same file
+     * \param mode the permission mode for the device (default 755)
+     * \param uid the user id owning the device (default root=0)
+     * \param gid the group id owning the device (default root=0)
      * \return true if the file was successfully added
      */
     bool addDevice(intrusive_ref_ptr<Device> dev, mode_t mode=0755, uid_t uid=0, gid_t gid=0);
-    
     /**
      * Add a device file to DevFs
      * \param name File name, must not start with a slash
@@ -244,7 +262,24 @@ public:
      */
     bool addDevice(const char *name, intrusive_ref_ptr<Device> dev, 
         mode_t mode=0755, uid_t uid=0, gid_t gid=0);
+#else
+        /**
+     * Add a device file to DevFs. The name will be automatically generated
+     * by DevFS using the device prefix.
+     * \param dev Device file. Every open() call will return the same file
+     * \return true if the file was successfully added
+     */
+    bool addDevice(intrusive_ref_ptr<Device> dev);
     
+    /**
+     * Add a device file to DevFs
+     * \param name File name, must not start with a slash
+     * \param df Device file. Every open() call will return the same file
+     * \return true if the file was successfully added
+     */
+    bool addDevice(const char *name, intrusive_ref_ptr<Device> dev);
+#endif
+
     /**
      * Remove a device. This prevents the device from being opened again,
      * but if at the time this member function is called the file is already
@@ -314,6 +349,25 @@ public:
      */
     virtual int rmdir(StringPart& name);
     
+#ifdef WITH_POSIX_PERMISSIONS
+    /**
+     * Change file permissions
+     * \param name path name, relative to the local filesystem
+     * \param mode new file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chmod(StringPart& name, int mode);
+    
+    /**
+     * Change file owner and group
+     * \param name path name, relative to the local filesystem
+     * \param owner new file owner
+     * \param group new file group
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chown(StringPart& name, uid_t owner, gid_t group);
+#endif //WITH_POSIX_PERMISSIONS
+
     /**
      * Format the disk with the implemented filesystem
      * \return 0 on success, 1 on failure

@@ -39,8 +39,8 @@ namespace miosix
 
 namespace Fat32
 {
-constexpr auto DEFAULT_DIR_PERM = 0755;
-constexpr auto DEFAULT_FIL_PERM = 0644;
+constexpr mode_t DEFAULT_DIR_PERM = 0755;
+constexpr mode_t DEFAULT_FIL_PERM = 0644;
 }
 
 /**
@@ -53,7 +53,7 @@ public:
      * Constructor
      */
     Fat32Fs(intrusive_ref_ptr<FileBase> disk, uid_t uid=0, gid_t gid=0, 
-        mode_t fmask=ExFat::DEFAULT_FIL_PERM, mode_t dmask=ExFat::DEFAULT_DIR_PERM);
+        mode_t fmask=Fat32::DEFAULT_FIL_PERM, mode_t dmask=Fat32::DEFAULT_DIR_PERM);
     
     /**
      * Open a file
@@ -113,6 +113,25 @@ public:
      * \return 0 on success, or a negative number on failure
      */
     virtual int rmdir(StringPart& name);
+
+#ifdef WITH_POSIX_PERMISSIONS
+    /**
+     * Change file permissions
+     * \param name path name, relative to the local filesystem
+     * \param mode new file permissions
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chmod(StringPart& name, int mode);
+    
+    /**
+     * Change file owner and group
+     * \param name path name, relative to the local filesystem
+     * \param owner new file owner
+     * \param group new file group
+     * \return 0 on success, or a negative number on failure
+     */
+    virtual int chown(StringPart& name, uid_t owner, gid_t group);
+#endif
     
     /**
      * Format the disk with the implemented filesystem
