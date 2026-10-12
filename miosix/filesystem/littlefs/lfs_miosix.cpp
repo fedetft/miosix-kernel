@@ -240,9 +240,34 @@ int LittleFS::openFile(intrusive_ref_ptr<FileBase> &file,
 {
     auto lfs_file_obj = std::make_unique<lfs_file_t>();
 
+    #ifdef WITH_POSIX_PERMISSIONS
+    bool fileExists=false;
+    if (flags & O_CREAT)
+    {
+        struct stat filstat;
+        fileExists=lstat(name, &filstat)==0;
+    }
+    #endif
+
     int err = lfs_file_open(&lfs, lfs_file_obj.get(), name.c_str(),
                             posixOpenToLfsFlags(flags));
     if(err) return lfsErrorToPosix(err);
+
+    #ifdef WITH_POSIX_PERMISSIONS
+    if (!fileExists && flags & O_CREAT)
+    {
+        auto process=Thread::getCurrentThread()->getProcess();
+        if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+        {
+            return -EFAULT;
+        }
+
+        auto euid=process->geteuid();
+        auto egid=process->getegid();
+        setFileMode(name, (mode&0777)|S_IFREG);
+        settFileUIDAndGID(name, euid, egid);    
+    }
+    #endif
 
     file = intrusive_ref_ptr<LittleFSFile>(
         new LittleFSFile(intrusive_ref_ptr<LittleFS>(this), //FIXME: use shared_from_this
