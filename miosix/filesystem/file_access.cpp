@@ -547,6 +547,10 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         #ifdef WITH_POSIX_PERMISSIONS
 
         auto runningProcess=Thread::getCurrentThread()->getProcess();
+        if (extraChecks==ExtraChecks::Kernel && runningProcess==nullptr)
+        {
+            return -EFAULT;
+        }
         
         uid_t euid=0;
         uid_t egid=0;
@@ -647,7 +651,13 @@ FilesystemManager& FilesystemManager::instance()
 int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase> fs)
 {
     #ifdef WITH_POSIX_PERMISSIONS
-    if(Thread::getCurrentThread()->getProcess()->getegid()==0) return -EPERM;
+    auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
+        
+    if(process->getegid()==0) return -EPERM;
     #endif
     if(path==0 || path[0]=='\0' || !fs) return -EFAULT;
     Lock<KernelMutex> l(mutex);
@@ -673,6 +683,10 @@ int FilesystemManager::umount(const char* path, bool force)
 {
     #ifdef WITH_POSIX_PERMISSIONS
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     if (process->geteuid()!=0) return -EPERM;
     #endif
     typedef
@@ -766,6 +780,10 @@ void FilesystemManager::umountAll()
 {
     #ifdef WITH_POSIX_PERMISSIONS
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return;
+    }
     if (process->geteuid()!=0) return;
     Lock<KernelMutex> l(mutex);
     #ifdef WITH_PROCESSES
@@ -804,6 +822,10 @@ int FilesystemManager::unlinkHelper(string& path)
     struct stat dirstat;
     statHelper(parentPath, &dirstat, false);
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     auto egid=process->getegid();
     // parent directory must be writable to unlink a file in it
@@ -850,6 +872,10 @@ int FilesystemManager::renameHelper(string& oldPath, string& newPath)
     // the ..  entry).  (See also path_resolution(7).)
 
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     auto egid=process->getegid();
     
@@ -884,6 +910,10 @@ int FilesystemManager::truncateHelper(string& path, off_t size)
     int result=openData.fs->lstat(sp, &fstat);
     if (result<0) return result;
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     auto egid=process->getegid();
     if (!FileBase::canWriteInFile(euid, egid, fstat)) return -EACCES;
@@ -904,7 +934,10 @@ int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &fil
     int result=openData.fs->lstat(sp, &fstat);
     if (result<0) return result;
     auto process=Thread::getCurrentThread()->getProcess();
-    // todo add debug checks 
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     auto egid=process->getegid();
 
@@ -961,6 +994,10 @@ int FilesystemManager::mkdirHelper(std::string &path, int mode)
     struct stat dirstat;
     statHelper(parentPath, &dirstat, false);
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     auto egid=process->getegid();
     // parent directory must be writable to create a directory in it
@@ -979,6 +1016,10 @@ int FilesystemManager::rmdirHelper(std::string &path)
     struct stat dirstat;
     statHelper(parentPath, &dirstat, false);
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     auto egid=process->getegid();
     // parent directory must be writable to remove a directory in it
@@ -1000,6 +1041,10 @@ int FilesystemManager::chmodHelper(string &path, mode_t mode)
     int result=openData.fs->lstat(sp, &fstat);
     if (result<0) return result;
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     auto egid=process->getegid();
     
@@ -1019,6 +1064,10 @@ int FilesystemManager::chownHelper(string& path, uid_t owner, gid_t group)
     int result=openData.fs->lstat(sp, &fstat);
     if (result<0) return result;
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     
     if (euid != 0 && euid != fstat.st_uid) return -EPERM;

@@ -217,6 +217,10 @@ int MountpointFs::mkdir(StringPart& name, int mode)
     Lock<KernelMutex> l(mutex);
 #ifdef WITH_POSIX_PERMISSIONS
     auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
     auto euid=process->geteuid();
     auto egid=process->getegid();
     

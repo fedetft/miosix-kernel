@@ -379,6 +379,17 @@ int LittleFS::mkdir(StringPart &name, int mode)
     if(mountFailed()) return -ENOENT;
 
     int err = lfs_mkdir(&lfs, name.c_str());
+    #ifdef WITH_POSIX_PERMISSIONS
+    auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
+    auto euid=process->geteuid();
+    auto egid=process->getegid();
+    settFileUIDAndGID(name, euid, egid);
+    setFileMode(name, (mode&0777)|S_IFDIR);
+    #endif
     return lfsErrorToPosix(err);
 }
 
