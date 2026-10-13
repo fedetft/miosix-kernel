@@ -1664,6 +1664,16 @@ int SDIODriver::ioctl(int cmd, void* arg)
         *sizePtr=cardSize;
         return 0;
     }
+    case IOCTL_GET_ERASE_SIZE:
+    {
+        unsigned long long* eraseSizePtr=static_cast<unsigned long long*>(arg);
+        if (eraseSizePtr==nullptr) {
+            return -EINVAL;
+        }
+        Lock<KernelMutex> l(mutex);
+        *eraseSizePtr=0; // we do not support ERASE
+        return 0;
+    }
     case IOCTL_SYNC: {
         DBG("IOCTL_SYNC\n");
         Lock<KernelMutex> l(mutex);

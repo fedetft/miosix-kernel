@@ -172,6 +172,8 @@ LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
         mountError = -EIO;
         return;
     }
+    auto devCanErase=eraseSize>0;
+    eraseSize=devCanErase ? 512:eraseSize; // in case the device does not support erase we simulate it
     unsigned long long volumeSize=0;
     if(drv->ioctl(IOCTL_GET_VOLUME_SIZE, &volumeSize)<0)
     {
@@ -192,7 +194,7 @@ LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
 
     config.read = miosixBlockDeviceRead;
     config.prog = miosixBlockDeviceProg;
-    config.erase = miosixBlockDeviceErase;
+    config.erase = devCanErase ? miosixBlockDeviceErase : miosixNoEraseOnDev;
     config.sync = miosixBlockDeviceSync;
 
     config.lock = miosixLfsLock;
@@ -655,6 +657,11 @@ int miosixBlockDeviceErase(const lfs_config *c, lfs_block_t block)
     {
         return LFS_ERR_IO;
     }
+    return LFS_ERR_OK;
+}
+
+int miosixNoEraseOnDev(const lfs_config *c, lfs_block_t block)
+{
     return LFS_ERR_OK;
 }
 
