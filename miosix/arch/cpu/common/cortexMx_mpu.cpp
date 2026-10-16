@@ -67,7 +67,7 @@ static void IRQconfigureMPURegion(unsigned int region, unsigned int base,
     const unsigned int MPU_RLAR_PXN_Msk=1<<4; //This bit is missing in the ARM .h
     MPU->RNR=region;
     MPU->RBAR=(base & (~0x1f))
-             | (ap==AccessPermission::RX ? 2<<MPU_RBAR_AP_Pos : 0
+             | (ap==AccessPermission::RX ? 2<<MPU_RBAR_AP_Pos : 0)
              | (ap==AccessPermission::RW ? MPU_RBAR_XN_Msk : 0);
     MPU->RLAR=((base+size-1) & (~0x1f))
              | (ap==AccessPermission::RW ? MPU_RLAR_PXN_Msk : 0)
