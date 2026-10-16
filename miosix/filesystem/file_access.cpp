@@ -280,7 +280,15 @@ int FileDescriptorTable::chown(const char *pathname, uid_t owner, gid_t group)
     if(path.empty()) return -ENAMETOOLONG;
     return FilesystemManager::instance().chownHelper(path,owner,group);
 }
-#endif
+
+int FileDescriptorTable::access(const char *pathname, int mode)
+{
+    if(pathname==0 || pathname[0]=='\0') return -EFAULT;
+    string path=absolutePath(pathname);
+    if(path.empty()) return -ENAMETOOLONG;
+    return FilesystemManager::instance().accessHelper(path,mode);
+}
+#endif // WITH_POSIX_PERMISSIONS
 
 int FileDescriptorTable::dup(int fd)
 {
@@ -535,7 +543,7 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
     #ifndef WITH_POSIX_PERMISSIONS
     if(syms && followIfSymlink)
     {
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
         struct stat st;
         {
             StringPart sp(path,index-1,indexIntoFs);
@@ -544,25 +552,22 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         }
         if(S_ISLNK(st.st_mode)) return followSymlink(path);
         else if(index<=path.length() && !S_ISDIR(st.st_mode)) return -ENOTDIR;
+        
         #ifdef WITH_POSIX_PERMISSIONS
-
         auto runningProcess=Thread::getCurrentThread()->getProcess();
         if (extraChecks==ExtraChecks::Kernel && runningProcess==nullptr)
         {
             return -EFAULT;
         }
-        
-        uid_t euid=0;
-        uid_t egid=0;
 
         auto euid=runningProcess->geteuid();
         auto egid=runningProcess->getegid();
 
         if (!DirectoryBase::canSearchDirectory(euid,egid,st)) return -EACCES;
-        #endif
+        #endif // WITH_POSIX_PERMISSIONS
     #ifndef WITH_POSIX_PERMISSIONS
     }
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
     return 0;
 }
 
@@ -658,7 +663,8 @@ int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase
     }
         
     if(process->getegid()==0) return -EPERM;
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
+
     if(path==0 || path[0]=='\0' || !fs) return -EFAULT;
     Lock<KernelMutex> l(mutex);
     size_t len=strlen(path);
@@ -688,7 +694,8 @@ int FilesystemManager::umount(const char* path, bool force)
         return -EFAULT;
     }
     if (process->geteuid()!=0) return -EPERM;
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
+
     typedef
     typename map<StringPart,intrusive_ref_ptr<FilesystemBase> >::iterator fsIt;
     
@@ -785,6 +792,8 @@ void FilesystemManager::umountAll()
         return;
     }
     if (process->geteuid()!=0) return;
+    #endif // WITH_POSIX_PERMISSIONS
+
     Lock<KernelMutex> l(mutex);
     #ifdef WITH_PROCESSES
     list<FileDescriptorTable*>::iterator it;
@@ -830,12 +839,13 @@ int FilesystemManager::unlinkHelper(string& path)
     auto egid=process->getegid();
     // parent directory must be writable to unlink a file in it
     if (!DirectoryBase::canEditDirectoryEntries(euid, egid, dirstat)) return -EACCES;
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
     return openData.fs->unlink(sp);
 }
 
 int FilesystemManager::statHelper(string& path, struct stat *pstat, bool f)
 {
+    Lock<KernelMutex> l(mutex);
     ResolvedPath openData=resolvePath(path,f);
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
@@ -895,13 +905,14 @@ int FilesystemManager::renameHelper(string& oldPath, string& newPath)
     oldOpenData.fs->lstat(oldSp, &dirstat);
     // if oldpath is a directory, it must be writable to rename it, to change the .. entry in it
     if (S_ISDIR(dirstat.st_mode) && !DirectoryBase::canEditDirectoryEntries(euid, egid, dirstat)) return -EACCES;
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
 
     return oldOpenData.fs->rename(oldSp,newSp);
 }
 
 int FilesystemManager::truncateHelper(string& path, off_t size)
 {
+    Lock<KernelMutex> l(mutex);
     ResolvedPath openData=resolvePath(path);
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
@@ -917,9 +928,32 @@ int FilesystemManager::truncateHelper(string& path, off_t size)
     auto euid=process->geteuid();
     auto egid=process->getegid();
     if (!FileBase::canWriteInFile(euid, egid, fstat)) return -EACCES;
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
     return openData.fs->truncate(sp,size);
 }
+
+#ifdef WITH_PROCESSES
+int FilesystemManager::resolvePathForExecution(std::string &path, ResolvedPath& openData)
+{
+    Lock<KernelMutex> l(mutex);    
+    openData=FilesystemManager::instance().resolvePath(path);
+    if(openData.result<0) return -ENOENT;
+    #ifdef WITH_POSIX_PERMISSIONS
+    struct stat filstat;
+    StringPart relativePath(path,string::npos,openData.off);
+    openData.fs->lstat(relativePath,&filstat);
+    auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
+    auto euid=process->geteuid();
+    auto egid=process->getegid();
+    if (!FileBase::canExecuteFile(euid, egid, filstat)) return -EACCES;
+    #endif // WITH_POSIX_PERMISSIONS
+    return 0;
+}
+#endif // WITH_PROCESSES
 
 int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &file, int flags, int mode)
 {
@@ -978,14 +1012,14 @@ int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &fil
             if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentDirStat)) return -EACCES;
         }
     }
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
 
-    int result=openData.fs->open(file,sp,flags,mode);
-    return result; //The error code
+    return openData.fs->open(file,sp,flags,mode);
 }
 
 int FilesystemManager::mkdirHelper(std::string &path, int mode)
 {
+    Lock<KernelMutex> l(mutex);
     ResolvedPath openData=resolvePath(path,true);
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
@@ -1002,12 +1036,13 @@ int FilesystemManager::mkdirHelper(std::string &path, int mode)
     auto egid=process->getegid();
     // parent directory must be writable to create a directory in it
     if (!DirectoryBase::canEditDirectoryEntries(euid, egid, dirstat)) return -EACCES;
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
     return openData.fs->mkdir(sp,mode & 0777);
 }
 
 int FilesystemManager::rmdirHelper(std::string &path)
 {
+    Lock<KernelMutex> l(mutex);
     ResolvedPath openData=resolvePath(path,true);
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
@@ -1024,7 +1059,7 @@ int FilesystemManager::rmdirHelper(std::string &path)
     auto egid=process->getegid();
     // parent directory must be writable to remove a directory in it
     if (!DirectoryBase::canEditDirectoryEntries(euid, egid, dirstat)) return -EACCES;
-    #endif
+    #endif // WITH_POSIX_PERMISSIONS
     return openData.fs->rmdir(sp);
 }
 
@@ -1046,8 +1081,7 @@ int FilesystemManager::chmodHelper(string &path, mode_t mode)
         return -EFAULT;
     }
     auto euid=process->geteuid();
-    auto egid=process->getegid();
-    
+
     if (euid != 0 && euid != fstat.st_uid) return -EPERM;
     
     return openData.fs->chmod(sp,mode);
@@ -1074,7 +1108,41 @@ int FilesystemManager::chownHelper(string& path, uid_t owner, gid_t group)
     
     return openData.fs->chown(sp,owner,group);
 }
-#endif
+
+int FilesystemManager::accessHelper(std::string &path, mode_t mode)
+{
+    Lock<KernelMutex> l(mutex);
+    ResolvedPath openData=resolvePath(path);
+    if(openData.result<0) return openData.result;
+    if (mode & F_OK) return 0;
+    StringPart sp(path,string::npos,openData.off);
+
+    struct stat fstat;
+    int result=openData.fs->lstat(sp, &fstat);
+    if (result<0) return result;
+    auto process=Thread::getCurrentThread()->getProcess();
+    if (extraChecks==ExtraChecks::Kernel && process==nullptr)
+    {
+        return -EFAULT;
+    }
+    auto ruid=process->getuid();
+    auto rgid=process->getgid();
+    
+    int result=-EACCES;
+    if(mode & R_OK && FileBase::canReadFromFile(ruid, rgid, fstat))
+        result=0;
+
+    if(mode & W_OK && FileBase::canWriteInFile(ruid, rgid, fstat))
+        result=0;
+    // else if (openData.fs->isReadonly()) result=-EROFS;
+
+    if(mode & X_OK && FileBase::canExecuteFile(ruid, rgid, fstat))
+        result=0;
+
+    return result;
+}
+
+#endif // WITH_POSIX_PERMISSIONS
 
 short int FilesystemManager::getFilesystemId()
 {

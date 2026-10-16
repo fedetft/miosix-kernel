@@ -717,6 +717,8 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
             case Syscall::PIPE:
             {
                 int fds[2];
+                fds[0]=sp.getParameter<0>();
+                fds[1]=sp.getParameter<1>();
                 int result=fileTable.pipe(fds);
                 sp.setParameter<0>(result);
                 sp.setParameter<1>(fds[0]);
@@ -726,7 +728,15 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 
             case Syscall::ACCESS:
             {
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                auto path=reinterpret_cast<const char*>(sp.getParameter<0>());
+                if(mpu.withinForReading(path))
+                {
+                    int mode=sp.getParameter<1>();
+                    int result=fileTable.access(path,mode);
+                    sp.setParameter<0>(result);
+                } else {
+                    sp.setParameter<0>(-EFAULT);    
+                }
                 break;
             }
 
@@ -912,39 +922,63 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 
             case Syscall::GETUID:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
                 sp.setParameter<0>(this->ruid);
+                #else // WITH_POSIX_PERMISSIONS
+                sp.setParameter<0>(-EFAULT);
+                #endif // WITH_POSIX_PERMISSIONS
                 break;
             }
 
             case Syscall::GETGID:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
                 sp.setParameter<0>(this->rgid);
+                #else // WITH_POSIX_PERMISSIONS
+                sp.setParameter<0>(-EFAULT);
+                #endif
                 break;
             }
 
             case Syscall::GETEUID:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
                 sp.setParameter<0>(this->euid);
+                #else // WITH_POSIX_PERMISSIONS
+                sp.setParameter<0>(-EFAULT);
+                #endif // WITH_POSIX_PERMISSIONS
                 break;
             }
 
             case Syscall::GETEGID:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
                 sp.setParameter<0>(this->egid);
+                #else // WITH_POSIX_PERMISSIONS
+                sp.setParameter<0>(-EFAULT);
+                #endif // WITH_POSIX_PERMISSIONS
                 break;
             }
 
             case Syscall::SETUID:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
                 auto result=this->setuid(sp.getParameter<0>());
                 sp.setParameter<0>(result);
+                #else // WITH_POSIX_PERMISSIONS
+                sp.setParameter<0>(-EFAULT);
+                #endif
                 break;
             }
 
             case Syscall::SETGID:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
                 auto result=this->setgid(sp.getParameter<0>());
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                sp.setParameter<0>(result);
+                #else // WITH_POSIX_PERMISSIONS
+                sp.setParameter<0>(-EFAULT);
+                #endif // WITH_POSIX_PERMISSIONS
                 break;
             }
 

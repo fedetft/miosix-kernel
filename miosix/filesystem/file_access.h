@@ -362,6 +362,8 @@ public:
      * \param group new file group
      */
     int chown(const char *pathname, uid_t owner, gid_t group);
+
+    int access(const char *pathname, int mode);
 #endif
 
     /**
@@ -551,10 +553,16 @@ public:
 
     int truncateHelper(std::string& path, off_t size);
 
+#ifdef WITH_PROCESSES
+    int resolvePathForExecution(std::string& path, ResolvedPath& openData);
+#endif // WITH_PROCESSES
+
 #ifdef WITH_POSIX_PERMISSIONS
     int chmodHelper(std::string& path, mode_t mode);
 
     int chownHelper(std::string& path, uid_t owner, gid_t group);
+
+    int accessHelper(std::string& path, mode_t mode);
 #endif
 
     /**

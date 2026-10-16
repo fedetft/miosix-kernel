@@ -66,7 +66,7 @@ bool FileBase::canReadFromFile(uid_t euid, gid_t egid, struct stat& filestat)
 
 bool FileBase::canExecuteFile(uid_t euid, gid_t egid, struct stat& filestat)
 {
-    if (euid==0) return true;
+    if (euid==0) return (filestat.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) != 0;
     if (filestat.st_uid==euid && filestat.st_mode & S_IXUSR) return true;
     if (filestat.st_gid==egid && filestat.st_mode & S_IXGRP) return true;
     if (filestat.st_mode & S_IXOTH) return true;

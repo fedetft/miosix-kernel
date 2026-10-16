@@ -61,6 +61,7 @@ static int miosixBlockDeviceProg(const struct lfs_config *c, lfs_block_t block,
                              lfs_size_t size);
 
 static int miosixBlockDeviceErase(const struct lfs_config *c, lfs_block_t block);
+static int miosixNoEraseOnDev(const struct lfs_config *c, lfs_block_t block);
 
 static int miosixBlockDeviceSync(const struct lfs_config *c);
 

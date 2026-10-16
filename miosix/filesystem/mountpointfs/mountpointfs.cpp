@@ -155,12 +155,14 @@ int MountpointFs::lstat(StringPart& name, struct stat *pstat)
         memset(pstat,0,sizeof(struct stat));
         pstat->st_dev=filesystemId;
         pstat->st_ino=rootDirInode;
-        pstat->st_mode=S_IFDIR | (dmask & 0777);
         pstat->st_nlink=1;
         pstat->st_blksize=512;
         #ifdef WITH_POSIX_PERMISSIONS
+        pstat->st_mode=S_IFDIR | (dmask & 0777);
         pstat->st_uid=uid;
         pstat->st_gid=gid;
+        #else
+        pstat->st_mode=S_IFDIR | 0755;
         #endif
         return 0;
     }
@@ -226,7 +228,7 @@ int MountpointFs::mkdir(StringPart& name, int mode)
     
     if(dirs.insert(make_pair(name,MountpointFSFileStat{
         .inode=inodeCount,
-        .mode=(mode & 0777) | S_IFDIR,
+        .mode=(static_cast<mode_t>(mode) & 0777) | S_IFDIR,
         .uid=euid,
         .gid=egid
     })).second==false) return -EEXIST;

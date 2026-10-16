@@ -74,7 +74,8 @@ public:
      * \return the process' pid 
      */
     pid_t getPid() const { return pid; }
-
+    
+#ifdef WITH_POSIX_PERMISSIONS
     /**
      * \return the process' effective user id
      */
@@ -146,6 +147,7 @@ public:
         
         return -EPERM;
     }
+#endif // WITH_POSIX_PERMISSIONS
 
     /**
      * \return the process file descriptor table

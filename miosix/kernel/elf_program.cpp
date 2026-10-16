@@ -115,8 +115,11 @@ int ProgramCache::load(const char *name, const unsigned int *& elf,
     if(name==nullptr || name[0]=='\0') return -EFAULT;
     string path=getFileDescriptorTable().absolutePath(name);
     if(path.empty()) return -ENAMETOOLONG;
-    ResolvedPath openData=FilesystemManager::instance().resolvePath(path);
-    if(openData.result<0) return -ENOENT;
+    ResolvedPath openData;
+    {
+        int result=FilesystemManager::instance().resolvePathForExecution(path, openData);
+        if (result<0) return result;
+    }
     StringPart relativePath(path,string::npos,openData.off);
     intrusive_ref_ptr<FileBase> file;
     if(int res=openData.fs->open(file,relativePath,O_RDONLY,0)) return res;
