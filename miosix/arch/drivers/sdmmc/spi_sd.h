@@ -715,7 +715,6 @@ bool SPISD<SPI>::sdioReinitLocked()
 template <class SPI>
 bool SPISD<SPI>::reinitialize()
 {
-    Lock<KernelMutex> l(mutex);
     return sdioReinitLocked();
 }
 
