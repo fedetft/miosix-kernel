@@ -58,7 +58,7 @@ class Partition : public Device {
 public:
     Partition(intrusive_ref_ptr<Device> backend, unsigned long long startSector,
         unsigned long long sectorsCount) : Device(DeviceType::BLOCK), backend(backend), 
-        startSector(startSector), sectorsCount(sectorsCount) 
+        startSectorByte(startSector * 512), sectorsCountBytes(sectorsCount * 512) 
     {};
 
     /**
@@ -70,13 +70,15 @@ public:
      */
     virtual ssize_t readBlock(void *buffer, size_t size, off_t where)
     {
-        auto whereLBA=where/512;
-        auto sizeLBA=size/512;
-        if (where<0 || static_cast<unsigned long long>(whereLBA+sizeLBA)>sectorsCount) 
-        {
-            return -EFAULT; // out of bounds
-        }
-        return backend->readBlock(buffer, size, startSector*512 + where);
+        bool canRead=true;
+        
+        if(where<0) canRead=false;
+        if (static_cast<unsigned long long>(where)>sectorsCountBytes) canRead=false;
+        if (static_cast<unsigned long long>(size)>sectorsCountBytes) canRead=false;
+        if (static_cast<unsigned long long>(where+size)>sectorsCountBytes) canRead=false;
+        if(!canRead) return -EFAULT; // out of bounds
+
+        return backend->readBlock(buffer, size, startSectorByte+where);
     };
 
     /**
@@ -88,13 +90,15 @@ public:
      */
     virtual ssize_t writeBlock(const void *buffer, size_t size, off_t where)
     {
-        auto whereLBA=where/512;
-        auto sizeLBA=size/512;
-        if (where<0 || static_cast<unsigned long long>(whereLBA+sizeLBA)>sectorsCount) 
-        {
-            return -EFAULT; // out of bounds
-        }
-        return backend->writeBlock(buffer, size, startSector * 512 + where);
+        bool canWrite=true;
+        
+        if(where<0) canWrite=false;
+        if (static_cast<unsigned long long>(where)>sectorsCountBytes) canWrite=false;
+        if (static_cast<unsigned long long>(size)>sectorsCountBytes) canWrite=false;
+        if (static_cast<unsigned long long>(where+size)>sectorsCountBytes) canWrite=false;
+        if(!canWrite) return -EFAULT; // out of bounds
+
+        return backend->writeBlock(buffer, size, startSectorByte+where);
     };
 
     /**
@@ -112,7 +116,7 @@ public:
             {
                 return -EINVAL;
             }
-            *sizePtr=sectorsCount*512;
+            *sizePtr=sectorsCountBytes;
             return 0;
         }
         return backend->ioctl(cmd, arg);
@@ -137,8 +141,8 @@ public:
 
 private:
     const intrusive_ref_ptr<Device> backend; ///< the device that contains the partition, can be physical or logical
-    const unsigned long long startSector;    ///< starting sector of the partition in the backend device
-    const unsigned long long sectorsCount;   ///< size in sectors
+    const unsigned long long startSectorByte;    ///< starting sector of the partition in the backend device
+    const unsigned long long sectorsCountBytes;   ///< size in bytes
 };
 
 class DevicePartitionManager
