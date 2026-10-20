@@ -1128,7 +1128,7 @@ int FilesystemManager::accessHelper(std::string &path, mode_t mode)
     auto ruid=process->getuid();
     auto rgid=process->getgid();
     
-    int result=-EACCES;
+    result=-EACCES;
     if(mode & R_OK && FileBase::canReadFromFile(ruid, rgid, fstat))
         result=0;
 
