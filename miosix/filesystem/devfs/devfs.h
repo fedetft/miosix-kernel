@@ -112,12 +112,12 @@ public:
         return !device_name.empty();
     }
 
-    bool nameEquals(StringPart& other) const
+    bool nameEquals(const StringPart& other) const
     {
         return device_name == other;
     }
 
-    StringPart& getName()
+    StringPart getName()
     {
         return device_name;
     }
@@ -181,7 +181,12 @@ protected:
 
 private:
 #ifdef WITH_DEVFS
-    void setName(StringPart& newName)
+
+    /**
+     * \internal
+     * Called by DevFs to set the device name during rename
+     */
+    void setName(const StringPart& newName)
     {
         device_name = newName;
     }
@@ -192,7 +197,7 @@ private:
      * Called be DevFs to assign a device and inode to the Device
      */
     void setFileInfo(ino_t st_ino, short st_dev, 
-        uid_t uid, gid_t gid, mode_t mode, StringPart device_name)
+        uid_t uid, gid_t gid, mode_t mode, const StringPart& device_name)
     {
         this->st_ino=st_ino;
         this->st_dev=st_dev;
@@ -206,7 +211,7 @@ private:
      * \internal
      * Called be DevFs to assign a device and inode to the Device
      */
-    void setFileInfo(ino_t st_ino, short st_dev, StringPart device_name)
+    void setFileInfo(ino_t st_ino, short st_dev, const StringPart& device_name)
     {
         this->st_ino=st_ino;
         this->st_dev=st_dev;

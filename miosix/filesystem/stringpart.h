@@ -192,6 +192,11 @@ public:
         return strcmp(this->c_str(),rhs.c_str())<0;
     }
 
+     /**
+     * Compare two StringParts for equality
+     * \param rhs second StringPart to compare to
+     * \return true if *this == rhs
+     */
     bool operator==(const StringPart& rhs) const
     {
         return strcmp(this->c_str(),rhs.c_str())==0;
