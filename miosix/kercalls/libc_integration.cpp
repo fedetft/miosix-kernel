@@ -1119,6 +1119,176 @@ int pipe(int fds[2])
     #endif //WITH_FILESYSTEM
 }
 
+int chown(const char* pathname, uid_t owner, gid_t group)
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().chown(pathname, owner, group);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif
+}
+
+int chmod(const char* pathname, mode_t mode)
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().chmod(pathname, mode);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif
+}
+
+int access(const char* pathname, int mode)
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        int result=miosix::getFileDescriptorTable().access(pathname, mode);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif
+}
+
+int setuid(uid_t uid)
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        auto process=miosix::Thread::getCurrentThread()->getProcess();
+        auto result=process->setuid(uid);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif
+}
+
+int setgid(gid_t gid)
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    #ifndef __NO_EXCEPTIONS
+    try {
+    #endif //__NO_EXCEPTIONS
+        auto process=miosix::Thread::getCurrentThread()->getProcess();
+        auto result=process->setgid(gid);
+        if(result>=0) return result;
+        miosix::getReent()->_errno=-result;
+        return -1;
+    #ifndef __NO_EXCEPTIONS
+    } catch(exception& e) {
+        miosix::getReent()->_errno=ENOMEM;
+        return -1;
+    }
+    #endif //__NO_EXCEPTIONS
+
+    #else
+    miosix::getReent()->_errno=ENOENT;
+    return -1;
+    #endif
+}
+
+uid_t getuid()
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    auto process=miosix::Thread::getCurrentThread()->getProcess();
+    return process->getuid();
+
+    #else
+    return 0;
+    #endif
+}
+
+gid_t getgid()
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    auto process=miosix::Thread::getCurrentThread()->getProcess();
+    return process->getgid();
+
+    #else
+    return 0;
+    #endif
+}
+
+uid_t geteuid()
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    auto process=miosix::Thread::getCurrentThread()->getProcess();
+    return process->geteuid();
+
+    #else
+    return 0;
+    #endif
+}
+
+gid_t getegid()
+{
+    #ifdef WITH_POSIX_PERMISSIONS
+
+    auto process=miosix::Thread::getCurrentThread()->getProcess();
+    return process->getegid();
+
+    #else
+    return 0;
+    #endif
+}
+
 /*
  * Time API in Miosix
  * ==================
