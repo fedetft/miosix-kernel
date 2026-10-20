@@ -590,100 +590,6 @@ void Thread::setThreadPriority(Priority pr)
     #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 }
 
-void Thread::PKdoSetThreadPriority(Thread *t, Priority pr)
-{
-    //When using the priority scheduler, if there's only one priority level
-    //changing priority becomes a no-op
-    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
-    /*
-     * The following algorithm may look simple but it's not, as setting a
-     * thread priority when it's locking one or more mutexes with priority
-     * inheritance requires to consider 4 variables:
-     * A savedPriority: final priority when unlocking all mutexes
-     * B inheritedPriority: max priority of all threads waiting on all
-     *   mutexes this thread is locking
-     * C actualPriority: the current priority of the thread as seen by the
-     *   scheduler that already takes into account inheritance so far
-     * D newPriority: the priority we want to set through this function
-     *
-     * Here are some test cases to wrap your head around:
-     * A B C D corresponding action we want to do in this function
-     * 3 1 3 0 savedPriority=0; IRQsetPriority(1); (*)
-     * 3 1 3 1 savedPriority=1; IRQsetPriority(1); (*)
-     * 3 1 3 2 savedPriority=2; IRQsetPriority(2); (*)
-     * 3 1 3 3 -
-     * 3 1 3 4 savedPriority=4; IRQsetPriority(4); (*)
-     * 1 2 2 1 -
-     * 1 2 2 2 savedPriority=2;
-     * 1 2 2 3 savedPriority=3; IRQsetPriority(3); (*)
-     * 2 2 2 1 savedPriority=1;
-     * 2 2 2 2 -
-     * 2 2 2 3 savedPriority=3; IRQsetPriority(3); (*)
-     * 2 - 2 1 savedPriority=1; IRQsetPriority(1); (*)
-     * 2 - 2 2 -
-     * 2 - 2 3 savedPriority=3; IRQsetPriority(3); (*)
-     * NOTE: inheritedPriority can not have a defined value if the current
-     * thread is locking mutexes but no threads are waiting on them
-     * NOTE: In the (*) cases we may need to call the scheduler, but that's
-     * a problem on its own, see below.
-     */
-
-    if(pr==t->savedPriority) return;
-    //savedPriority must always be changed.
-    //1) When not locking any mutex with priority inheritance, priority and
-    //savedPriority must be the same
-    //2) When locking mutexes, when all mutexes are eventually unlocked the
-    //final thread priority must still be the one we set here
-    t->savedPriority=pr;
-
-    //We could perform this computation only if(pr<oldActualPrio) since we need
-    //to care about inheritedPriority only when lowering our priority but it's a
-    //minor optimization and would increase code size...
-    pr=Mutex::inheritPriorityFromLockedList(t,pr);
-
-    //If desired priority == old actual priority, nothing more to do.
-    Priority oldActualPrio=t->PKgetPriority();
-    if(pr==oldActualPrio) return;
-
-    FastGlobalIrqLock irqLock;
-    Scheduler::IRQsetPriority(t,pr);
-    //Now we need to figure out if we need to call the scheduler.
-    //The easy case: if the thread isn't ready, do nothing as changing its
-    //priority doesn't matter until it becomes ready again.
-    if(t->flags.isReady()==false) return;
-
-    bool running=false;
-    for(int i=0;i<CPU_NUM_CORES;i++) if(runningThreads[i]==t) running=true;
-    if(pr<oldActualPrio)
-    {
-        //Priority decreased.
-        //If the thread is not running, do nothing, otherwise call the scheduler
-        //by setting pendingWakeup. This code guarantees that the thread will be
-        //descheduled if a higher priority ready thread exists but isn't perfect
-        //as we may cause a spurious yield making the currently running thread
-        //on the current core lose the rest of its scheduler burst.
-        //We should ideally check the ready threads and call the scheduler only
-        //if there's a ready thread with higher priority (and compatible
-        //affinity mask) but there's no way of knowing unless we peek at the
-        //scheduler data structures here which we don't want to.
-        if(running==false) return;
-        FastPauseKernelLock::pendingWakeup=true;
-    } else {
-        //Priority increased. If the thread is already running, do nothing.
-        if(running==true) return;
-        // Heuristic load balancing: threads changing priority get
-        // preferentially allocated to higher core numbers
-        if(IRQconsiderRescheduling<Hlb::FromLast>(t,getCurrentCoreId()))
-        {
-            //Thread is higher priority than the one running on this core, but
-            //we can't invoke the scheduler since we are in PK context and
-            //preemption is disabled, so set pendingWakeup
-            FastPauseKernelLock::pendingWakeup=true;
-        }
-    }
-    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
-}
-
 void Thread::terminate()
 {
     //doing a read-modify-write operation on this->status, so pauseKernel is
@@ -1193,6 +1099,100 @@ TimedWaitResult Thread::IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTim
     // If the thread was still in the sleeping list, it was woken up by a wakeup()
     bool removed=sleepingList.remove(&st);
     return removed ? TimedWaitResult::NoTimeout : TimedWaitResult::Timeout;
+}
+
+void Thread::PKdoSetThreadPriority(Thread *t, Priority pr)
+{
+    //When using the priority scheduler, if there's only one priority level
+    //changing priority becomes a no-op
+    #if !defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
+    /*
+     * The following algorithm may look simple but it's not, as setting a
+     * thread priority when it's locking one or more mutexes with priority
+     * inheritance requires to consider 4 variables:
+     * A savedPriority: final priority when unlocking all mutexes
+     * B inheritedPriority: max priority of all threads waiting on all
+     *   mutexes this thread is locking
+     * C actualPriority: the current priority of the thread as seen by the
+     *   scheduler that already takes into account inheritance so far
+     * D newPriority: the priority we want to set through this function
+     *
+     * Here are some test cases to wrap your head around:
+     * A B C D corresponding action we want to do in this function
+     * 3 1 3 0 savedPriority=0; IRQsetPriority(1); (*)
+     * 3 1 3 1 savedPriority=1; IRQsetPriority(1); (*)
+     * 3 1 3 2 savedPriority=2; IRQsetPriority(2); (*)
+     * 3 1 3 3 -
+     * 3 1 3 4 savedPriority=4; IRQsetPriority(4); (*)
+     * 1 2 2 1 -
+     * 1 2 2 2 savedPriority=2;
+     * 1 2 2 3 savedPriority=3; IRQsetPriority(3); (*)
+     * 2 2 2 1 savedPriority=1;
+     * 2 2 2 2 -
+     * 2 2 2 3 savedPriority=3; IRQsetPriority(3); (*)
+     * 2 - 2 1 savedPriority=1; IRQsetPriority(1); (*)
+     * 2 - 2 2 -
+     * 2 - 2 3 savedPriority=3; IRQsetPriority(3); (*)
+     * NOTE: inheritedPriority can not have a defined value if the current
+     * thread is locking mutexes but no threads are waiting on them
+     * NOTE: In the (*) cases we may need to call the scheduler, but that's
+     * a problem on its own, see below.
+     */
+
+    if(pr==t->savedPriority) return;
+    //savedPriority must always be changed.
+    //1) When not locking any mutex with priority inheritance, priority and
+    //savedPriority must be the same
+    //2) When locking mutexes, when all mutexes are eventually unlocked the
+    //final thread priority must still be the one we set here
+    t->savedPriority=pr;
+
+    //We could perform this computation only if(pr<oldActualPrio) since we need
+    //to care about inheritedPriority only when lowering our priority but it's a
+    //minor optimization and would increase code size...
+    pr=Mutex::inheritPriorityFromLockedList(t,pr);
+
+    //If desired priority == old actual priority, nothing more to do.
+    Priority oldActualPrio=t->PKgetPriority();
+    if(pr==oldActualPrio) return;
+
+    FastGlobalIrqLock irqLock;
+    Scheduler::IRQsetPriority(t,pr);
+    //Now we need to figure out if we need to call the scheduler.
+    //The easy case: if the thread isn't ready, do nothing as changing its
+    //priority doesn't matter until it becomes ready again.
+    if(t->flags.isReady()==false) return;
+
+    bool running=false;
+    for(int i=0;i<CPU_NUM_CORES;i++) if(runningThreads[i]==t) running=true;
+    if(pr<oldActualPrio)
+    {
+        //Priority decreased.
+        //If the thread is not running, do nothing, otherwise call the scheduler
+        //by setting pendingWakeup. This code guarantees that the thread will be
+        //descheduled if a higher priority ready thread exists but isn't perfect
+        //as we may cause a spurious yield making the currently running thread
+        //on the current core lose the rest of its scheduler burst.
+        //We should ideally check the ready threads and call the scheduler only
+        //if there's a ready thread with higher priority (and compatible
+        //affinity mask) but there's no way of knowing unless we peek at the
+        //scheduler data structures here which we don't want to.
+        if(running==false) return;
+        FastPauseKernelLock::pendingWakeup=true;
+    } else {
+        //Priority increased. If the thread is already running, do nothing.
+        if(running==true) return;
+        // Heuristic load balancing: threads changing priority get
+        // preferentially allocated to higher core numbers
+        if(IRQconsiderRescheduling<Hlb::FromLast>(t,getCurrentCoreId()))
+        {
+            //Thread is higher priority than the one running on this core, but
+            //we can't invoke the scheduler since we are in PK context and
+            //preemption is disabled, so set pendingWakeup
+            FastPauseKernelLock::pendingWakeup=true;
+        }
+    }
+    #endif //!defined(SCHED_TYPE_PRIORITY) || NUM_PRIORITIES>1
 }
 
 template<Thread::Hlb b>

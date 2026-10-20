@@ -933,13 +933,6 @@ private:
      * Destructor
      */
     ~Thread();
-
-    /**
-     * Helper function to initialize a Thread
-     * \param t thread whose priority needs changing
-     * \param pr new priority
-     */
-    static void PKdoSetThreadPriority(Thread *t, Priority pr);
     
     /**
      * Helper function to initialize a Thread
@@ -984,6 +977,13 @@ private:
      * Common implementation of all IRQ timedWait calls
      */
     static TimedWaitResult IRQglobalIrqUnlockAndTimedWaitImpl(long long absoluteTimeNs);
+
+    /**
+     * Helper function to change the priority of a Thread
+     * \param t thread whose priority needs changing
+     * \param pr new priority
+     */
+    static void PKdoSetThreadPriority(Thread *t, Priority pr);
 
     /**
      * To be called when a new thread transitions to the ready state to check
