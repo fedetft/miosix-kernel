@@ -616,7 +616,7 @@ chmod:
 .type chown, %function
 chown:
 	push {r7,lr}
-	movs r7, #28
+	movs r7, #27
 	svc  0
 	cmp  r0, #0
 	blt  .L2800
@@ -682,7 +682,25 @@ pipe:
 .L3300:
 	b    syscallfailed32
 
-/* TODO: missing syscalls: access */
+/**
+ * access
+ * \param path file path to be checked
+ * \param mode the access mode to be checked. can be F_OK to check if file exists 
+ *        or any combination of R_OK, W_OK, X_OK.
+ * \return 0 on success, -1 on failure
+ */
+.section .text.access
+.global access
+.type access, %function
+access:
+	push {r7,lr}
+	movs r7, #33
+	svc  0
+	cmp  r0, #0
+	blt  .L3400
+	pop  {r7,pc}
+.L3400:
+	b    syscallfailed32
 
 /**
  * miosix::getTime, nonstandard syscall
@@ -908,7 +926,93 @@ getppid:
 	svc  0
 	pop  {r7,pc}
 
-/* TODO: missing syscalls: getuid, getgid, geteuid, getegid, setuid, setgid */
+/**
+ * getuid
+ * \return the RUID of the process
+ */
+.section .text.getuid
+.global getuid
+.type getuid, %function
+getuid:
+	push {r7,lr}
+	movs r7, #50
+	svc  0
+	pop  {r7,pc}
+
+/**
+ * getgid
+ * \return the RGID of the process
+ */
+.section .text.getgid
+.global getgid
+.type getgid, %function
+getgid:
+	push {r7,lr}
+	movs r7, #51
+	svc  0
+	pop  {r7,pc}
+
+/**
+ * geteuid
+ * \return the EUID of the process
+ */
+.section .text.geteuid
+.global geteuid
+.type geteuid, %function
+geteuid:
+	push {r7,lr}
+	movs r7, #52
+	svc  0
+	pop  {r7,pc}
+
+/**
+ * getegid
+ * \return the EGID of the process
+ */
+.section .text.getegid
+.global getegid
+.type getegid, %function
+getegid:
+	push {r7,lr}
+	movs r7, #52
+	svc  0
+	pop  {r7,pc}
+
+/**
+ * setuid
+ * \param uid the new process RUID and EUID
+ * \return 0 on success, -1 on failure
+ */
+.section .text.setuid
+.global setuid
+.type setuid, %function
+setuid:
+	push {r7,lr}
+	movs r7, #54
+	svc  0
+	cmp  r0, #0
+	blt  .L5500
+	pop  {r7,pc}
+.L5500:
+	b    syscallfailed32
+
+/**
+ * setgid
+ * \param gid the new process RGID and EGID
+ * \return 0 on success, -1 on failure
+ */
+.section .text.setgid
+.global setgid
+.type setgid, %function
+setgid:
+	push {r7,lr}
+	movs r7, #55
+	svc  0
+	cmp  r0, #0
+	blt  .L5600
+	pop  {r7,pc}
+.L5600:
+	b    syscallfailed32
 
 /**
  * sysconf
