@@ -299,7 +299,7 @@ void IRQwakeThreads(long long currentTime)
         if(currentTime>=nextPreempt) IRQinvokeScheduler();
         else {
             // In the unified timer model we need to set the next interrupt to
-            // the minimum time between the enxt preemption and the next wakeup
+            // the minimum time between the next preemption and the next wakeup
             long long firstWakeup;
             if(sleepingList.empty()) firstWakeup=numeric_limits<long long>::max();
             else firstWakeup=sleepingList.front()->wakeupTime;

@@ -988,7 +988,7 @@ private:
     /**
      * To be called when a new thread transitions to the ready state to check
      * whether its priority is higher than the one of the thread currently
-     * running on at least one core, in whcih case a rescheduling should be
+     * running on at least one core, in which case a rescheduling should be
      * triggered.
      *
      * This function causes a reschedule if a core other than excludedCoreId is
