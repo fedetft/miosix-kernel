@@ -583,6 +583,47 @@ rename:
 .L2500:
 	b    syscallfailed32
 
+/* TODO: missing syscalls: fchmod, fchown, lchown */
+
+/**
+ * chmod
+ * \param path existing file path
+ * \param mode new file mode
+ * \return 0 on success, -1 on failure
+ */
+.section .text.chmod
+.global chmod
+.type chmod, %function
+chmod:
+	push {r7,lr}
+	movs r7, #25
+	svc  0
+	cmp  r0, #0
+	blt  .L2600
+	pop  {r7,pc}
+.L2600:
+	b    syscallfailed32
+
+/**
+ * chown
+ * \param path existing file path
+ * \param uid new user owner
+ * \param gid new group owner
+ * \return 0 on success, -1 on failure
+ */
+.section .text.chown
+.global chown
+.type chown, %function
+chown:
+	push {r7,lr}
+	movs r7, #28
+	svc  0
+	cmp  r0, #0
+	blt  .L2800
+	pop  {r7,pc}
+.L2800:
+	b    syscallfailed32
+
 /**
  * dup
  * \param fd file descriptor to duplicate
