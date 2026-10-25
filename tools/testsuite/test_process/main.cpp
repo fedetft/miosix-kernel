@@ -54,7 +54,12 @@ static int sys_test_getpid_child(int argc, char *argv[]);
 int main(int argc, char *argv[], char *envp[])
 {
     if(argc == 0) return 1;
-    else if(argc == 1) test_syscalls();
+    else if(argc == 1)
+    {
+        if(strcmp(environ[0],"TEST=permissions")!=0) return 1;
+        test_syscalls(true);
+    } 
+        
     else if(argc == 2)
     {
         if(strcmp("sys_test_getpid_child", argv[1])==0)

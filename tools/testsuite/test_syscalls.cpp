@@ -37,6 +37,9 @@ static void fs_test_4();
 static void fs_test_5();
 static void fs_test_6();
 static void fs_test_7();
+#if defined(WITH_POSIX_PERMISSIONS) || defined(IN_PROCESS)
+static void fs_test_8();
+#endif
 static void sys_test_pipe();
 #endif //WITH_FILESYSTEM
 static void sys_test_time();
@@ -49,7 +52,11 @@ static void proc_test_global_ctor_dtor();
 #endif
 #endif
 
+#ifdef IN_PROCESS
+void test_syscalls(bool withPermissions)
+#else
 void test_syscalls()
+#endif
 {
     #ifndef IN_PROCESS
     ledOn();
@@ -62,6 +69,11 @@ void test_syscalls()
     fs_test_5();
     fs_test_6();
     fs_test_7();
+    #ifdef WITH_POSIX_PERMISSIONS
+    fs_test_8();
+    #elif defined(IN_PROCESS)
+    if (withPermissions) fs_test_8();
+    #endif
     sys_test_pipe();
     #else //WITH_FILESYSTEM
     iprintf("Filesystem tests skipped, filesystem support is disabled\n");
@@ -85,6 +97,11 @@ void test_syscalls()
 int spawnAndWait(const char *arg[])
 {
     const char *env[] = { nullptr };
+    return spawnAndWait(arg,env);
+}
+
+int spawnAndWait(const char* arg[], const char* env[])
+{
     pid_t pid;
     int ec=posix_spawn(&pid,arg[0],NULL,NULL,(char* const*)arg,(char* const*)env);
     if(ec!=0) fail("spawnAndWait posix_spawn");
@@ -151,6 +168,7 @@ static void fs_t1_p1(void *argv)
     FILE *f;
     if((f=fopen("/sd/testdir/file_1.txt","w"))==NULL)
     {
+        iprintf("Failed on fopen (errno=%d)\n", errno);
         fs_1_error=true;
         return;
     }
@@ -247,7 +265,7 @@ static void fs_test_1()
     test_name("C standard library file functions + mkdir()");
     iprintf("Please wait (long test)\n");
     //Test mkdir (if possible)
-    int result=mkdir("/sd/testdir",0);
+    int result=mkdir("/sd/testdir",0755);
     switch(result)
     {
             case 0: break;
@@ -408,6 +426,10 @@ rename
 static bool checkDirContent(const std::string& d, const char *a, const char *b)
 {
     DIR *dir=opendir(d.c_str());
+    if (dir==NULL)
+    {
+        return false;
+    }
     bool found=false;
     for(;;)
     {
@@ -557,8 +579,8 @@ ino_t checkInodes(const char *dir, ino_t curInode,
         
         struct stat st;
         if(stat(de->d_name,&st)) fail("stat");
-        printf("inode=%llu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
-        
+        printf("inode=%llu dev=%d mode=%lo uid=%d gid=%d %s\n",st.st_ino,
+            st.st_dev,st.st_mode,st.st_uid,st.st_gid,de->d_name);
         if(de->d_ino!=st.st_ino) fail("inode mismatch");
         
         bool mustBeDir=false;
@@ -663,7 +685,8 @@ static void fs_test_4()
             sdDevice=st.st_dev;
         }
         
-        printf("inode=%llu dev=%d %s\n",st.st_ino,st.st_dev,de->d_name);
+        printf("inode=%llu dev=%d mode=%lo uid=%d gid=%d %s\n",st.st_ino,
+            st.st_dev,st.st_mode,st.st_uid,st.st_gid,de->d_name);
     }
     closedir(d);
     
@@ -978,6 +1001,297 @@ static void fs_test_7()
     if(res!=-1) fail("could stat file in subdirectory in root");
     pass();
 }
+
+//
+// Filesystem test 8
+//
+/*
+tests:
+chmod
+chown
+access
+open
+mkdir
+rmdir
+diropen
+search access
+*/
+
+
+// #define WITH_POSIX_PERMISSIONS
+// #error remove the define
+#if defined(WITH_POSIX_PERMISSIONS) || defined(IN_PROCESS)
+
+/**
+ * \note note that these tests will fail in fat32 and exfat since they
+ * do not support posix permissions
+ */
+static void checkDirPermissions(const std::string& d, uid_t expectedUid, gid_t expectedGid, bool expectToFail=false)
+{
+    const char testPermissionsDir[]="test-permissions";
+
+    int result=mkdir((d+testPermissionsDir).c_str(), 0500);
+    if(result==0 && expectToFail) fail("mkdir 0500"); // dr-x------
+    if(result!=0 && !expectToFail) fail("mkdir 0500"); // dr-x------
+    
+    // checDirContent fails when returns false, so that's why it must be equal expectToFail
+    if(checkDirContent(d,testPermissionsDir,0)==expectToFail) fail("mkdir 0500 2");
+    struct stat dirstat;
+
+    // tests from now on do not make any sense since we didn't manage to create the directory
+    if (expectToFail) return;
+ 
+    lstat((d+testPermissionsDir).c_str(), &dirstat);
+    if (dirstat.st_uid!=expectedUid && !expectToFail) fail("mkdir uid");
+    if (dirstat.st_gid!=expectedGid) fail("mkdir gid");
+    if ((dirstat.st_mode & S_IFDIR)==0) fail("mkdir ifdir mode");
+    if ((dirstat.st_mode & 0777)!=0500) fail("mkdir permission mode");
+
+    if(chmod((d+testPermissionsDir).c_str(), 0400)!=0) fail("chmod 0400"); // we want only read access
+    DIR *dir=opendir((d+testPermissionsDir).c_str());
+    if (dir==NULL) 
+    {
+        if (errno==EACCES) fail("Failed to access dir");
+        fail("chmod opendir read permissions");
+    }
+    closedir(dir);
+
+
+    lstat((d+testPermissionsDir).c_str(), &dirstat);
+    if (dirstat.st_uid!=expectedUid) fail("mkdir uid 2");
+    if (dirstat.st_gid!=expectedGid) fail("mkdir gid 2");
+    if ((dirstat.st_mode & S_IFDIR)==0) fail("mkdir ifdir mode");
+    if ((dirstat.st_mode & 0777)!=0400) fail("mkdir permission mode");
+
+    // this is done to allow for rmdir the directory at the end
+    // otherwise if the process euid is not 0 and we change the owner of the
+    // directory we will not be able to delete it and the test will fail
+    if(chmod((d+testPermissionsDir).c_str(), 0777)!=0) fail("chmod 0777");
+
+    if(chown((d+testPermissionsDir).c_str(), expectedUid+1, expectedGid+1)!=0) fail("chown dir 1000 1000");
+    dir=opendir((d+testPermissionsDir).c_str());
+    if (dir==NULL) fail("chown opendir read permissions");
+    closedir(dir);
+    lstat((d+testPermissionsDir).c_str(), &dirstat);
+    if (dirstat.st_uid!=expectedUid+1) fail("chown dir uid");
+    if (dirstat.st_gid!=expectedGid+1) fail("chown dir gid");
+    if ((dirstat.st_mode & S_IFDIR)==0) fail("chown dir ifdir mode");
+    if ((dirstat.st_mode & 0777)!=0777) fail("chown dir permission mode");
+
+    // we should be able to remove the directory since this action
+    // depends only on the parent directory permissions
+    // but we are root so we can do anything we want
+    if(rmdir((d+testPermissionsDir).c_str())) fail("rmdir test-permissions");    
+}
+
+/**
+ * All this tests fail if the FS is not littlefs for now
+ * The reason is that littlefs is the only one that supports 
+ * permissions for files.
+ */
+static void checkFilePermissions(const std::string d, uid_t expectedUid, gid_t expectedGid)
+{
+    const char* filename="test-file.txt";
+    const char* filename2="testfile2.txt";
+
+    
+    // if we fail here we don't care, we just want to be sure the file does not exist
+    // if unlink fails because something wrong is happening fopen will fail too
+    unlink((d+filename).c_str());
+
+    FILE* fd=fopen((d+filename).c_str(), "w+"); // rw-rw-rw- by default
+    if (fd==NULL) fail("perm fopen");
+    constexpr const char* teststr="test";
+    constexpr size_t testlen=sizeof teststr;
+    if(fwrite(teststr, 1, testlen, fd)!=testlen) fail("perm fwrite");
+    if (fclose(fd)!=0) fail("perm fclose");
+
+    struct stat filstat;
+    if(lstat((d+filename).c_str(), &filstat)!=0) fail("perm lstat");
+    printf("inode=%llu dev=%d mode=%lo uid=%d gid=%d %s\n",filstat.st_ino,
+            filstat.st_dev,filstat.st_mode,filstat.st_uid,filstat.st_gid,(d+filename).c_str());
+    if(!(filstat.st_mode & S_IFREG)) fail("perm lstat regular");
+    if((filstat.st_mode&0777) != 0666) fail("perm lstat fopen");
+    if(filstat.st_uid!=expectedUid) fail("perm lstat uid");
+    if(filstat.st_gid!=expectedGid) fail("perm lstat gid");
+    
+    if(chmod((d+filename).c_str(), 0444)!=0) fail("perm chmod-lstat");
+    if(lstat((d+filename).c_str(), &filstat)!=0) fail("perm lstat 2");
+    if((filstat.st_mode&0777) != 0444) fail("perm lstat fopen 2");
+
+    if(chmod((d+filename).c_str(), 0666)!=0) fail("perm chmod-lstat 2");
+    
+    if(access((d+filename).c_str(), F_OK)!=0) fail("perm access 1");
+    if(access((d+filename).c_str(), R_OK)!=0) fail("perm access 2");
+    if(access((d+filename).c_str(), W_OK)!=0) fail("perm access 3");
+
+    if(access((d+filename).c_str(), X_OK)!=-1)
+    {
+        if (errno!=EACCES) fail("perm access 4");
+    } 
+
+    if(chmod((d+filename).c_str(), 0667)!=0)  fail("perm chmod");
+    if(access((d+filename).c_str(), X_OK)!=0) fail("perm access 5");
+    if(chmod((d+filename).c_str(), 0676)!=0)  fail("perm chmod 2");
+    if(access((d+filename).c_str(), X_OK)!=0) fail("perm access 6");
+    if(chmod((d+filename).c_str(), 0766)!=0)  fail("perm chmod 3");
+    if(access((d+filename).c_str(), X_OK)!=0) fail("perm access 7");
+
+    fd=fopen((d+filename).c_str(),"r");
+    if(fd==NULL) fail("perm fopen 2");
+    char buff[255];
+    if (fread(buff, 1, testlen, fd)!=testlen) fail("perm fread");
+    buff[testlen]=0;
+    if(strcmp(teststr,buff)!=0) fail("perm fread 2");
+    if (fclose(fd)!=0) fail("perm fclose 2");
+
+    if(chmod((d+filename).c_str(), 0000)!=0)  fail("perm chmod 4");
+    // we should be able to unlink the file even if we don't have permissions on it
+    // since unlinking only refers to the parent directory and sticky bit is not
+    // yet implemented
+    if(unlink((d+filename).c_str())!=0) fail("perm cleanup 1");
+
+    // root can always bypass directory permission checking which by now have already
+    // been checked for root, many times
+    if(expectedUid==0) return;
+
+    // test directory read, search and edit (edit needs both search and write)
+    const char* testDir = "test-dir/";
+    
+    if(mkdir((d+testDir).c_str(), 0700)!=0) //;fail("perm dir mkdir 0700");
+    {
+        if(errno==EACCES) fail("perm dir mkdir 0700 eacces");
+        // recovery
+        if (errno==EEXIST)
+        {
+            if(lstat((d+testDir).c_str(), &filstat)!=0) fail("Could not stat dir");
+            printf("inode=%llu dev=%d mode=%lo uid=%d gid=%d %s\n",filstat.st_ino,
+            filstat.st_dev,filstat.st_mode,filstat.st_uid,filstat.st_gid,(d+testDir).c_str());
+    
+        }
+        chmod((d+testDir).c_str(), 0777);
+
+        if(access((d+testDir+filename).c_str(), F_OK)==0)
+        {
+            iprintf("dir not empty, removing file 1\n");
+            unlink((d+testDir+filename).c_str());
+        }
+        if(access((d+testDir+filename2).c_str(), F_OK)==0)
+        {
+            iprintf("dir not empty, removing file 2\n");
+            unlink((d+testDir+filename2).c_str());
+        }
+        rmdir((d+testDir).c_str());
+        if(mkdir((d+testDir).c_str(), 0700)!=0) fail("perm dir mkdir 0700");    
+    }
+    if(access((d+testDir).c_str(), F_OK)!=0) fail("perm dir access F_OK");
+    
+    fd=fopen((d+testDir+filename).c_str(),"w+");
+    if (fd==NULL) fail("perm dir fopen");
+    if(fwrite(teststr, 1, testlen, fd)!=testlen) fail("perm dir fwrite");
+    if (fclose(fd)!=0) fail("perm dir fclose");
+
+    if(lstat((d+testDir+filename).c_str(), &filstat)!=0) fail("perm dir lstat");
+    printf("inode=%llu dev=%d mode=%lo uid=%d gid=%d %s\n",filstat.st_ino,
+            filstat.st_dev,filstat.st_mode,filstat.st_uid,filstat.st_gid,(d+testDir+filename).c_str());
+    if(!(filstat.st_mode & S_IFREG)) fail("perm  dir lstat regular");
+    if((filstat.st_mode&0777) != 0666) fail("perm dir lstat fopen");
+    if(filstat.st_uid!=expectedUid) fail("perm dir lstat uid");
+    if(filstat.st_gid!=expectedGid) fail("perm dir lstat gid");
+
+    if(chmod((d+testDir).c_str(), 0400)!=0) fail("perm dir chmod 2");
+    if(access((d+testDir).c_str(), R_OK)!=0) fail("perm dir access R_OK");
+    if(access((d+testDir).c_str(), W_OK)!=-1) fail("perm dir access W_OK");
+    if(errno!=EACCES) fail("perm dir access W_OK 2");
+    if(access((d+testDir).c_str(), X_OK)!=-1) fail("perm dir access X_OK");
+    if(errno!=EACCES) fail("perm dir access X_OK 2");
+    
+    // we should able to read the directory contents and check that the file exists
+    // but we should not be able to stat the file
+    if(!checkDirContent(d+testDir, filename, 0)) fail("perm dir read access");
+    if(lstat((d+testDir+filename).c_str(), &filstat)==0) fail("perm dir lstat 2");
+    if(errno!=EACCES) fail("perm dir lstat 3");
+
+    // now lets try search access but not read access
+    if(chmod((d+testDir).c_str(), 0100)!=0) fail("perm dir chmod 2.1");
+    if(checkDirContent(d+testDir, filename, 0)) fail("perm dir read access 2");
+    if(errno!=EACCES) fail("perm dir read access 3");
+    if(lstat((d+testDir+filename).c_str(), &filstat)!=0) fail("perm dir lstat 4");
+
+    // now lets try editing the directory entries with rw- permissions
+    if(chmod((d+testDir).c_str(), 0600)!=0) fail("perm dir chmod 3");
+    int fdOpen=open((d+testDir+filename2).c_str(), O_WRONLY|O_CREAT, 0644);
+    if(fdOpen>=0) fail("perm dir rw-");
+    if(errno!=EACCES) fail("perm dir rw- 2");
+    // here we want to test with filename since the previously open failed
+    // we shouldnt be able to remove the filename since we need search access too
+    if(unlink((d+testDir+filename).c_str())!=-1) fail("perm dir unlink rw-");
+
+    // now r-x 
+    unlink((d+testDir+filename2).c_str());
+    if(chmod((d+testDir).c_str(), 0500)!=0) fail("perm dir chmod 3");
+    fdOpen=open((d+testDir+filename2).c_str(), O_WRONLY|O_CREAT, 0644);
+    if(fdOpen>=0) fail("perm dir r-x");
+    if(errno!=EACCES) fail("perm dir r-x 2");
+    if(access((d+testDir+filename2).c_str(), F_OK)==0) fail("perm dir r-x 3");
+    // here we want to test with filename since the previously open failed
+    // we shouldnt be able to remove the filename since we need write access
+    if(unlink((d+testDir+filename).c_str())!=-1) fail("perm dir unlink r-x");
+
+    // cleanup
+
+    if(chmod((d+testDir).c_str(), 0700)!=0) fail("perm dir chmod 4");
+    if(unlink((d+testDir+filename).c_str())!=0) fail("perm dir cleanup 1");
+    // do unlink but ignore the result since this is useful only if the open test failed
+    unlink((d+testDir+filename2).c_str());
+    if(rmdir((d+testDir).c_str())!=0) fail("perm dir cleanup 2");
+}
+
+static void fs_test_8()
+{
+    test_name("permissions");
+    checkDirPermissions("/", 0, 0);
+    checkDirPermissions("/sd/", 0, 0);
+    checkFilePermissions("/sd/", 0, 0);
+    pass();
+
+    #ifdef IN_PROCESS
+
+    constexpr int PROCESS_NEW_UID=1000;
+    constexpr int PROCESS_NEW_GID=1000;
+
+    // we must create a space where the test can happen
+    // otherwise evetything will fail
+    mkdir("/sd/testproc", 0755);
+    chown("/sd/testproc", PROCESS_NEW_UID, PROCESS_NEW_GID);
+    if(access("/sd/testproc",F_OK)!=0) fail("perm setup test");
+    chmod("/sd/testproc", 0755);
+
+    setgid(PROCESS_NEW_GID);
+    setuid(PROCESS_NEW_UID);
+    if(access("/sd/testproc",R_OK|W_OK|X_OK)!=0) fail("perm setup test 2");
+    
+    // since mounpointfs has 555 access rights only the root user can effectively
+    // create directories or files in the root directory
+    // even if /sd is less strict we have 755 access that means still only the owner
+    // can edit the directory entry. And the owner is root.
+    // so all tests must be done in /sd/testproc that is owned by the process
+    // we can do failure tests but that's all
+    
+    test_name("permissions drop directories / ");
+    checkDirPermissions("/", PROCESS_NEW_UID, PROCESS_NEW_GID, true);
+    pass();
+
+    test_name("permissions drop directories /sd ");
+    checkDirPermissions("/sd/", PROCESS_NEW_UID, PROCESS_NEW_GID, true);
+    pass();
+
+    test_name("permissions drop files /sd/testproc ");
+    checkFilePermissions("/sd/testproc/", PROCESS_NEW_UID, PROCESS_NEW_GID);
+    pass();
+    #endif
+}
+#endif
 
 //
 // Pipe test

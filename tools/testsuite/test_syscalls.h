@@ -51,9 +51,14 @@
 #endif
 
 int spawnAndWait(const char *arg[]);
+int spawnAndWait(const char *arg[], const char *env[]);
 pid_t spawnWithPipe(const char *arg[], int& pipeFdOut);
 
+#ifdef IN_PROCESS
+void test_syscalls(bool withPermissions=false);
+#else
 void test_syscalls();
+#endif
 
 #ifdef IN_PROCESS
 static int sys_test_getpid_child(int argc, char *argv[]);
