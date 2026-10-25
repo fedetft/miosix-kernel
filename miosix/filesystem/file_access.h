@@ -513,6 +513,9 @@ public:
      * \return the resolved path
      */
     ResolvedPath resolvePath(std::string& path, bool followLastSymlink=true);
+
+
+    std::string getParentPath(std::string& path);
     
     /**
      * \internal

@@ -466,6 +466,12 @@ ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
     indexIntoFs=1; //NOTE: caller must ensure path[0]=='/'
     depthIntoFs=1;
     linksFollowed=0;
+    #ifdef WITH_POSIX_PERMISSIONS
+    {
+        auto result = normalPathComponent(path,false); // '/' can never be a symlink
+        if (result<0) return ResolvedPath(result);
+    }
+    #endif
     for(;;)
     {
         size_t slash=path.find_first_of('/',index);
@@ -489,7 +495,13 @@ ResolvedPath PathResolution::resolvePath(string& path, bool followLastSymlink)
             // follow=followLastSymlink for "/link", but is true for "/link/"
             bool follow=index>path.length() ? followLastSymlink : true;
             int result=normalPathComponent(path,follow);
+            #ifdef WITH_POSIX_PERMISSIONS
+            // this can happen on mkdir since stat fails for sure on the last component
+            // or at least is should fail with ENOENT
+            if (result<0 && (result!=-ENOENT || index<path.length())) return ResolvedPath(result); 
+            #else
             if(result<0) return ResolvedPath(result);
+            #endif
         }
         //Last component
         if(index>=path.length())
@@ -563,7 +575,9 @@ int PathResolution::normalPathComponent(string& path, bool followIfSymlink)
         auto euid=runningProcess->geteuid();
         auto egid=runningProcess->getegid();
 
-        if (!DirectoryBase::canSearchDirectory(euid,egid,st)) return -EACCES;
+        // we want to check search access only on elements that are not the last
+        bool isLastElement=index>=path.length();
+        if (!isLastElement && !DirectoryBase::canSearchDirectory(euid,egid,st)) return -EACCES;
         #endif // WITH_POSIX_PERMISSIONS
     #ifndef WITH_POSIX_PERMISSIONS
     }
@@ -662,7 +676,7 @@ int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase
         return -EFAULT;
     }
         
-    if(process->getegid()==0) return -EPERM;
+    if(process->getegid()!=0) return -EPERM;
     #endif // WITH_POSIX_PERMISSIONS
 
     if(path==0 || path[0]=='\0' || !fs) return -EFAULT;
@@ -675,7 +689,7 @@ int FilesystemManager::kmount(const char* path, intrusive_ref_ptr<FilesystemBase
         struct stat st;
         if(int result=statHelper(temp,&st,false)) return result;
         if(!S_ISDIR(st.st_mode)) return -ENOTDIR;
-        string parent=temp+"/..";
+        string parent=getParentPath(temp);
         if(int result=statHelper(parent,&st,false)) return result;
         fs->setParentFsMountpointInode(st.st_ino);
     }
@@ -816,6 +830,20 @@ ResolvedPath FilesystemManager::resolvePath(string& path, bool followLastSymlink
     return pr.resolvePath(path,followLastSymlink);
 }
 
+string FilesystemManager::getParentPath(string& path)
+{
+    // maybe this can be optimizied since we cannot create a directory with open
+    // and the only case a file has a trailing slash could be because it is a directory
+    // but maybe this is safer??
+    if (path.ends_with('/'))
+    {
+        path=path.substr(0, path.length()-1); // strip the trailing slash so we can get the parent
+    }
+    // if the path was '/' then removing the last slash would make it an empty string and the parent of '/' is '/'
+    if (path.empty()) return string("/"); 
+    return path.substr(0, path.find_last_of('/')+1);
+}
+
 int FilesystemManager::unlinkHelper(string& path)
 {
     //Do everything while keeping the mutex locked to prevent someone to
@@ -827,7 +855,7 @@ int FilesystemManager::unlinkHelper(string& path)
     if(filesystems.find(StringPart(path))!=filesystems.end()) return -EBUSY;
     StringPart sp(path,string::npos,openData.off);
     #ifdef WITH_POSIX_PERMISSIONS
-    string parentPath=path+"/../";
+    string parentPath=getParentPath(path);
     struct stat dirstat;
     statHelper(parentPath, &dirstat, false);
     auto process=Thread::getCurrentThread()->getProcess();
@@ -891,13 +919,13 @@ int FilesystemManager::renameHelper(string& oldPath, string& newPath)
     
     // To check the parent we might cross filesystem boundaries, so we need to perform full path resolution
     // we might add an option to skip search access since by this time we are alredy in the parent directory.
-    auto parentPath=oldPath+"/../";
+    auto parentPath=getParentPath(oldPath);;
     struct stat dirstat;
     statHelper(parentPath, &dirstat, false);
     // parent directory must be writable to rename a file in it
     if (!DirectoryBase::canEditDirectoryEntries(euid, egid, dirstat)) return -EACCES;
 
-    parentPath=newPath+"/../"; 
+    parentPath=getParentPath(newPath); 
     statHelper(parentPath, &dirstat, false);
     // parent directory must be writable to rename a file in it
     if (!DirectoryBase::canEditDirectoryEntries(euid, egid, dirstat)) return -EACCES;
@@ -966,7 +994,10 @@ int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &fil
     struct stat fstat;
 
     int result=openData.fs->lstat(sp, &fstat);
-    if (result<0) return result;
+    // in case the entry does not exist and we don't want to create it we can fail
+    bool isOCreat=(flags & O_CREAT)!=0; 
+    if (result<0 && (result!=-ENOENT || !isOCreat)) return result;
+
     auto process=Thread::getCurrentThread()->getProcess();
     if (extraChecks==ExtraChecks::Kernel && process==nullptr)
     {
@@ -975,6 +1006,19 @@ int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &fil
     auto euid=process->geteuid();
     auto egid=process->getegid();
 
+    if (isOCreat && result==-ENOENT)
+    {
+        // we need to check if the user has write access to the parent dir 
+        // if O_CREAT mode is selected.
+        string parentPath=getParentPath(path);
+        struct stat parentDirStat;
+        statHelper(parentPath, &parentDirStat, false); // by this time we should have path already resolved so no symlinks are required to access the parent path
+        if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentDirStat)) return -EACCES;
+        return openData.fs->open(file,sp,flags,mode);
+    }
+    // file exists so O_CREAT should not have any effect should not be passed down to the
+    // fs
+    flags &= ~O_CREAT;
     if (fstat.st_mode & S_IFDIR)
     {
         if (flags & O_WRONLY)
@@ -986,7 +1030,7 @@ int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &fil
         // search access is not mandatory for reading the directory, in fact
         // in linux directories can be listed with ls but the stat command fails
         // on the files since stat still requires search access
-        if (DirectoryBase::canReadDirectory(euid, egid, fstat))
+        if (!DirectoryBase::canReadDirectory(euid, egid, fstat))
         {
             return -EACCES;
         }
@@ -1001,16 +1045,6 @@ int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &fil
         {
             return -EACCES;
         }
-
-        // we also need to check if the user has write access to the parent dir 
-        // if O_CREAT mode is selected.
-        if (flags & O_CREAT)
-        {
-            auto parentPath=path+"/../";
-            struct stat parentDirStat;
-            statHelper(parentPath, &parentDirStat, false);
-            if (!DirectoryBase::canEditDirectoryEntries(euid, egid, parentDirStat)) return -EACCES;
-        }
     }
     #endif // WITH_POSIX_PERMISSIONS
 
@@ -1020,13 +1054,13 @@ int FilesystemManager::openHelper(string& path, intrusive_ref_ptr<FileBase> &fil
 int FilesystemManager::mkdirHelper(std::string &path, int mode)
 {
     Lock<KernelMutex> l(mutex);
-    ResolvedPath openData=resolvePath(path,true);
+    ResolvedPath openData=resolvePath(path,false);
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
     #ifdef WITH_POSIX_PERMISSIONS
-    string parentPath=path+"/../";
+    string parentPath=getParentPath(path);
     struct stat dirstat;
-    statHelper(parentPath, &dirstat, false);
+    if(statHelper(parentPath, &dirstat, false)<0) return -EFAULT;
     auto process=Thread::getCurrentThread()->getProcess();
     if (extraChecks==ExtraChecks::Kernel && process==nullptr)
     {
@@ -1047,7 +1081,7 @@ int FilesystemManager::rmdirHelper(std::string &path)
     if(openData.result<0) return openData.result;
     StringPart sp(path,string::npos,openData.off);
     #ifdef WITH_POSIX_PERMISSIONS
-    string parentPath=path+"/../";
+    string parentPath=getParentPath(path);
     struct stat dirstat;
     statHelper(parentPath, &dirstat, false);
     auto process=Thread::getCurrentThread()->getProcess();
@@ -1104,8 +1138,23 @@ int FilesystemManager::chownHelper(string& path, uid_t owner, gid_t group)
     }
     auto euid=process->geteuid();
     
-    if (euid != 0 && euid != fstat.st_uid) return -EPERM;
+    // only priviledged users can change the owner of a file
+    if (euid != 0) return -EPERM;
+
+    // technically speaking POSIX says that the owner of a file can change the group
+    // if the user is part of the new group, too.
     
+    // man 2 chmod: if owner or group is -1 then they are not changed
+    if (owner==-1)
+    {
+        owner=fstat.st_uid;
+    }
+
+    if (group==-1)
+    {
+        group=fstat.st_gid;
+    }
+
     return openData.fs->chown(sp,owner,group);
 }
 
@@ -1114,12 +1163,14 @@ int FilesystemManager::accessHelper(std::string &path, mode_t mode)
     Lock<KernelMutex> l(mutex);
     ResolvedPath openData=resolvePath(path);
     if(openData.result<0) return openData.result;
-    if (mode & F_OK) return 0;
+    if (mode&~(R_OK|W_OK|X_OK) && mode!=F_OK) return -EINVAL; // we must check that only the last 3 bits are set
     StringPart sp(path,string::npos,openData.off);
 
     struct stat fstat;
     int result=openData.fs->lstat(sp, &fstat);
     if (result<0) return result;
+    if (mode==F_OK) return 0;
+    
     auto process=Thread::getCurrentThread()->getProcess();
     if (extraChecks==ExtraChecks::Kernel && process==nullptr)
     {
@@ -1127,7 +1178,7 @@ int FilesystemManager::accessHelper(std::string &path, mode_t mode)
     }
     auto ruid=process->getuid();
     auto rgid=process->getgid();
-    
+
     result=-EACCES;
     if(mode & R_OK && FileBase::canReadFromFile(ruid, rgid, fstat))
         result=0;
@@ -1305,7 +1356,8 @@ intrusive_ref_ptr<FilesystemBase> MountHelper::doRamMount(
     {
         return intrusive_ref_ptr<FilesystemBase>{nullptr};
     }
-    if(devFs->open(disk, dev->getName(), O_RDWR, 0)<0)
+    StringPart devname = dev->getName();
+    if(devFs->open(disk, devname, O_RDWR, 0)<0)
 #else
     if(dev && dev->open(disk,intrusive_ref_ptr<FilesystemBase>(0),O_RDWR,0)<0)
 #endif
@@ -1331,7 +1383,7 @@ intrusive_ref_ptr<FilesystemBase> MountHelper::doRamMount(
 
         if (formatOnFail!=PartitionType::NONE && formatOnFail!=PartitionType::UNKNOWN)
         {
-            bootlog("formatOnFail is defined, formatting as %",
+            bootlog("formatOnFail is defined, formatting as %s\n",
                 getPartitionTypeName(static_cast<PartitionType>(formatOnFail)));
             fsImpl=tryMount(disk, formatOnFail);
             
@@ -1440,17 +1492,12 @@ int MountHelper::doMount(
         bootlog("Failed (Failed to mount filesystem)\n");
         return -1;
     }
-
-    std::string path{mountPoint};
-    auto resolvedPath=fsm.resolvePath(path);
-    if(resolvedPath.result<0) return resolvedPath.result;
-    StringPart sp(path, string::npos, resolvedPath.off);
     
     // We can ignore return of mkdir since if
     // The directory exists then we will try to mount on that directory
     // If the directory does not exist and mkdir fails mounting will fail too
-    resolvedPath.fs->mkdir(sp, 0755);
-    
+    mkdir(mountPoint, 0755);
+
     if(fsm.kmount(mountPoint, fsImpl)!=0)
     {
         bootlog("Failed (failed to kmount)\n");
