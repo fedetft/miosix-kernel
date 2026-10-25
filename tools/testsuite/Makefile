@@ -43,7 +43,7 @@ LIBS :=
 ##
 # Only build processes if the architecture supports them
 ifneq ($(POSTLD),)
-SUBDIRS += test_process test_execve test_global_dtor_ctor test_crash
+SUBDIRS += test_process test_execve test_global_dtor_ctor test_crash test_permissions
 endif
 
 ##
