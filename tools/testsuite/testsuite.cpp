@@ -133,6 +133,9 @@ void testCacheAndDMA();
 #endif //_CHIP_STM32F7/H7
 #ifdef WITH_PROCESSES
 void test_syscalls_process();
+#ifdef WITH_POSIX_PERMISSIONS
+void test_permissions_process();
+#endif
 void test_crash_process();
 #endif //WITH_PROCESSES
 //Benchmark functions
@@ -223,6 +226,9 @@ int main()
             case 'p':
                 #ifdef WITH_PROCESSES
                 test_syscalls_process();
+                #ifdef WITH_POSIX_PERMISSIONS
+                test_permissions_process();
+                #endif
                 #else // WITH_PROCESSES
                 iprintf("Error, process support is disabled\n");
                 #endif // WITH_PROCESSES
@@ -4509,11 +4515,98 @@ void test_syscalls_process()
 {
     ledOn();
     const char *arg[] = { "/bin/test_process", nullptr };
+    #ifdef WITH_POSIX_PERMISSIONS
+    const char *env[] = { "TEST=permissions", nullptr };
+    int exitcode=spawnAndWait(arg, env);
+    #else
     int exitcode=spawnAndWait(arg);
+    #endif
     if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
     if(WEXITSTATUS(exitcode)!=0) fail("test process has exited with a non-zero exit code");
     ledOff();
 }
+
+#ifdef WITH_POSIX_PERMISSIONS
+void test_permissions_process()
+{
+    ledOn();
+    // execute as root
+
+    test_name("Trying to run an executable as Root");
+    {
+        const char *arg[] = { "/bin/test_permissions", "root", "normal-test", nullptr };
+        int exitcode=spawnAndWait(arg);
+        if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
+        if(WEXITSTATUS(exitcode)!=0) fail("test permissions process has exited with a non-zero exit code");
+    }
+    pass();
+
+    test_name("Run Exec as Same Owner And Same Group as Exec");
+    {
+        const char *arg[] = { "/bin/test_permissions", "same-uid-gid", "normal-test", nullptr };
+        int exitcode=spawnAndWait(arg);
+        if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
+        if(WEXITSTATUS(exitcode)!=0) fail("test permissions process has exited with a non-zero exit code");
+    }
+    pass();
+
+    test_name("Run Exec as Same Group Different User as Exec");
+    {
+        const char *arg[] = { "/bin/test_permissions", "same-gid-only", "normal-test", nullptr };
+        int exitcode=spawnAndWait(arg);
+        if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
+        if(WEXITSTATUS(exitcode)!=0) fail("test permissions process has exited with a non-zero exit code");
+    }
+    pass();
+
+    test_name("Run Exec as Other User");
+    {
+        const char *arg[] = { "/bin/test_permissions", "other", "normal-test", nullptr };
+        int exitcode=spawnAndWait(arg);
+        if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
+        if(WEXITSTATUS(exitcode)!=0) fail("test permissions process has exited with a non-zero exit code");
+    }
+    pass();
+
+    test_name("Trying to run non executable as Root");
+    {
+        const char *arg[] = { "/bin/test_permissions", "root", "test-noexec", nullptr };
+        int exitcode=spawnAndWait(arg);
+        if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
+        if(WEXITSTATUS(exitcode)!=0) fail("test permissions process has exited with a non-zero exit code");
+    }
+    pass();
+
+    test_name("Run Exec as Same Owner And Same Group as Exec");
+    {
+        const char *arg[] = { "/bin/test_permissions", "same-uid-gid", "test-noexec", nullptr };
+        int exitcode=spawnAndWait(arg);
+        if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
+        if(WEXITSTATUS(exitcode)!=0) fail("test permissions process has exited with a non-zero exit code");
+    }
+    pass();
+
+    test_name("Run Exec as Same Group Different User as Exec");
+    {
+        const char *arg[] = { "/bin/test_permissions", "same-gid-only", "test-noexec", nullptr };
+        int exitcode=spawnAndWait(arg);
+        if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
+        if(WEXITSTATUS(exitcode)!=0) fail("test permissions process has exited with a non-zero exit code");
+    }
+    pass();
+
+    test_name("Run Exec as Other User");
+    {
+        const char *arg[] = { "/bin/test_permissions", "other", "test-noexec", nullptr };
+        int exitcode=spawnAndWait(arg);
+        if(!WIFEXITED(exitcode)) fail("spawnAndWait process returned due to error");
+        if(WEXITSTATUS(exitcode)!=0) fail("test permissions process has exited with a non-zero exit code");
+    }
+    pass();
+
+    ledOff(); 
+}
+#endif
 
 //
 // Crash test (executed in a separate process)
