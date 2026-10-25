@@ -174,7 +174,7 @@ LittleFS::LittleFS(intrusive_ref_ptr<FileBase> disk)
         return;
     }
     auto devCanErase=eraseSize>0;
-    eraseSize=devCanErase ? 512:eraseSize; // in case the device does not support erase we simulate it
+    eraseSize=devCanErase ? eraseSize:512; // in case the device does not support erase we simulate it
     unsigned long long volumeSize=0;
     if(drv->ioctl(IOCTL_GET_VOLUME_SIZE, &volumeSize)<0)
     {
@@ -267,7 +267,7 @@ int LittleFS::openFile(intrusive_ref_ptr<FileBase> &file,
 
         auto euid=process->geteuid();
         auto egid=process->getegid();
-        setFileMode(name, (mode&0777)|S_IFREG);
+        setFileMode(name, mode);
         settFileUIDAndGID(name, euid, egid);    
     }
     #endif
@@ -305,14 +305,45 @@ inline int LittleFS::getFileUIDAndGID(StringPart &name, uid_t& uid, gid_t& gid) 
         static_cast<uint8_t>(LittleFsMiosixAttribs::GID), &gid, sizeof(gid));
     if (result<0) return result;
 
-    uid=fromLittleEndian32(uid);
-    gid=fromLittleEndian32(gid);
+    if(sizeof(uid_t)==2) // this should be statically checked and if false the codepath will be elided
+    {
+        uid=fromLittleEndian16(uid);
+    }
+    else if(sizeof(uid_t)==4)
+    {
+        uid=fromLittleEndian32(uid);
+    }
+
+    if(sizeof(gid_t)==2)
+    {
+        gid=fromLittleEndian16(gid);
+    } 
+    else if(sizeof(gid_t)==4)
+    {
+        gid=fromLittleEndian32(gid);
+    }
     return 0;
 }
 
 inline int LittleFS::settFileUIDAndGID(StringPart &name, uid_t uid, gid_t gid) {
-    uid=toLittleEndian32(uid);
-    gid=toLittleEndian32(gid);
+    if(sizeof(uid_t)==2) // this should be statically checked and if false the codepath will be elided
+    {
+        uid=toLittleEndian16(uid);
+    }
+    else if(sizeof(uid_t)==4)
+    {
+        uid=toLittleEndian32(uid);
+    }
+
+    if(sizeof(gid_t)==2)
+    {
+        gid=toLittleEndian16(gid);
+    } 
+    else if(sizeof(gid_t)==4)
+    {
+        gid=toLittleEndian32(gid);
+    }
+    
     auto result=lfs_setattr(&lfs, name.c_str(), 
         static_cast<uint8_t>(LittleFsMiosixAttribs::UID), &uid, sizeof(uid));
     if (result<0) return result;
