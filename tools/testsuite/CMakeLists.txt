@@ -51,11 +51,12 @@ miosix_add_process(test_process test_process/main.cpp)
 miosix_add_process(test_execve test_execve/main.cpp RAM_SIZE 8192)
 miosix_add_process(test_global_dtor_ctor test_global_dtor_ctor/main.cpp RAM_SIZE 8192)
 miosix_add_process(test_crash test_crash/main.cpp RAM_SIZE 8192)
+miosix_add_process(test_permissions test_permissions/main.cpp RAM_SIZE 8192)
 
 # RomFS image
 miosix_add_romfs_image(image
     PROGRAM_DEFAULT
     DIR_NAME bin
     KERNEL testsuite
-    PROCESSES test_process test_execve test_global_dtor_ctor test_crash
+    PROCESSES test_process test_execve test_global_dtor_ctor test_crash test_permissions
 )
