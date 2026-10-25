@@ -670,7 +670,18 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 
             case Syscall::CHMOD:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
+                auto path=reinterpret_cast<const char*>(sp.getParameter<0>());
+                auto mode=static_cast<mode_t>(sp.getParameter<1>());
+                if(mpu.withinForReading(path))
+                {
+                    int result=fileTable.chmod(path,mode);
+                    sp.setParameter<0>(result);
+                } else sp.setParameter<0>(-EFAULT);
+                break;
+                #else
                 sp.setParameter<0>(-EFAULT); //TODO: stub
+                #endif // WITH_POSIX_PERMISSIONS
                 break;
             }
 
@@ -682,7 +693,20 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 
             case Syscall::CHOWN:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
+                auto path=reinterpret_cast<const char*>(sp.getParameter<0>());
+                auto new_uid=static_cast<uid_t>(sp.getParameter<1>());
+                auto new_gid=static_cast<gid_t>(sp.getParameter<2>());
+                if(mpu.withinForReading(path))
+                {
+                    int result=fileTable.chown(path,new_uid,new_gid);
+                    sp.setParameter<0>(result);
+                } else sp.setParameter<0>(-EFAULT);
+                break;
+                #else
                 sp.setParameter<0>(-EFAULT); //TODO: stub
+                #endif // WITH_POSIX_PERMISSIONS
+                
                 break;
             }
 
@@ -717,8 +741,6 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
             case Syscall::PIPE:
             {
                 int fds[2];
-                fds[0]=sp.getParameter<0>();
-                fds[1]=sp.getParameter<1>();
                 int result=fileTable.pipe(fds);
                 sp.setParameter<0>(result);
                 sp.setParameter<1>(fds[0]);
