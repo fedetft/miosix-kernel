@@ -150,7 +150,7 @@ int MountpointFs::open(intrusive_ref_ptr<FileBase>& file, StringPart& name,
 int MountpointFs::lstat(StringPart& name, struct stat *pstat)
 {
     Lock<KernelMutex> l(mutex);
-    if(name.empty())
+    if(name.empty() || name.findLastOf('/')==0)
     {
         memset(pstat,0,sizeof(struct stat));
         pstat->st_dev=filesystemId;
