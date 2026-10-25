@@ -750,6 +750,7 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
 
             case Syscall::ACCESS:
             {
+                #ifdef WITH_POSIX_PERMISSIONS
                 auto path=reinterpret_cast<const char*>(sp.getParameter<0>());
                 if(mpu.withinForReading(path))
                 {
@@ -759,6 +760,9 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 } else {
                     sp.setParameter<0>(-EFAULT);    
                 }
+                #else
+                sp.setParameter<0>(-EFAULT);
+                #endif 
                 break;
             }
 

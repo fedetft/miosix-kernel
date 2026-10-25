@@ -56,8 +56,15 @@ int main(int argc, char *argv[], char *envp[])
     if(argc == 0) return 1;
     else if(argc == 1)
     {
-        if(strcmp(environ[0],"TEST=permissions")!=0) return 1;
-        test_syscalls(true);
+        
+        if(environ[0]!=nullptr && strcmp(environ[0],"TEST=permissions")==0)
+        {
+            test_syscalls(true);
+            return 0;
+        }
+
+        test_syscalls(false);
+        return 0;
     } 
         
     else if(argc == 2)
