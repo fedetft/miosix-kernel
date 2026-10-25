@@ -268,7 +268,7 @@ public:
     bool addDevice(const char *name, intrusive_ref_ptr<Device> dev, 
         mode_t mode=0755, uid_t uid=0, gid_t gid=0);
 #else
-        /**
+    /**
      * Add a device file to DevFs. The name will be automatically generated
      * by DevFS using the device prefix.
      * \param dev Device file. Every open() call will return the same file

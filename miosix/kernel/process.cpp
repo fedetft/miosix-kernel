@@ -680,7 +680,7 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 } else sp.setParameter<0>(-EFAULT);
                 break;
                 #else
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                sp.setParameter<0>(-EFAULT);
                 #endif // WITH_POSIX_PERMISSIONS
                 break;
             }
@@ -704,7 +704,7 @@ Process::SvcResult Process::handleSvc(SyscallParameters sp)
                 } else sp.setParameter<0>(-EFAULT);
                 break;
                 #else
-                sp.setParameter<0>(-EFAULT); //TODO: stub
+                sp.setParameter<0>(-EFAULT);
                 #endif // WITH_POSIX_PERMISSIONS
                 
                 break;
