@@ -162,9 +162,6 @@ public:
     const mode_t dmask; ///< Default permissions for directories
     
 private:
-
-    friend class FilesystemManager;
-    
     int unlinkRmdirHelper(StringPart& name, bool delDir);
     
     FATFS filesystem;
