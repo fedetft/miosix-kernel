@@ -129,9 +129,9 @@ bool DirectoryBase::canEditDirectoryEntries(uid_t euid, gid_t egid, struct stat&
     // return canWriteToFile(euid, egid, dirstat) || canExecuteFile(euid, egid, dirstat)
     
     if (euid==0) return true;
-    if (dirstat.st_uid==euid && dirstat.st_mode & (S_IWUSR | S_IXUSR)) return true;
-    if (dirstat.st_gid==egid && dirstat.st_mode & (S_IWGRP | S_IXGRP)) return true;
-    if (dirstat.st_mode & (S_IWOTH | S_IXOTH)) return true;
+    if (dirstat.st_uid==euid && (dirstat.st_mode & (S_IWUSR | S_IXUSR)) == (S_IWUSR | S_IXUSR)) return true;
+    if (dirstat.st_gid==egid && (dirstat.st_mode & (S_IWGRP | S_IXGRP)) == (S_IWGRP | S_IXGRP)) return true;
+    if ((dirstat.st_mode & (S_IWOTH | S_IXOTH)) == (S_IWOTH | S_IXOTH)) return true;
     return false;
 }
 
