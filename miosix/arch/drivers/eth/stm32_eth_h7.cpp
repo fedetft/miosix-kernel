@@ -61,8 +61,8 @@ void STM32Ethernet::init(std::span<RxDmaDescriptor> rxDesc,
     }
 
     // Reset the peripheral and wait for completion
-    ETH->DMAMR = 1;
-    while (ETH->DMAMR & 1)
+    ETH->DMAMR |= ETH_DMAMR_SWR;
+    while (ETH->DMAMR & ETH_DMAMR_SWR)
         ;
 
     // Set MAC address

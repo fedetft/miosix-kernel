@@ -60,6 +60,11 @@ void STM32Ethernet::init(std::span<RxDmaDescriptor> rxDesc,
         RCC_SYNC();
     }
 
+    // Reset the peripheral and wait for completion
+    ETH->DMABMR |= ETH_DMABMR_SR;
+    while (ETH->DMABMR & ETH_DMABMR_SR)
+        ;
+
     ETH->MACCR = 0   // Do not strip FCS
                  | 0 // Enable watchdog to cut RX packets to 2048 bytes
                  | 0 // Enable watchdog to cut TX packets to 2048 bytes
