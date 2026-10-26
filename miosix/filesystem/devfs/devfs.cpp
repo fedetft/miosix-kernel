@@ -205,7 +205,7 @@ int Device::open(intrusive_ref_ptr<FileBase>& file,
 int Device::fstat(struct stat* pstat) const
 {
     #ifdef WITH_POSIX_PERMISSIONS
-    mode_t devmode=(block ? S_IFBLK : S_IFCHR) | mode;
+    mode_t devmode=(block ? S_IFBLK : S_IFCHR) | (mode & 0666);
     fillStatHelper(pstat,st_ino,st_dev,devmode);
     pstat->st_uid=uid;
     pstat->st_gid=gid;

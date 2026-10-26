@@ -170,9 +170,9 @@ protected:
     ino_t st_ino; ///< inode of device file
     short st_dev; ///< device (unique id of the filesystem) of device file
 #ifdef WITH_POSIX_PERMISSIONS
-    mode_t mode;  ///< POSIX mode bits
-    uid_t uid;    ///< User Owner
-    gid_t gid;    ///< Group Owner
+    mode_t mode=0600;  ///< POSIX mode bits, default 0600 to be very restrictive
+    uid_t uid=0;    ///< User Owner, default root
+    gid_t gid=0;    ///< Group Owner, default root
 #endif
     const bool seekable; ///< If true, device is seekable
     const bool block;    ///< If true, it is a block device
@@ -203,8 +203,8 @@ private:
         this->st_dev=st_dev;
         this->uid=uid;
         this->gid=gid;
-        this->mode=mode;
-        this->device_name = device_name;
+        this->mode=mode&0777;
+        this->device_name=device_name;
     }
 #else
       /**
@@ -258,7 +258,7 @@ public:
      * \param gid the group id owning the device (default root=0)
      * \return true if the file was successfully added
      */
-    bool addDevice(intrusive_ref_ptr<Device> dev, mode_t mode=0755, uid_t uid=0, gid_t gid=0);
+    bool addDevice(intrusive_ref_ptr<Device> dev, mode_t mode=0666, uid_t uid=0, gid_t gid=0);
     /**
      * Add a device file to DevFs
      * \param name File name, must not start with a slash
@@ -266,7 +266,7 @@ public:
      * \return true if the file was successfully added
      */
     bool addDevice(const char *name, intrusive_ref_ptr<Device> dev, 
-        mode_t mode=0755, uid_t uid=0, gid_t gid=0);
+        mode_t mode=0666, uid_t uid=0, gid_t gid=0);
 #else
     /**
      * Add a device file to DevFs. The name will be automatically generated
