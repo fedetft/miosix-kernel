@@ -227,6 +227,7 @@ void configureEthernet()
 {
     // Select RMII (not enough exposed pins for MII on Skyward CU v2)
     RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+    RCC_SYNC();
     SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
 
     eth::mdc::alternateFunction(11);

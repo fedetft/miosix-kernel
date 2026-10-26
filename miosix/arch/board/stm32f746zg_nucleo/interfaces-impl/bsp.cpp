@@ -50,6 +50,8 @@
 #include "kernel/thread.h"
 #include "kernel/logging.h"
 #include "kernel/sync.h"
+#include "hwmapping.h"
+#include "network/network.h"
 
 namespace miosix {
 
@@ -57,13 +59,40 @@ namespace miosix {
 // Initialization
 //
 
+void configureEthernet()
+{
+    // Select RMII
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+    RCC_SYNC();
+    SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;
+
+    eth::mdc::alternateFunction(11);
+    eth::mdc::mode(Mode::ALTERNATE);
+    eth::mdio::alternateFunction(11);
+    eth::mdio::mode(Mode::ALTERNATE);
+    eth::ref_clk::alternateFunction(11);
+    eth::ref_clk::mode(Mode::ALTERNATE);
+    eth::crs_dv::alternateFunction(11);
+    eth::crs_dv::mode(Mode::ALTERNATE);
+    eth::rxd0::alternateFunction(11);
+    eth::rxd0::mode(Mode::ALTERNATE);
+    eth::rxd1::alternateFunction(11);
+    eth::rxd1::mode(Mode::ALTERNATE);
+    eth::txen::alternateFunction(11);
+    eth::txen::mode(Mode::ALTERNATE);
+    eth::txd0::alternateFunction(11);
+    eth::txd0::mode(Mode::ALTERNATE);
+    eth::txd1::alternateFunction(11);
+    eth::txd1::mode(Mode::ALTERNATE);
+}
+
 void IRQbspInit()
 {
     //Enable all gpios
     RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN | RCC_AHB1ENR_GPIOBEN |
                     RCC_AHB1ENR_GPIOCEN | RCC_AHB1ENR_GPIODEN |
                     RCC_AHB1ENR_GPIOEEN | RCC_AHB1ENR_GPIOFEN |
-                    RCC_AHB1ENR_GPIOHEN;
+                    RCC_AHB1ENR_GPIOGEN | RCC_AHB1ENR_GPIOHEN;
     RCC_SYNC();
     GPIOA->OSPEEDR=0xaaaaaaaa; //Default to 50MHz speed for all GPIOS
     GPIOB->OSPEEDR=0xaaaaaaaa;
@@ -71,7 +100,12 @@ void IRQbspInit()
     GPIOD->OSPEEDR=0xaaaaaaaa;
     GPIOE->OSPEEDR=0xaaaaaaaa;
     GPIOF->OSPEEDR=0xaaaaaaaa;
+    GPIOG->OSPEEDR=0xaaaaaaaa;
     GPIOH->OSPEEDR=0xaaaaaaaa;
+
+    #ifdef WITH_NETWORKING
+    configureEthernet();
+    #endif //WITH_NETWORKING
 
     userLed1::mode(Mode::OUTPUT);
     userLed2::mode(Mode::OUTPUT);
@@ -93,6 +127,11 @@ void bspInit2()
     #ifdef WITH_FILESYSTEM
     basicFilesystemSetup(SDIODriver::instance());
     #endif //WITH_FILESYSTEM
+
+    #ifdef WITH_NETWORKING
+    Thread::create(network::netStackThread,MAIN_STACK_SIZE,DEFAULT_PRIORITY,
+        nullptr,Thread::DETACHED);
+    #endif //WITH_NETWORKING
 }
 
 //
