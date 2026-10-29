@@ -35,7 +35,7 @@
 namespace miosix
 {
     
-#ifdef WITH_FILESYSTEM
+#ifdef WITH_FATFS
 
 namespace Fat32
 {
@@ -169,6 +169,6 @@ private:
     bool failed; ///< Failed to mount
 };
 
-#endif //WITH_FILESYSTEM
+#endif //WITH_FATFS
 
 } //namespace miosix

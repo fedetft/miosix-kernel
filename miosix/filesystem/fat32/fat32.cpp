@@ -47,7 +47,7 @@ using namespace std;
 
 namespace miosix {
     
-#ifdef WITH_FILESYSTEM
+#ifdef WITH_FATFS
 
 /**
  * Translate between FATFS error codes and POSIX ones
@@ -620,7 +620,7 @@ int Fat32Fs::unlinkRmdirHelper(StringPart& name, bool delDir)
     return translateError(f_unlink(&filesystem,name.c_str()));
 }
 
-#endif //WITH_FILESYSTEM
+#endif //WITH_FATFS
 
 } //namespace miosix
 // #endif // Raul Radu: removed since we want both ExFat and Fat32 simultaneously

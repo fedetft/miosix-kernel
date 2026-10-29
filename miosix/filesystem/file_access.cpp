@@ -1313,8 +1313,10 @@ static intrusive_ref_ptr<FilesystemBase> tryMount(
 {
     switch (partitionType)
     {
+    #ifdef WITH_FATFS
     case PartitionType::FAT32:
         return intrusive_ref_ptr<Fat32Fs>(new Fat32Fs(disk));
+    #endif
     #ifdef WITH_EXFAT
     case PartitionType::EXFAT:
         return intrusive_ref_ptr<ExFatFs>(new ExFatFs(disk));
