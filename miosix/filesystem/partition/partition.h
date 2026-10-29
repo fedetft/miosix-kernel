@@ -130,7 +130,7 @@ public:
             return StringPart("unkowndevpart");
         }
         const auto& backendName = backend->getName();
-        snprintf(partNamePrefix, 250, "%sp", backendName.c_str());
+        sniprintf(partNamePrefix, 250, "%sp", backendName.c_str());
         return StringPart(partNamePrefix);
     }
 

@@ -350,7 +350,7 @@ bool DevFs::addDevice(intrusive_ref_ptr<Device> dev)
     auto const isTTY=dev->isatty();
     for(uint16_t postfix=0; postfix<0xffffu; postfix++) // we can add up to 2^16 devices of the same type
     {
-        snprintf(devNameBuf,255,"%s%s%hu",isTTY ? "tty":"",devPrefix.c_str(),postfix);
+        sniprintf(devNameBuf,255,"%s%s%hu",isTTY ? "tty":"",devPrefix.c_str(),postfix);
         #ifdef WITH_POSIX_PERMISSIONS
         if (addDevice(devNameBuf,dev,mode,uid,gid))
         #else
