@@ -253,6 +253,7 @@ void RP2040PL022DmaSpi::sendImpl(const D send[], size_t len, unsigned wordSize) 
     {
         FastGlobalIrqLock lock;
         dma_hw->ch[txDmaCh].ctrl_trig=(txDreq<<DMA_CH0_CTRL_TRIG_TREQ_SEL_LSB)
+                               |(txDmaCh<<DMA_CH0_CTRL_TRIG_CHAIN_TO_LSB) // disable chaining!!!!
                                |DMA_CH0_CTRL_TRIG_INCR_READ_BITS
                                |(datasz<<DMA_CH0_CTRL_TRIG_DATA_SIZE_LSB)
                                |DMA_CH0_CTRL_TRIG_EN_BITS;
