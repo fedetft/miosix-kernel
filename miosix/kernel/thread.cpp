@@ -894,6 +894,10 @@ Thread::~Thread()
 Thread *Thread::doCreate(void*(*startfunc)(void*), unsigned int stacksize,
                       void* argv, Options options, bool defaultReent)
 {
+    //To support workloads that keep creating short-lived detached threads
+    //make thread creation a reclamation point for dead threads
+    if(atomicSwap(&existDeleted,0)) Scheduler::removeDeadThreads();
+
     unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+stacksize;
 
     //Align fullStackSize to the platform required stack alignment
