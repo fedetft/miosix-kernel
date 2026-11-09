@@ -353,6 +353,11 @@ Thread *Thread::create(void *(*startfunc)(void *), unsigned int stacksize,
 {
     //Check to see if input parameters are valid
     if(priority.validate()==false || stacksize<STACK_MIN) return nullptr;
+
+    //To support workloads that keep creating short-lived detached threads
+    //make thread creation a reclamation point for dead threads. This avoids
+    //unbounded memory growth when CPU load is high and the idle thread can't run
+    if(atomicSwap(&existDeleted,0)) Scheduler::removeDeadThreads();
     
     Thread *thread=doCreate(startfunc,stacksize,argv,options,false);
     if(thread==nullptr) return nullptr;
@@ -799,6 +804,11 @@ SyscallParameters Thread::switchToUserspace()
 
 Thread *Thread::createUserspace(void *(*startfunc)(void *), Process *proc)
 {
+    //To support workloads that keep creating short-lived detached threads
+    //make thread creation a reclamation point for dead threads. This avoids
+    //unbounded memory growth when CPU load is high and the idle thread can't run
+    if(atomicSwap(&existDeleted,0)) Scheduler::removeDeadThreads();
+
     Thread *thread=doCreate(startfunc,SYSTEM_MODE_PROCESS_STACK_SIZE,nullptr,
             Thread::JOINABLE,false);
     if(thread==nullptr) return nullptr;
@@ -894,10 +904,6 @@ Thread::~Thread()
 Thread *Thread::doCreate(void*(*startfunc)(void*), unsigned int stacksize,
                       void* argv, Options options, bool defaultReent)
 {
-    //To support workloads that keep creating short-lived detached threads
-    //make thread creation a reclamation point for dead threads
-    if(atomicSwap(&existDeleted,0)) Scheduler::removeDeadThreads();
-
     unsigned int fullStackSize=WATERMARK_LEN+CTXSAVE_ON_STACK+stacksize;
 
     //Align fullStackSize to the platform required stack alignment
